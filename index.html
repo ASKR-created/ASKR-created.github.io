@@ -7,7 +7,7 @@
   <style>
     :root{
       --panel: rgba(20,24,31,0.58);
-      --panel-strong: rgba(20,24,31,0.82);
+      --panel-strong: rgba(20,24,31,0.84);
       --panel-border: rgba(255,255,255,0.10);
       --text: #f4f6f8;
       --sub: #c7cfdb;
@@ -72,6 +72,30 @@
       box-shadow:var(--shadow);
       backdrop-filter:blur(10px);
       -webkit-backdrop-filter:blur(10px);
+      overflow:hidden;
+    }
+
+    .panelHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      cursor:pointer;
+      user-select:none;
+    }
+
+    .panelHeaderTitle{
+      font-size:13px;
+      font-weight:800;
+      color:#fff;
+      margin:0;
+    }
+
+    .toggleMark{
+      font-size:12px;
+      color:#fff;
+      opacity:0.9;
+      flex-shrink:0;
     }
 
     #topPanel{
@@ -79,6 +103,10 @@
       left:10px;
       right:10px;
       padding:12px 14px;
+    }
+
+    #topPanelContent{
+      margin-top:8px;
     }
 
     #title{
@@ -140,7 +168,7 @@
     #loading{
       position:absolute;
       left:50%;
-      bottom:calc(20px + var(--safe-bottom));
+      bottom:calc(110px + var(--safe-bottom));
       transform:translateX(-50%);
       z-index:25;
       padding:8px 14px;
@@ -156,31 +184,16 @@
       z-index:22;
       left:10px;
       right:10px;
-      bottom:calc(70px + var(--safe-bottom));
+      bottom:calc(118px + var(--safe-bottom));
       padding:10px;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      max-height:42vh;
-      overflow:auto;
-      transform:translateY(0);
-      opacity:1;
-      pointer-events:auto;
-      transition:transform 0.25s ease, opacity 0.25s ease;
+      max-height:34vh;
       background:var(--panel-strong);
     }
 
-    #modelPanel.collapsed{
-      transform:translateY(16px);
-      opacity:0;
-      pointer-events:none;
-    }
-
-    #modelPanelTitle{
-      font-size:13px;
-      font-weight:800;
-      color:#fff;
-      margin:0 0 2px 0;
+    #modelPanelContent{
+      margin-top:8px;
+      max-height:calc(34vh - 34px);
+      overflow:auto;
     }
 
     #modelList{
@@ -226,7 +239,7 @@
       right:10px;
       bottom:calc(10px + var(--safe-bottom));
       display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap:10px;
       align-items:center;
     }
@@ -249,6 +262,11 @@
       background:rgba(20,24,31,0.64);
       border:1px solid rgba(255,255,255,0.10);
       box-shadow:none;
+    }
+
+    .btn:disabled{
+      opacity:0.45;
+      cursor:default;
     }
 
     .btn:active,
@@ -342,6 +360,10 @@
       white-space:pre-line;
     }
 
+    .collapsedContent{
+      display:none;
+    }
+
     /* スマホ横向き */
     @media (max-width: 899px) and (orientation: landscape){
       #topPanel{
@@ -370,7 +392,7 @@
       #hintBubble{
         top:auto;
         right:12px;
-        bottom:66px;
+        bottom:114px;
         max-width:160px;
       }
 
@@ -378,15 +400,19 @@
         left:auto;
         right:10px;
         width:250px;
-        bottom:66px;
-        max-height:48vh;
+        bottom:114px;
+        max-height:40vh;
+      }
+
+      #modelPanelContent{
+        max-height:calc(40vh - 34px);
       }
 
       #uiBar{
         left:auto;
         right:10px;
         width:250px;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
         bottom:10px;
       }
 
@@ -421,11 +447,16 @@
         max-height:260px;
       }
 
+      #modelPanelContent{
+        max-height:200px;
+      }
+
       #uiBar{
         left:auto;
         right:16px;
         width:270px;
         bottom:16px;
+        grid-template-columns: 1fr 1fr;
       }
 
       .btn{
@@ -472,26 +503,36 @@
     </div>
 
     <div id="topPanel" class="panel">
-      <div id="title">3Dビューア</div>
+      <div id="topPanelHeader" class="panelHeader">
+        <div class="panelHeaderTitle">3Dビューア</div>
+        <div id="topToggleMark" class="toggleMark">▼</div>
+      </div>
 
-      <div class="label">表示中のデータ</div>
-      <div id="currentData" class="value">未選択</div>
+      <div id="topPanelContent">
+        <div class="label">表示中のデータ</div>
+        <div id="currentData" class="value">未選択</div>
 
-      <div class="label">操作方法</div>
-      <div class="value">1本指で回転 / 2本指で移動・拡大縮小</div>
+        <div class="label">操作方法</div>
+        <div class="value">1本指で回転 / 2本指で移動・拡大縮小</div>
 
-      <div id="status">待機中...</div>
+        <div id="status">待機中...</div>
+      </div>
     </div>
 
     <div id="hintBubble">モデルを指で動かせます</div>
 
-    <div id="modelPanel" class="panel collapsed">
-      <div id="modelPanelTitle">モデル一覧</div>
-      <div id="modelList"></div>
+    <div id="modelPanel" class="panel">
+      <div id="modelPanelHeader" class="panelHeader">
+        <div class="panelHeaderTitle">モデル一覧</div>
+        <div id="modelToggleMark" class="toggleMark">▼</div>
+      </div>
+
+      <div id="modelPanelContent">
+        <div id="modelList"></div>
+      </div>
     </div>
 
     <div id="uiBar">
-      <button id="listToggleBtn" class="btn sub" type="button">モデル一覧</button>
       <button id="arBtn" class="btn sub" type="button">AR切替</button>
       <button id="resetBtn" class="btn" type="button">視点リセット</button>
     </div>
@@ -517,10 +558,15 @@
     const loadingEl = document.getElementById("loading");
     const resetBtn = document.getElementById("resetBtn");
     const arBtn = document.getElementById("arBtn");
-    const listToggleBtn = document.getElementById("listToggleBtn");
     const hintBubble = document.getElementById("hintBubble");
     const modelList = document.getElementById("modelList");
-    const modelPanel = document.getElementById("modelPanel");
+
+    const topPanelContent = document.getElementById("topPanelContent");
+    const modelPanelContent = document.getElementById("modelPanelContent");
+    const topPanelHeader = document.getElementById("topPanelHeader");
+    const modelPanelHeader = document.getElementById("modelPanelHeader");
+    const topToggleMark = document.getElementById("topToggleMark");
+    const modelToggleMark = document.getElementById("modelToggleMark");
 
     let scene = null;
     let camera = null;
@@ -531,6 +577,9 @@
     let hintTimer = null;
     let modelFiles = [];
     let viewerReady = false;
+
+    let topPanelOpen = true;
+    let modelPanelOpen = true;
 
     function setStatus(text, color = "") {
       statusEl.textContent = text;
@@ -555,6 +604,34 @@
 
     function normalizeInput(value) {
       return value.replace(/ｐ/g, "p").replace(/Ｐ/g, "P").trim();
+    }
+
+    function applyPanelState() {
+      topPanelContent.style.display = topPanelOpen ? "block" : "none";
+      modelPanelContent.style.display = modelPanelOpen ? "block" : "none";
+      topToggleMark.textContent = topPanelOpen ? "▼" : "▶";
+      modelToggleMark.textContent = modelPanelOpen ? "▼" : "▶";
+    }
+
+    function setInitialPanelState() {
+      if (window.innerWidth >= 900) {
+        topPanelOpen = true;
+        modelPanelOpen = true;
+      } else {
+        topPanelOpen = false;
+        modelPanelOpen = false;
+      }
+      applyPanelState();
+    }
+
+    function toggleTopPanel() {
+      topPanelOpen = !topPanelOpen;
+      applyPanelState();
+    }
+
+    function toggleModelPanel() {
+      modelPanelOpen = !modelPanelOpen;
+      applyPanelState();
     }
 
     function getRepoInfo() {
@@ -792,14 +869,11 @@
         empty.textContent = "モデルデータはありません";
         modelList.appendChild(empty);
         setCurrentData("モデルデータはありません", "#ff8484");
-        listToggleBtn.disabled = true;
         arBtn.disabled = true;
         return;
       }
 
-      listToggleBtn.disabled = false;
-
-      files.forEach((file, index) => {
+      files.forEach((file) => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "modelBtn";
@@ -810,7 +884,8 @@
           try {
             await loadModel(file);
             if (window.innerWidth < 900) {
-              collapseModelPanel();
+              modelPanelOpen = false;
+              applyPanelState();
             }
           } catch (error) {
             console.error(error);
@@ -818,32 +893,10 @@
         });
 
         modelList.appendChild(btn);
-
-        if (index === 0) {
-          currentModelFile = file;
-        }
       });
 
       updateModelButtons();
       updateArButtonState();
-    }
-
-    function collapseModelPanel() {
-      modelPanel.classList.add("collapsed");
-      listToggleBtn.textContent = "モデル一覧";
-    }
-
-    function openModelPanel() {
-      modelPanel.classList.remove("collapsed");
-      listToggleBtn.textContent = "一覧を閉じる";
-    }
-
-    function toggleModelPanel() {
-      if (modelPanel.classList.contains("collapsed")) {
-        openModelPanel();
-      } else {
-        collapseModelPanel();
-      }
     }
 
     function getArFileFromCurrentObj() {
@@ -854,7 +907,6 @@
     function updateArButtonState() {
       const enabled = !!currentModelFile;
       arBtn.disabled = !enabled;
-      arBtn.style.opacity = enabled ? "1" : "0.45";
     }
 
     function openArPage() {
@@ -904,11 +956,7 @@
         sessionStorage.setItem("obj_viewer_unlocked", "1");
         gate.style.display = "none";
 
-        if (window.innerWidth >= 900) {
-          openModelPanel();
-        } else {
-          collapseModelPanel();
-        }
+        setInitialPanelState();
       } catch (error) {
         console.error(error);
         gateMsg.textContent = "起動に失敗しました";
@@ -918,6 +966,9 @@
         unlockBtn.textContent = "開く";
       }
     }
+
+    topPanelHeader.addEventListener("click", toggleTopPanel);
+    modelPanelHeader.addEventListener("click", toggleModelPanel);
 
     unlockBtn.addEventListener("click", unlockViewer);
 
@@ -932,8 +983,9 @@
       if (hintBubble) hintBubble.style.opacity = "0";
     });
 
-    listToggleBtn.addEventListener("click", toggleModelPanel);
     arBtn.addEventListener("click", openArPage);
+
+    setInitialPanelState();
 
     if (sessionStorage.getItem("obj_viewer_unlocked") === "1") {
       passwordInput.value = PASSWORD;
