@@ -143,7 +143,7 @@
       display:flex;
       flex-direction:column;
       gap:8px;
-      max-height:170px;
+      max-height:190px;
       overflow:auto;
     }
 
@@ -178,6 +178,16 @@
     .modelBtn.active{
       background:linear-gradient(180deg,var(--accent),var(--accent2));
       border-color:rgba(255,255,255,0.18);
+    }
+
+    .emptyBox{
+      padding:14px 12px;
+      border-radius:12px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.08);
+      color:var(--sub);
+      font-size:13px;
+      line-height:1.7;
     }
 
     #bottomBar{
@@ -260,7 +270,7 @@
       <div id="title">OBJビューア</div>
       <p id="subText">
         1本指で回転 / 2本指で移動・拡大縮小<br>
-        下の一覧からOBJを選択
+        アップロード済みのOBJだけ一覧表示
       </p>
       <div id="status">準備中...</div>
     </div>
@@ -285,12 +295,6 @@
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
     import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 
-    const MODELS = [
-      { name: "モデル1", file: "model1.obj" },
-      { name: "モデル2", file: "model2.obj" },
-      { name: "モデル3", file: "model3.obj" }
-    ];
-
     const viewer = document.getElementById("viewer");
     const statusEl = document.getElementById("status");
     const loadingEl = document.getElementById("loading");
@@ -306,6 +310,7 @@
     let currentObject = null;
     let currentModelFile = "";
     let hintTimer = null;
+    let modelFiles = [];
 
     function setStatus(text, color = "") {
       statusEl.textContent = text;
@@ -321,6 +326,42 @@
       hintTimer = setTimeout(() => {
         if (hintBubble) hintBubble.style.opacity = "0";
       }, 3200);
+    }
+
+    function getRepoInfo() {
+      const host = location.hostname.toLowerCase();
+      const path = location.pathname.replace(/^\/+|\/+$/g, "");
+      if (host.endsWith(".github.io")) {
+        const owner = host.replace(".github.io", "");
+        const pathParts = path ? path.split("/") : [];
+        const repo = pathParts.length > 0 ? pathParts[0] : `${owner}.github.io`;
+        return { owner, repo };
+      }
+      return null;
+    }
+
+    async function fetchObjFilesFromGitHub() {
+      const repoInfo = getRepoInfo();
+      if (!repoInfo) {
+        throw new Error("GitHub Pages のURLとして認識できません");
+      }
+
+      const apiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents`;
+      const response = await fetch(apiUrl, {
+        headers: {
+          "Accept": "application/vnd.github+json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`GitHub API エラー: ${response.status}`);
+      }
+
+      const items = await response.json();
+      return items
+        .filter((item) => item.type === "file" && /\.obj$/i.test(item.name))
+        .map((item) => item.name)
+        .sort((a, b) => a.localeCompare(b, "ja"));
     }
 
     function initThree() {
@@ -532,25 +573,37 @@
       });
     }
 
-    function buildModelList() {
+    function buildModelList(files) {
       modelList.innerHTML = "";
 
-      MODELS.forEach((model) => {
+      if (!files.length) {
+        const empty = document.createElement("div");
+        empty.className = "emptyBox";
+        empty.textContent = "モデルデータはありません";
+        modelList.appendChild(empty);
+        return;
+      }
+
+      files.forEach((file, index) => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "modelBtn";
-        btn.textContent = model.name + " (" + model.file + ")";
-        btn.dataset.file = model.file;
+        btn.textContent = file;
+        btn.dataset.file = file;
 
         btn.addEventListener("click", async () => {
           try {
-            await loadModel(model.file);
+            await loadModel(file);
           } catch (error) {
             console.error(error);
           }
         });
 
         modelList.appendChild(btn);
+
+        if (index === 0) {
+          currentModelFile = file;
+        }
       });
 
       updateModelButtons();
@@ -580,12 +633,15 @@
 
     try {
       initThree();
-      buildModelList();
+      setStatus("モデル一覧を確認中...");
 
-      if (MODELS.length > 0) {
-        loadModel(MODELS[0].file).catch(() => {});
+      modelFiles = await fetchObjFilesFromGitHub();
+      buildModelList(modelFiles);
+
+      if (modelFiles.length === 0) {
+        setStatus("モデルデータはありません", "#ff8484");
       } else {
-        setStatus("モデル一覧が空です", "#ff8484");
+        setStatus("モデルデータを検出しました: " + modelFiles.length + "件", "#79d98f");
       }
     } catch (error) {
       console.error(error);
