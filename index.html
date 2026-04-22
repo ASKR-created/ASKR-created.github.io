@@ -6,7 +6,8 @@
   <title>3Dビューア</title>
   <style>
     :root{
-      --panel: rgba(20,24,31,0.68);
+      --panel: rgba(20,24,31,0.58);
+      --panel-strong: rgba(20,24,31,0.82);
       --panel-border: rgba(255,255,255,0.10);
       --text: #f4f6f8;
       --sub: #c7cfdb;
@@ -14,7 +15,7 @@
       --accent2: #2b78de;
       --ok: #79d98f;
       --danger: #ff8484;
-      --shadow: 0 10px 30px rgba(0,0,0,0.22);
+      --shadow: 0 10px 30px rgba(0,0,0,0.18);
       --radius: 16px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
       --safe-top: env(safe-area-inset-top, 0px);
@@ -77,19 +78,19 @@
       top:calc(10px + var(--safe-top));
       left:10px;
       right:10px;
-      padding:14px 16px;
+      padding:12px 14px;
     }
 
     #title{
-      margin:0 0 10px 0;
+      margin:0 0 8px 0;
       font-size:17px;
       font-weight:800;
-      line-height:1.4;
+      line-height:1.35;
     }
 
     .label{
-      margin:10px 0 4px 0;
-      font-size:12px;
+      margin:8px 0 2px 0;
+      font-size:11px;
       font-weight:700;
       color:#ffffff;
       opacity:0.95;
@@ -97,8 +98,8 @@
 
     .value{
       margin:0;
-      font-size:13px;
-      line-height:1.7;
+      font-size:12px;
+      line-height:1.55;
       color:var(--sub);
       word-break:break-word;
       white-space:pre-line;
@@ -111,8 +112,8 @@
 
     #status{
       margin-top:8px;
-      font-size:12px;
-      line-height:1.6;
+      font-size:11px;
+      line-height:1.45;
       color:var(--sub);
       white-space:pre-line;
       word-break:break-word;
@@ -121,16 +122,16 @@
     #hintBubble{
       position:absolute;
       right:10px;
-      top:calc(188px + var(--safe-top));
+      top:calc(132px + var(--safe-top));
       z-index:18;
-      padding:10px 12px;
+      padding:8px 10px;
       border-radius:14px;
-      background:rgba(0,0,0,0.28);
+      background:rgba(0,0,0,0.18);
       border:1px solid rgba(255,255,255,0.10);
-      font-size:12px;
-      line-height:1.6;
+      font-size:11px;
+      line-height:1.5;
       color:#eef3fb;
-      max-width:220px;
+      max-width:170px;
       pointer-events:none;
       opacity:1;
       transition:opacity 0.4s ease;
@@ -139,12 +140,12 @@
     #loading{
       position:absolute;
       left:50%;
-      bottom:calc(110px + var(--safe-bottom));
+      bottom:calc(20px + var(--safe-bottom));
       transform:translateX(-50%);
       z-index:25;
-      padding:10px 16px;
+      padding:8px 14px;
       border-radius:999px;
-      font-size:12px;
+      font-size:11px;
       background:rgba(0,0,0,0.52);
       border:1px solid rgba(255,255,255,0.14);
       display:none;
@@ -152,6 +153,7 @@
     }
 
     #modelPanel{
+      z-index:22;
       left:10px;
       right:10px;
       bottom:calc(70px + var(--safe-bottom));
@@ -159,8 +161,19 @@
       display:flex;
       flex-direction:column;
       gap:8px;
-      max-height:200px;
+      max-height:42vh;
       overflow:auto;
+      transform:translateY(0);
+      opacity:1;
+      pointer-events:auto;
+      transition:transform 0.25s ease, opacity 0.25s ease;
+      background:var(--panel-strong);
+    }
+
+    #modelPanel.collapsed{
+      transform:translateY(16px);
+      opacity:0;
+      pointer-events:none;
     }
 
     #modelPanelTitle{
@@ -178,14 +191,14 @@
 
     .modelBtn{
       width:100%;
-      min-height:42px;
+      min-height:40px;
       border:none;
       border-radius:12px;
       color:#fff;
       font-size:14px;
       font-weight:700;
       text-align:left;
-      padding:10px 12px;
+      padding:9px 11px;
       cursor:pointer;
       background:rgba(255,255,255,0.08);
       border:1px solid rgba(255,255,255,0.10);
@@ -206,31 +219,39 @@
       line-height:1.7;
     }
 
-    #bottomBar{
+    #uiBar{
+      position:absolute;
+      z-index:23;
       left:10px;
       right:10px;
       bottom:calc(10px + var(--safe-bottom));
-      padding:10px;
-      display:flex;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
       gap:10px;
       align-items:center;
-      justify-content:center;
     }
 
-    .bigBtn{
-      width:100%;
-      height:48px;
+    .btn{
+      min-height:46px;
       border:none;
       border-radius:14px;
       color:#fff;
-      font-size:14px;
+      font-size:13px;
       font-weight:800;
       cursor:pointer;
       background:linear-gradient(180deg,var(--accent),var(--accent2));
-      box-shadow:0 6px 16px rgba(43,120,222,0.24);
+      box-shadow:0 6px 16px rgba(43,120,222,0.20);
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
     }
 
-    .bigBtn:active,
+    .btn.sub{
+      background:rgba(20,24,31,0.64);
+      border:1px solid rgba(255,255,255,0.10);
+      box-shadow:none;
+    }
+
+    .btn:active,
     .modelBtn:active,
     #unlockBtn:active{
       transform:scale(0.985);
@@ -321,86 +342,95 @@
       white-space:pre-line;
     }
 
-    /* PC最適化 */
+    /* スマホ横向き */
+    @media (max-width: 899px) and (orientation: landscape){
+      #topPanel{
+        left:10px;
+        right:auto;
+        width:280px;
+        top:10px;
+        padding:10px 12px;
+      }
+
+      #title{
+        font-size:15px;
+        margin-bottom:6px;
+      }
+
+      .label{
+        font-size:10px;
+        margin-top:6px;
+      }
+
+      .value, #status{
+        font-size:11px;
+        line-height:1.4;
+      }
+
+      #hintBubble{
+        top:auto;
+        right:12px;
+        bottom:66px;
+        max-width:160px;
+      }
+
+      #modelPanel{
+        left:auto;
+        right:10px;
+        width:250px;
+        bottom:66px;
+        max-height:48vh;
+      }
+
+      #uiBar{
+        left:auto;
+        right:10px;
+        width:250px;
+        grid-template-columns: 1fr 1fr 1fr;
+        bottom:10px;
+      }
+
+      .btn{
+        min-height:38px;
+        font-size:12px;
+        border-radius:12px;
+      }
+    }
+
+    /* PC */
     @media (min-width: 900px){
       #topPanel{
         left:16px;
         top:16px;
         right:auto;
-        width:340px;
+        width:320px;
         padding:12px 14px;
-      }
-
-      #title{
-        font-size:15px;
-        margin-bottom:8px;
-      }
-
-      .label{
-        margin:8px 0 3px 0;
-        font-size:11px;
-      }
-
-      .value{
-        font-size:12px;
-        line-height:1.55;
-      }
-
-      #status{
-        font-size:11px;
-        line-height:1.5;
-        margin-top:6px;
       }
 
       #hintBubble{
         right:16px;
         top:16px;
-        max-width:180px;
-        font-size:11px;
-        padding:8px 10px;
-        background:rgba(0,0,0,0.20);
+        max-width:170px;
       }
 
       #modelPanel{
         left:auto;
         right:16px;
-        bottom:78px;
-        width:290px;
-        max-height:220px;
-        padding:10px;
+        width:270px;
+        bottom:70px;
+        max-height:260px;
       }
 
-      #modelPanelTitle{
-        font-size:12px;
-      }
-
-      .modelBtn{
-        min-height:36px;
-        font-size:13px;
-        padding:8px 10px;
-        border-radius:10px;
-      }
-
-      #bottomBar{
+      #uiBar{
         left:auto;
         right:16px;
+        width:270px;
         bottom:16px;
-        width:290px;
-        padding:8px;
       }
 
-      .bigBtn{
-        height:40px;
-        font-size:13px;
-        border-radius:12px;
-      }
-
-      #loading{
-        bottom:20px;
-        left:50%;
-        transform:translateX(-50%);
-        font-size:11px;
-        padding:8px 14px;
+      .btn{
+        min-height:40px;
+        font-size:12px;
       }
     }
   </style>
@@ -455,13 +485,15 @@
 
     <div id="hintBubble">モデルを指で動かせます</div>
 
-    <div id="modelPanel" class="panel">
+    <div id="modelPanel" class="panel collapsed">
       <div id="modelPanelTitle">モデル一覧</div>
       <div id="modelList"></div>
     </div>
 
-    <div id="bottomBar" class="panel">
-      <button id="resetBtn" class="bigBtn" type="button">視点リセット</button>
+    <div id="uiBar">
+      <button id="listToggleBtn" class="btn sub" type="button">モデル一覧</button>
+      <button id="arBtn" class="btn sub" type="button">AR切替</button>
+      <button id="resetBtn" class="btn" type="button">視点リセット</button>
     </div>
 
     <div id="loading">モデルを読み込み中...</div>
@@ -484,8 +516,11 @@
     const currentDataEl = document.getElementById("currentData");
     const loadingEl = document.getElementById("loading");
     const resetBtn = document.getElementById("resetBtn");
+    const arBtn = document.getElementById("arBtn");
+    const listToggleBtn = document.getElementById("listToggleBtn");
     const hintBubble = document.getElementById("hintBubble");
     const modelList = document.getElementById("modelList");
+    const modelPanel = document.getElementById("modelPanel");
 
     let scene = null;
     let camera = null;
@@ -515,7 +550,7 @@
       if (hintTimer) clearTimeout(hintTimer);
       hintTimer = setTimeout(() => {
         if (hintBubble) hintBubble.style.opacity = "0";
-      }, 3200);
+      }, 2600);
     }
 
     function normalizeInput(value) {
@@ -713,6 +748,7 @@
       currentModelFile = file;
       updateModelButtons();
       setCurrentData(file, "#79d98f");
+      updateArButtonState();
 
       return new Promise((resolve, reject) => {
         const loader = new OBJLoader();
@@ -756,8 +792,12 @@
         empty.textContent = "モデルデータはありません";
         modelList.appendChild(empty);
         setCurrentData("モデルデータはありません", "#ff8484");
+        listToggleBtn.disabled = true;
+        arBtn.disabled = true;
         return;
       }
+
+      listToggleBtn.disabled = false;
 
       files.forEach((file, index) => {
         const btn = document.createElement("button");
@@ -769,6 +809,9 @@
         btn.addEventListener("click", async () => {
           try {
             await loadModel(file);
+            if (window.innerWidth < 900) {
+              collapseModelPanel();
+            }
           } catch (error) {
             console.error(error);
           }
@@ -782,6 +825,46 @@
       });
 
       updateModelButtons();
+      updateArButtonState();
+    }
+
+    function collapseModelPanel() {
+      modelPanel.classList.add("collapsed");
+      listToggleBtn.textContent = "モデル一覧";
+    }
+
+    function openModelPanel() {
+      modelPanel.classList.remove("collapsed");
+      listToggleBtn.textContent = "一覧を閉じる";
+    }
+
+    function toggleModelPanel() {
+      if (modelPanel.classList.contains("collapsed")) {
+        openModelPanel();
+      } else {
+        collapseModelPanel();
+      }
+    }
+
+    function getArFileFromCurrentObj() {
+      if (!currentModelFile) return "";
+      return currentModelFile.replace(/\.obj$/i, ".glb");
+    }
+
+    function updateArButtonState() {
+      const enabled = !!currentModelFile;
+      arBtn.disabled = !enabled;
+      arBtn.style.opacity = enabled ? "1" : "0.45";
+    }
+
+    function openArPage() {
+      if (!currentModelFile) {
+        setStatus("表示中のOBJがありません", "#ff8484");
+        return;
+      }
+      const glbFile = getArFileFromCurrentObj();
+      const url = `ar.html?file=${encodeURIComponent(glbFile)}`;
+      window.location.href = url;
     }
 
     async function unlockViewer() {
@@ -820,6 +903,12 @@
 
         sessionStorage.setItem("obj_viewer_unlocked", "1");
         gate.style.display = "none";
+
+        if (window.innerWidth >= 900) {
+          openModelPanel();
+        } else {
+          collapseModelPanel();
+        }
       } catch (error) {
         console.error(error);
         gateMsg.textContent = "起動に失敗しました";
@@ -842,6 +931,9 @@
       resetCamera();
       if (hintBubble) hintBubble.style.opacity = "0";
     });
+
+    listToggleBtn.addEventListener("click", toggleModelPanel);
+    arBtn.addEventListener("click", openArPage);
 
     if (sessionStorage.getItem("obj_viewer_unlocked") === "1") {
       passwordInput.value = PASSWORD;
