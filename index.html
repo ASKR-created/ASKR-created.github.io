@@ -27,6 +27,7 @@
       --accent2: #2b78de;
       --ok: #79d98f;
       --danger: #ff8484;
+      --warn: #ffd36b;
       --shadow: 0 10px 30px rgba(0,0,0,0.18);
       --radius: 16px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -159,6 +160,11 @@
       word-break:break-word;
     }
 
+    #animStatus{
+      color: var(--warn);
+      font-weight: 700;
+    }
+
     #hintBubble{
       position:absolute;
       right:10px;
@@ -171,7 +177,7 @@
       font-size:11px;
       line-height:1.5;
       color:#eef3fb;
-      max-width:170px;
+      max-width:190px;
       pointer-events:none;
       opacity:1;
       transition:opacity 0.4s ease;
@@ -412,7 +418,7 @@
         top:auto;
         right:12px;
         bottom:66px;
-        max-width:160px;
+        max-width:190px;
       }
 
       #modelPanel{
@@ -453,7 +459,7 @@
       #hintBubble{
         right:16px;
         top:16px;
-        max-width:170px;
+        max-width:190px;
       }
 
       #modelPanel{
@@ -524,14 +530,18 @@
         <div class="label">対応形式</div>
         <div class="value">OBJ / FBX / GLB / GLTF</div>
 
+        <div class="label">アニメーション</div>
+        <div id="animStatus" class="value">アニメーションなし</div>
+
         <div class="label">操作方法</div>
-        <div class="value">1本指で回転 / 2本指で移動・拡大縮小</div>
+        <div class="value">1本指で回転 / 2本指で移動・拡大縮小
+モデルを軽くタップで再生 / 停止</div>
 
         <div id="status">待機中...</div>
       </div>
     </div>
 
-    <div id="hintBubble">モデルを指で動かせます</div>
+    <div id="hintBubble">モデルを軽くタップするとアニメーション再生 / 停止</div>
 
     <div id="modelPanel" class="panel">
       <div id="modelPanelHeader" class="panelHeader">
@@ -584,6 +594,7 @@
 
     const statusEl = document.getElementById("status");
     const currentDataEl = document.getElementById("currentData");
+    const animStatusEl = document.getElementById("animStatus");
     const loadingEl = document.getElementById("loading");
     const resetBtn = document.getElementById("resetBtn");
     const arBtn = document.getElementById("arBtn");
@@ -612,6 +623,17 @@
     let topPanelOpen = true;
     let modelPanelOpen = true;
 
+    let mixer = null;
+    let animationActions = [];
+    let currentAnimations = [];
+    let isAnimationPlaying = false;
+    let clock = null;
+
+    let pointerDownX = 0;
+    let pointerDownY = 0;
+    let pointerDownTime = 0;
+    let pointerMoved = false;
+
     function setStatus(text, color = "") {
       statusEl.textContent = text;
       statusEl.style.color = color || "";
@@ -622,6 +644,11 @@
       currentDataEl.style.color = color || "";
     }
 
+    function setAnimStatus(text, color = "") {
+      animStatusEl.textContent = text;
+      animStatusEl.style.color = color || "";
+    }
+
     function setLoading(flag) {
       loadingEl.style.display = flag ? "block" : "none";
     }
@@ -630,7 +657,7 @@
       if (hintTimer) clearTimeout(hintTimer);
       hintTimer = setTimeout(() => {
         if (hintBubble) hintBubble.style.opacity = "0";
-      }, 2600);
+      }, 3200);
     }
 
     function normalizeInput(value) {
@@ -732,6 +759,7 @@
       if (viewerReady) return;
 
       scene = new THREE.Scene();
+      clock = new THREE.Clock();
 
       camera = new THREE.PerspectiveCamera(
         45,
@@ -777,11 +805,42 @@
       dir2.position.set(-100, 60, -80);
       scene.add(dir2);
 
+      renderer.domElement.addEventListener("pointerdown", onViewerPointerDown, { passive: true });
+      renderer.domElement.addEventListener("pointermove", onViewerPointerMove, { passive: true });
+      renderer.domElement.addEventListener("pointerup", onViewerPointerUp, { passive: true });
+
       window.addEventListener("resize", onResize, { passive: true });
 
       hideHintSoon();
       animate();
       viewerReady = true;
+    }
+
+    function onViewerPointerDown(event) {
+      pointerDownX = event.clientX;
+      pointerDownY = event.clientY;
+      pointerDownTime = performance.now();
+      pointerMoved = false;
+    }
+
+    function onViewerPointerMove(event) {
+      const dx = event.clientX - pointerDownX;
+      const dy = event.clientY - pointerDownY;
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+        pointerMoved = true;
+      }
+    }
+
+    function onViewerPointerUp(event) {
+      const dt = performance.now() - pointerDownTime;
+      const dx = event.clientX - pointerDownX;
+      const dy = event.clientY - pointerDownY;
+
+      const isTap = !pointerMoved && Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 300;
+
+      if (isTap) {
+        toggleAnimation();
+      }
     }
 
     function onResize() {
@@ -793,9 +852,91 @@
 
     function animate() {
       requestAnimationFrame(animate);
+
+      if (mixer) {
+        mixer.update(clock.getDelta());
+      } else if (clock) {
+        clock.getDelta();
+      }
+
       if (controls) controls.update();
       if (renderer && scene && camera) {
         renderer.render(scene, camera);
+      }
+    }
+
+    function clearAnimations() {
+      if (mixer) {
+        mixer.stopAllAction();
+      }
+      mixer = null;
+      animationActions = [];
+      currentAnimations = [];
+      isAnimationPlaying = false;
+      setAnimStatus("アニメーションなし", "#c7cfdb");
+    }
+
+    function setupAnimations(rootObject, animations) {
+      clearAnimations();
+
+      if (!animations || !animations.length) {
+        setAnimStatus("アニメーションなし", "#c7cfdb");
+        return;
+      }
+
+      mixer = new THREE.AnimationMixer(rootObject);
+      currentAnimations = animations;
+      animationActions = animations.map((clip) => {
+        const action = mixer.clipAction(clip);
+        action.loop = THREE.LoopRepeat;
+        action.clampWhenFinished = false;
+        return action;
+      });
+
+      playAnimations();
+    }
+
+    function playAnimations() {
+      if (!animationActions.length) return;
+      animationActions.forEach((action) => {
+        action.reset();
+        action.play();
+      });
+      isAnimationPlaying = true;
+      setAnimStatus("再生中（タップで停止）", "#ffd36b");
+    }
+
+    function pauseAnimations() {
+      if (!animationActions.length) return;
+      animationActions.forEach((action) => {
+        action.paused = true;
+      });
+      isAnimationPlaying = false;
+      setAnimStatus("停止中（タップで再生）", "#ffd36b");
+    }
+
+    function resumeAnimations() {
+      if (!animationActions.length) return;
+      animationActions.forEach((action) => {
+        action.paused = false;
+        action.play();
+      });
+      isAnimationPlaying = true;
+      setAnimStatus("再生中（タップで停止）", "#ffd36b");
+    }
+
+    function toggleAnimation() {
+      if (!animationActions.length) {
+        setStatus("このモデルにアニメーションはありません", "#ff8484");
+        return;
+      }
+
+      if (isAnimationPlaying) {
+        pauseAnimations();
+        setStatus("アニメーションを停止しました", "#ffd36b");
+      } else {
+        resumeAnimations();
+        setStatus("アニメーションを再生しました", "#79d98f");
       }
     }
 
@@ -889,7 +1030,7 @@
             objUrl,
             (object) => {
               applyFallbackMaterial(object);
-              resolve(object);
+              resolve({ object, animations: [] });
             },
             undefined,
             reject
@@ -912,7 +1053,7 @@
 
             objLoader.load(
               encodeURIComponent(getBaseName(relativePath)),
-              (object) => resolve(object),
+              (object) => resolve({ object, animations: [] }),
               undefined,
               () => {
                 const fallback = new OBJLoader();
@@ -920,7 +1061,7 @@
                   objUrl,
                   (object) => {
                     applyFallbackMaterial(object);
-                    resolve(object);
+                    resolve({ object, animations: [] });
                   },
                   undefined,
                   reject
@@ -935,7 +1076,7 @@
               objUrl,
               (object) => {
                 applyFallbackMaterial(object);
-                resolve(object);
+                resolve({ object, animations: [] });
               },
               undefined,
               reject
@@ -950,7 +1091,12 @@
       const loader = new FBXLoader();
 
       return new Promise((resolve, reject) => {
-        loader.load(url, resolve, undefined, reject);
+        loader.load(
+          url,
+          (object) => resolve({ object, animations: object.animations || [] }),
+          undefined,
+          reject
+        );
       });
     }
 
@@ -961,7 +1107,7 @@
       return new Promise((resolve, reject) => {
         loader.load(
           url,
-          (gltf) => resolve(gltf.scene),
+          (gltf) => resolve({ object: gltf.scene, animations: gltf.animations || [] }),
           undefined,
           reject
         );
@@ -977,27 +1123,32 @@
       updateArButtonState();
 
       try {
-        let object = null;
+        let loaded = null;
         const ext = getExt(relativePath);
 
         if (ext === ".obj") {
-          object = await tryLoadObjWithMtl(relativePath);
+          loaded = await tryLoadObjWithMtl(relativePath);
         } else if (ext === ".fbx") {
-          object = await loadFbx(relativePath);
+          loaded = await loadFbx(relativePath);
         } else if (ext === ".glb" || ext === ".gltf") {
-          object = await loadGltf(relativePath);
+          loaded = await loadGltf(relativePath);
         } else {
           throw new Error("未対応形式です: " + ext);
         }
 
         clearCurrentObject();
-        fitObject(object);
-        scene.add(object);
-        currentObject = object;
+        clearAnimations();
+
+        fitObject(loaded.object);
+        scene.add(loaded.object);
+        currentObject = loaded.object;
+
+        setupAnimations(loaded.object, loaded.animations || []);
 
         setStatus("読み込み完了", "#79d98f");
       } catch (error) {
         console.error(error);
+        clearAnimations();
         setStatus("読み込み失敗: " + relativePath + "\n" + (error.message || error), "#ff8484");
       } finally {
         setLoading(false);
