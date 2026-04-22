@@ -8,6 +8,7 @@
   <style>
     :root{
       --panel: rgba(20,24,31,0.62);
+      --panel-strong: rgba(20,24,31,0.84);
       --panel-border: rgba(255,255,255,0.10);
       --text: #f4f6f8;
       --sub: #c7cfdb;
@@ -65,19 +66,19 @@
       top:calc(10px + var(--safe-top));
       left:10px;
       right:10px;
-      padding:14px 16px;
+      padding:12px 14px;
     }
 
     #title{
-      margin:0 0 10px 0;
-      font-size:18px;
+      margin:0 0 8px 0;
+      font-size:17px;
       font-weight:800;
-      line-height:1.4;
+      line-height:1.35;
     }
 
     .label{
-      margin:10px 0 4px 0;
-      font-size:12px;
+      margin:8px 0 2px 0;
+      font-size:11px;
       font-weight:700;
       color:#ffffff;
       opacity:0.95;
@@ -85,20 +86,94 @@
 
     .value{
       margin:0;
-      font-size:13px;
-      line-height:1.7;
+      font-size:12px;
+      line-height:1.55;
+      color:var(--sub);
+      word-break:break-word;
+      white-space:pre-line;
+    }
+
+    #currentData{
+      color:var(--ok);
+      font-weight:700;
+    }
+
+    #status{
+      margin-top:8px;
+      font-size:11px;
+      line-height:1.45;
       color:var(--sub);
       white-space:pre-line;
       word-break:break-word;
     }
 
-    #status{
-      margin-top:8px;
-      font-size:12px;
-      line-height:1.6;
-      color:var(--ok);
-      white-space:pre-line;
-      word-break:break-word;
+    #loading{
+      position:absolute;
+      left:50%;
+      bottom:calc(168px + var(--safe-bottom));
+      transform:translateX(-50%);
+      z-index:25;
+      padding:8px 14px;
+      border-radius:999px;
+      font-size:11px;
+      background:rgba(0,0,0,0.52);
+      border:1px solid rgba(255,255,255,0.14);
+      display:none;
+      white-space:nowrap;
+    }
+
+    #modelPanel{
+      z-index:22;
+      left:10px;
+      right:10px;
+      bottom:calc(118px + var(--safe-bottom));
+      padding:10px;
+      max-height:32vh;
+      overflow:auto;
+      background:var(--panel-strong);
+    }
+
+    #modelPanelTitle{
+      font-size:13px;
+      font-weight:800;
+      color:#fff;
+      margin:0 0 8px 0;
+    }
+
+    #modelList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .modelBtn{
+      width:100%;
+      min-height:40px;
+      border:none;
+      border-radius:12px;
+      color:#fff;
+      font-size:14px;
+      font-weight:700;
+      text-align:left;
+      padding:9px 11px;
+      cursor:pointer;
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.10);
+    }
+
+    .modelBtn.active{
+      background:linear-gradient(180deg,var(--accent),var(--accent2));
+      border-color:rgba(255,255,255,0.18);
+    }
+
+    .emptyBox{
+      padding:14px 12px;
+      border-radius:12px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.08);
+      color:var(--sub);
+      font-size:13px;
+      line-height:1.7;
     }
 
     #bottomPanel{
@@ -107,18 +182,18 @@
       bottom:calc(10px + var(--safe-bottom));
       padding:10px;
       display:grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap:10px;
       align-items:center;
     }
 
     .btn{
       width:100%;
-      height:48px;
+      min-height:44px;
       border:none;
       border-radius:14px;
       color:#fff;
-      font-size:14px;
+      font-size:13px;
       font-weight:800;
       cursor:pointer;
       background:linear-gradient(180deg,var(--accent),var(--accent2));
@@ -131,7 +206,13 @@
       box-shadow:none;
     }
 
-    .btn:active{
+    .btn:disabled{
+      opacity:0.45;
+      cursor:default;
+    }
+
+    .btn:active,
+    .modelBtn:active{
       transform:scale(0.985);
     }
 
@@ -139,7 +220,7 @@
       position:absolute;
       left:10px;
       right:10px;
-      bottom:calc(178px + var(--safe-bottom));
+      bottom:calc(232px + var(--safe-bottom));
       z-index:11;
       padding:12px 14px;
       border-radius:14px;
@@ -156,22 +237,30 @@
       #topPanel{
         left:16px;
         right:auto;
-        width:360px;
+        width:340px;
         top:16px;
+      }
+
+      #modelPanel{
+        left:auto;
+        right:16px;
+        width:300px;
+        bottom:74px;
+        max-height:260px;
       }
 
       #bottomPanel{
         left:auto;
         right:16px;
-        width:320px;
+        width:300px;
         bottom:16px;
       }
 
       #errorBox{
         left:auto;
         right:16px;
-        width:320px;
-        bottom:184px;
+        width:300px;
+        bottom:190px;
       }
     }
   </style>
@@ -197,22 +286,29 @@
       <div id="title">ARビューア</div>
 
       <div class="label">表示中のデータ</div>
-      <div id="fileName" class="value">読み込み中...</div>
+      <div id="fileName" class="value">未選択</div>
 
       <div class="label">操作方法</div>
       <div class="value">通常表示では指で回転・拡大縮小
-AR対応端末では下のARで表示から現実空間に配置</div>
+AR対応端末ではARで表示から現実空間に配置</div>
 
-      <div id="status">読み込み中...</div>
+      <div id="status">準備中...</div>
     </div>
 
     <div id="errorBox"></div>
+
+    <div id="modelPanel" class="panel">
+      <div id="modelPanelTitle">GLB一覧</div>
+      <div id="modelList"></div>
+    </div>
 
     <div id="bottomPanel" class="panel">
       <button id="arBtn" class="btn" type="button">ARで表示</button>
       <button id="resetBtn" class="btn sub" type="button">視点リセット</button>
       <button id="backBtn" class="btn sub" type="button">3Dビューアへ</button>
     </div>
+
+    <div id="loading">モデルを読み込み中...</div>
   </div>
 
   <script>
@@ -223,19 +319,19 @@ AR対応端末では下のARで表示から現実空間に配置</div>
     const resetBtn = document.getElementById("resetBtn");
     const backBtn = document.getElementById("backBtn");
     const fileNameEl = document.getElementById("fileName");
+    const modelList = document.getElementById("modelList");
+    const loadingEl = document.getElementById("loading");
 
-    function getQueryFile() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get("file") || "model.glb";
-    }
-
-    const currentFile = getQueryFile();
-    mv.src = currentFile;
-    fileNameEl.textContent = currentFile;
+    let currentFile = "";
+    let glbFiles = [];
 
     function setStatus(text, isError = false){
       statusEl.textContent = text;
       statusEl.style.color = isError ? "#ff8484" : "#79d98f";
+    }
+
+    function setLoading(flag){
+      loadingEl.style.display = flag ? "block" : "none";
     }
 
     function showError(text){
@@ -249,17 +345,122 @@ AR対応端末では下のARで表示から現実空間に配置</div>
       errorBox.textContent = "";
     }
 
+    function getRepoInfo() {
+      const host = location.hostname.toLowerCase();
+      const path = location.pathname.replace(/^\/+|\/+$/g, "");
+      if (host.endsWith(".github.io")) {
+        const owner = host.replace(".github.io", "");
+        const pathParts = path ? path.split("/") : [];
+        const repo = pathParts.length > 0 ? pathParts[0] : `${owner}.github.io`;
+        return { owner, repo };
+      }
+      return null;
+    }
+
+    async function fetchGlbFilesFromGitHub() {
+      const repoInfo = getRepoInfo();
+      if (!repoInfo) {
+        throw new Error("GitHub Pages のURLとして認識できません");
+      }
+
+      const apiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents`;
+      const response = await fetch(apiUrl, {
+        headers: {
+          "Accept": "application/vnd.github+json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`GitHub API エラー: ${response.status}`);
+      }
+
+      const items = await response.json();
+
+      return items
+        .filter((item) => item.type === "file" && /\.glb$/i.test(item.name))
+        .map((item) => item.name)
+        .sort((a, b) => a.localeCompare(b, "ja"));
+    }
+
+    function getQueryFile() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("file") || "";
+    }
+
+    function updateButtons() {
+      const enabled = !!currentFile;
+      arBtn.disabled = !enabled;
+    }
+
+    function updateListActive() {
+      const buttons = modelList.querySelectorAll(".modelBtn");
+      buttons.forEach((btn) => {
+        if (btn.dataset.file === currentFile) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      });
+    }
+
+    function buildModelList(files) {
+      modelList.innerHTML = "";
+
+      if (!files.length) {
+        const empty = document.createElement("div");
+        empty.className = "emptyBox";
+        empty.textContent = "GLBデータはありません";
+        modelList.appendChild(empty);
+        fileNameEl.textContent = "GLBデータはありません";
+        updateButtons();
+        return;
+      }
+
+      files.forEach((file) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "modelBtn";
+        btn.textContent = file;
+        btn.dataset.file = file;
+
+        btn.addEventListener("click", () => {
+          loadFile(file);
+        });
+
+        modelList.appendChild(btn);
+      });
+
+      updateListActive();
+    }
+
+    function loadFile(file) {
+      currentFile = file;
+      fileNameEl.textContent = file;
+      updateButtons();
+      updateListActive();
+      hideError();
+      setLoading(true);
+      setStatus("読み込み中...");
+      mv.src = file;
+    }
+
     mv.addEventListener("load", () => {
       hideError();
+      setLoading(false);
       setStatus("読み込み完了");
     });
 
     mv.addEventListener("error", () => {
+      setLoading(false);
       showError(currentFile + " の読み込みに失敗しました。\nファイル名やアップロード先を確認してください。");
     });
 
     arBtn.addEventListener("click", async () => {
       try{
+        if (!currentFile) {
+          showError("表示中のGLBがありません。");
+          return;
+        }
         if (typeof mv.activateAR === "function") {
           await mv.activateAR();
         } else {
@@ -281,9 +482,34 @@ AR対応端末では下のARで表示から現実空間に配置</div>
       window.location.href = "index.html";
     });
 
-    window.addEventListener("load", () => {
-      setStatus("読み込み中...");
-    });
+    async function init() {
+      try {
+        setStatus("GLB一覧を確認中...");
+        setLoading(true);
+
+        glbFiles = await fetchGlbFilesFromGitHub();
+        buildModelList(glbFiles);
+
+        if (!glbFiles.length) {
+          setLoading(false);
+          setStatus("GLBデータはありません", true);
+          return;
+        }
+
+        const queryFile = getQueryFile();
+        if (queryFile && glbFiles.includes(queryFile)) {
+          loadFile(queryFile);
+        } else {
+          loadFile(glbFiles[0]);
+        }
+      } catch (e) {
+        setLoading(false);
+        showError("起動に失敗しました。\n" + e.message);
+      }
+    }
+
+    updateButtons();
+    init();
   </script>
 </body>
 </html>
