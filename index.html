@@ -3,22 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>OBJビューア</title>
+  <title>3Dビューア</title>
   <style>
     :root{
-      --bg1:#13161c;
-      --bg2:#1b2028;
-      --panel:rgba(20,24,31,0.88);
-      --panel-border:rgba(255,255,255,0.10);
-      --text:#f4f6f8;
-      --sub:#c7cfdb;
-      --accent:#4ea1ff;
-      --accent2:#2b78de;
-      --ok:#79d98f;
-      --danger:#ff8484;
-      --warn:#ffd38d;
-      --shadow:0 10px 30px rgba(0,0,0,0.34);
-      --radius:16px;
+      --panel: rgba(20,24,31,0.68);
+      --panel-border: rgba(255,255,255,0.10);
+      --text: #f4f6f8;
+      --sub: #c7cfdb;
+      --accent: #4ea1ff;
+      --accent2: #2b78de;
+      --ok: #79d98f;
+      --danger: #ff8484;
+      --shadow: 0 10px 30px rgba(0,0,0,0.22);
+      --radius: 16px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
       --safe-top: env(safe-area-inset-top, 0px);
     }
@@ -28,12 +25,12 @@
       -webkit-tap-highlight-color:transparent;
     }
 
-    html,body{
+    html, body{
       margin:0;
       width:100%;
       height:100%;
       overflow:hidden;
-      background:linear-gradient(180deg,var(--bg1),var(--bg2));
+      background:transparent;
       color:var(--text);
       font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
     }
@@ -47,12 +44,14 @@
       width:100%;
       height:100%;
       overflow:hidden;
+      background:transparent;
     }
 
     #viewer{
       position:absolute;
       inset:0;
       display:block;
+      background:transparent;
     }
 
     canvas{
@@ -60,6 +59,7 @@
       width:100%;
       height:100%;
       touch-action:none;
+      background:transparent !important;
     }
 
     .panel{
@@ -77,21 +77,36 @@
       top:calc(10px + var(--safe-top));
       left:10px;
       right:10px;
-      padding:12px 14px;
+      padding:14px 16px;
     }
 
     #title{
-      margin:0 0 6px 0;
+      margin:0 0 10px 0;
       font-size:17px;
-      font-weight:700;
+      font-weight:800;
       line-height:1.4;
     }
 
-    #subText{
-      margin:0;
+    .label{
+      margin:10px 0 4px 0;
       font-size:12px;
+      font-weight:700;
+      color:#ffffff;
+      opacity:0.95;
+    }
+
+    .value{
+      margin:0;
+      font-size:13px;
       line-height:1.7;
       color:var(--sub);
+      word-break:break-word;
+      white-space:pre-line;
+    }
+
+    #currentData{
+      color:var(--ok);
+      font-weight:700;
     }
 
     #status{
@@ -106,11 +121,11 @@
     #hintBubble{
       position:absolute;
       right:10px;
-      top:calc(96px + var(--safe-top));
+      top:calc(188px + var(--safe-top));
       z-index:18;
       padding:10px 12px;
       border-radius:14px;
-      background:rgba(0,0,0,0.42);
+      background:rgba(0,0,0,0.28);
       border:1px solid rgba(255,255,255,0.10);
       font-size:12px;
       line-height:1.6;
@@ -124,13 +139,13 @@
     #loading{
       position:absolute;
       left:50%;
-      bottom:calc(144px + var(--safe-bottom));
+      bottom:calc(110px + var(--safe-bottom));
       transform:translateX(-50%);
       z-index:25;
       padding:10px 16px;
       border-radius:999px;
       font-size:12px;
-      background:rgba(0,0,0,0.58);
+      background:rgba(0,0,0,0.52);
       border:1px solid rgba(255,255,255,0.14);
       display:none;
       white-space:nowrap;
@@ -144,13 +159,13 @@
       display:flex;
       flex-direction:column;
       gap:8px;
-      max-height:190px;
+      max-height:200px;
       overflow:auto;
     }
 
     #modelPanelTitle{
       font-size:13px;
-      font-weight:700;
+      font-weight:800;
       color:#fff;
       margin:0 0 2px 0;
     }
@@ -199,26 +214,20 @@
       display:flex;
       gap:10px;
       align-items:center;
-      justify-content:space-between;
+      justify-content:center;
     }
 
     .bigBtn{
-      flex:1;
+      width:100%;
       height:48px;
       border:none;
       border-radius:14px;
       color:#fff;
       font-size:14px;
-      font-weight:700;
+      font-weight:800;
       cursor:pointer;
       background:linear-gradient(180deg,var(--accent),var(--accent2));
-      box-shadow:0 6px 16px rgba(43,120,222,0.34);
-    }
-
-    .bigBtn.sub{
-      background:rgba(255,255,255,0.08);
-      border:1px solid rgba(255,255,255,0.10);
-      box-shadow:none;
+      box-shadow:0 6px 16px rgba(43,120,222,0.24);
     }
 
     .bigBtn:active,
@@ -235,15 +244,13 @@
       align-items:center;
       justify-content:center;
       padding:18px 14px;
-      background:
-        radial-gradient(circle at center top, rgba(78,161,255,0.18), transparent 38%),
-        rgba(0,0,0,0.62);
+      background:rgba(0,0,0,0.52);
     }
 
     #gateCard{
       width:100%;
       max-width:420px;
-      background:rgba(18,22,28,0.96);
+      background:rgba(18,22,28,0.94);
       border:1px solid rgba(255,255,255,0.12);
       border-radius:20px;
       box-shadow:0 20px 44px rgba(0,0,0,0.42);
@@ -314,41 +321,86 @@
       white-space:pre-line;
     }
 
-    #note{
-      margin-top:10px;
-      padding:10px 12px;
-      border-radius:12px;
-      font-size:12px;
-      line-height:1.7;
-      color:var(--warn);
-      background:rgba(255,211,141,0.08);
-      border:1px solid rgba(255,211,141,0.16);
-    }
-
-    @media (min-width: 800px){
+    /* PC最適化 */
+    @media (min-width: 900px){
       #topPanel{
-        left:50%;
+        left:16px;
+        top:16px;
         right:auto;
-        width:430px;
-        transform:translateX(-50%);
+        width:340px;
+        padding:12px 14px;
       }
 
-      #modelPanel{
-        left:50%;
-        right:auto;
-        width:430px;
-        transform:translateX(-50%);
+      #title{
+        font-size:15px;
+        margin-bottom:8px;
       }
 
-      #bottomBar{
-        left:50%;
-        right:auto;
-        width:430px;
-        transform:translateX(-50%);
+      .label{
+        margin:8px 0 3px 0;
+        font-size:11px;
+      }
+
+      .value{
+        font-size:12px;
+        line-height:1.55;
+      }
+
+      #status{
+        font-size:11px;
+        line-height:1.5;
+        margin-top:6px;
       }
 
       #hintBubble{
-        right:calc(50% - 330px);
+        right:16px;
+        top:16px;
+        max-width:180px;
+        font-size:11px;
+        padding:8px 10px;
+        background:rgba(0,0,0,0.20);
+      }
+
+      #modelPanel{
+        left:auto;
+        right:16px;
+        bottom:78px;
+        width:290px;
+        max-height:220px;
+        padding:10px;
+      }
+
+      #modelPanelTitle{
+        font-size:12px;
+      }
+
+      .modelBtn{
+        min-height:36px;
+        font-size:13px;
+        padding:8px 10px;
+        border-radius:10px;
+      }
+
+      #bottomBar{
+        left:auto;
+        right:16px;
+        bottom:16px;
+        width:290px;
+        padding:8px;
+      }
+
+      .bigBtn{
+        height:40px;
+        font-size:13px;
+        border-radius:12px;
+      }
+
+      #loading{
+        bottom:20px;
+        left:50%;
+        transform:translateX(-50%);
+        font-size:11px;
+        padding:8px 14px;
       }
     }
   </style>
@@ -369,16 +421,14 @@
     <div id="gate">
       <div id="gateCard">
         <h1 id="gateTitle">閲覧用パスワード</h1>
-        <p id="gateText">
-          共有されたパスワードを入力すると、モデル一覧を表示します。
-        </p>
+        <p id="gateText">共有されたパスワードを入力すると、モデル一覧を表示します。</p>
 
         <div class="field">
           <label for="passwordInput">パスワード</label>
           <input
             id="passwordInput"
             type="password"
-            placeholder="半角で p001 を入力"
+            placeholder="パスワードを入力"
             autocomplete="off"
             autocapitalize="off"
             autocorrect="off"
@@ -388,20 +438,18 @@
 
         <button id="unlockBtn" type="button">開く</button>
         <div id="gateMsg"></div>
-
-        <div id="note">
-          パスワードは <strong>p001</strong> です。<br>
-          間違った場合は「パスワードが違います」と表示されます。
-        </div>
       </div>
     </div>
 
     <div id="topPanel" class="panel">
-      <div id="title">OBJビューア</div>
-      <p id="subText">
-        1本指で回転 / 2本指で移動・拡大縮小<br>
-        アップロード済みのOBJだけ一覧表示
-      </p>
+      <div id="title">3Dビューア</div>
+
+      <div class="label">表示中のデータ</div>
+      <div id="currentData" class="value">未選択</div>
+
+      <div class="label">操作方法</div>
+      <div class="value">1本指で回転 / 2本指で移動・拡大縮小</div>
+
       <div id="status">待機中...</div>
     </div>
 
@@ -414,7 +462,6 @@
 
     <div id="bottomBar" class="panel">
       <button id="resetBtn" class="bigBtn" type="button">視点リセット</button>
-      <button id="copyBtn" class="bigBtn sub" type="button">URLコピー</button>
     </div>
 
     <div id="loading">モデルを読み込み中...</div>
@@ -434,9 +481,9 @@
     const gateMsg = document.getElementById("gateMsg");
 
     const statusEl = document.getElementById("status");
+    const currentDataEl = document.getElementById("currentData");
     const loadingEl = document.getElementById("loading");
     const resetBtn = document.getElementById("resetBtn");
-    const copyBtn = document.getElementById("copyBtn");
     const hintBubble = document.getElementById("hintBubble");
     const modelList = document.getElementById("modelList");
 
@@ -455,6 +502,11 @@
       statusEl.style.color = color || "";
     }
 
+    function setCurrentData(text, color = "") {
+      currentDataEl.textContent = text;
+      currentDataEl.style.color = color || "";
+    }
+
     function setLoading(flag) {
       loadingEl.style.display = flag ? "block" : "none";
     }
@@ -467,10 +519,7 @@
     }
 
     function normalizeInput(value) {
-      return value
-        .replace(/ｐ/g, "p")
-        .replace(/Ｐ/g, "P")
-        .trim();
+      return value.replace(/ｐ/g, "p").replace(/Ｐ/g, "P").trim();
     }
 
     function getRepoInfo() {
@@ -493,9 +542,7 @@
 
       const apiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents`;
       const response = await fetch(apiUrl, {
-        headers: {
-          "Accept": "application/vnd.github+json"
-        }
+        headers: { "Accept": "application/vnd.github+json" }
       });
 
       if (!response.ok) {
@@ -514,7 +561,6 @@
       if (viewerReady) return;
 
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x161a21);
 
       camera = new THREE.PerspectiveCamera(
         45,
@@ -526,10 +572,11 @@
 
       renderer = new THREE.WebGLRenderer({
         antialias: true,
-        alpha: false
+        alpha: true
       });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x000000, 0);
       viewer.appendChild(renderer.domElement);
 
       controls = new OrbitControls(camera, renderer.domElement);
@@ -558,31 +605,6 @@
       const dir2 = new THREE.DirectionalLight(0xffffff, 0.45);
       dir2.position.set(-100, 60, -80);
       scene.add(dir2);
-
-      const ground = new THREE.Mesh(
-        new THREE.CircleGeometry(130, 64),
-        new THREE.MeshStandardMaterial({
-          color: 0x2a313d,
-          roughness: 1.0,
-          metalness: 0.0
-        })
-      );
-      ground.rotation.x = -Math.PI / 2;
-      ground.position.y = 0;
-      scene.add(ground);
-
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(128, 132, 64),
-        new THREE.MeshBasicMaterial({
-          color: 0x4a5568,
-          transparent: true,
-          opacity: 0.65,
-          side: THREE.DoubleSide
-        })
-      );
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.y = 0.02;
-      scene.add(ring);
 
       window.addEventListener("resize", onResize, { passive: true });
 
@@ -633,7 +655,9 @@
           child.material = new THREE.MeshStandardMaterial({
             color: 0xd9dde4,
             roughness: 0.84,
-            metalness: 0.03
+            metalness: 0.03,
+            transparent: true,
+            opacity: 1.0
           });
         }
       });
@@ -688,6 +712,7 @@
       setStatus(file + " を読み込み中...");
       currentModelFile = file;
       updateModelButtons();
+      setCurrentData(file, "#79d98f");
 
       return new Promise((resolve, reject) => {
         const loader = new OBJLoader();
@@ -702,7 +727,7 @@
               scene.add(object);
               currentObject = object;
               setLoading(false);
-              setStatus("表示中: " + file, "#79d98f");
+              setStatus("読み込み完了", "#79d98f");
               resolve();
             } catch (error) {
               console.error(error);
@@ -730,6 +755,7 @@
         empty.className = "emptyBox";
         empty.textContent = "モデルデータはありません";
         modelList.appendChild(empty);
+        setCurrentData("モデルデータはありません", "#ff8484");
         return;
       }
 
@@ -756,21 +782,6 @@
       });
 
       updateModelButtons();
-    }
-
-    async function copyUrl() {
-      if (!navigator.clipboard) {
-        setStatus("URLコピーに未対応です", "#ff8484");
-        return;
-      }
-
-      try {
-        await navigator.clipboard.writeText(location.href);
-        setStatus("URLをコピーしました", "#79d98f");
-      } catch (error) {
-        console.error(error);
-        setStatus("URLコピーに失敗しました", "#ff8484");
-      }
     }
 
     async function unlockViewer() {
@@ -831,8 +842,6 @@
       resetCamera();
       if (hintBubble) hintBubble.style.opacity = "0";
     });
-
-    copyBtn.addEventListener("click", copyUrl);
 
     if (sessionStorage.getItem("obj_viewer_unlocked") === "1") {
       passwordInput.value = PASSWORD;
