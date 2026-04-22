@@ -14,8 +14,6 @@
     }
   </script>
 
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-
   <style>
     :root{
       --panel: rgba(20,24,31,0.58);
@@ -198,14 +196,14 @@
       right:10px;
       bottom:calc(118px + var(--safe-bottom));
       padding:10px;
-      max-height:32vh;
+      max-height:34vh;
       overflow:auto;
       background:var(--panel-strong);
     }
 
     #modelPanelContent{
       margin-top:8px;
-      max-height:calc(32vh - 34px);
+      max-height:calc(34vh - 34px);
       overflow:auto;
     }
 
@@ -221,13 +219,14 @@
       border:none;
       border-radius:12px;
       color:#fff;
-      font-size:14px;
+      font-size:13px;
       font-weight:700;
       text-align:left;
       padding:9px 11px;
       cursor:pointer;
       background:rgba(255,255,255,0.08);
       border:1px solid rgba(255,255,255,0.10);
+      line-height:1.45;
     }
 
     .modelBtn.active{
@@ -252,7 +251,7 @@
       right:10px;
       bottom:calc(10px + var(--safe-bottom));
       display:grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap:10px;
       align-items:center;
     }
@@ -373,16 +372,6 @@
       white-space:pre-line;
     }
 
-    #arProxy{
-      position:fixed;
-      left:-9999px;
-      top:-9999px;
-      width:1px;
-      height:1px;
-      opacity:0;
-      pointer-events:none;
-    }
-
     @media (max-width: 899px) and (orientation: landscape){
       #topPanel{
         left:10px;
@@ -410,27 +399,26 @@
       #hintBubble{
         top:auto;
         right:12px;
-        bottom:114px;
+        bottom:66px;
         max-width:160px;
       }
 
       #modelPanel{
         left:auto;
         right:10px;
-        width:250px;
-        bottom:114px;
-        max-height:40vh;
+        width:280px;
+        bottom:66px;
+        max-height:44vh;
       }
 
       #modelPanelContent{
-        max-height:calc(40vh - 34px);
+        max-height:calc(44vh - 34px);
       }
 
       #uiBar{
         left:auto;
         right:10px;
-        width:250px;
-        grid-template-columns: 1fr 1fr;
+        width:280px;
         bottom:10px;
       }
 
@@ -446,7 +434,7 @@
         left:16px;
         top:16px;
         right:auto;
-        width:320px;
+        width:330px;
         padding:12px 14px;
       }
 
@@ -459,21 +447,20 @@
       #modelPanel{
         left:auto;
         right:16px;
-        width:270px;
+        width:320px;
         bottom:70px;
-        max-height:260px;
+        max-height:280px;
       }
 
       #modelPanelContent{
-        max-height:200px;
+        max-height:220px;
       }
 
       #uiBar{
         left:auto;
         right:16px;
-        width:270px;
+        width:320px;
         bottom:16px;
-        grid-template-columns: 1fr 1fr;
       }
 
       .btn{
@@ -517,8 +504,13 @@
       </div>
 
       <div id="topPanelContent">
+        <div id="title">3Dビューア</div>
+
         <div class="label">表示中のデータ</div>
         <div id="currentData" class="value">未選択</div>
+
+        <div class="label">対応形式</div>
+        <div class="value">OBJ / FBX / GLB / GLTF</div>
 
         <div class="label">操作方法</div>
         <div class="value">1本指で回転 / 2本指で移動・拡大縮小</div>
@@ -531,7 +523,7 @@
 
     <div id="modelPanel" class="panel">
       <div id="modelPanelHeader" class="panelHeader">
-        <div class="panelHeaderTitle">モデル一覧</div>
+        <div class="panelHeaderTitle">models フォルダ内データ一覧</div>
         <div id="modelToggleMark" class="toggleMark">▼</div>
       </div>
 
@@ -541,30 +533,25 @@
     </div>
 
     <div id="uiBar">
-      <button id="arBtn" class="btn sub" type="button">AR切替</button>
       <button id="resetBtn" class="btn" type="button">視点リセット</button>
     </div>
 
     <div id="loading">モデルを読み込み中...</div>
-
-    <model-viewer
-      id="arProxy"
-      src=""
-      alt="AR proxy"
-      ar
-      ar-modes="webxr scene-viewer quick-look"
-      camera-controls
-      ios-src="">
-    </model-viewer>
   </div>
 
   <script type="module">
     import * as THREE from "three";
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
     import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+    import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
+    import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
     const PASSWORD = "p001";
-    const API_URL = "https://api.github.com/repos/ASKR-created/ASKR-created.github.io/contents";
+    const API_TREE_MAIN = "https://api.github.com/repos/ASKR-created/ASKR-created.github.io/git/trees/main?recursive=1";
+    const API_TREE_MASTER = "https://api.github.com/repos/ASKR-created/ASKR-created.github.io/git/trees/master?recursive=1";
+    const MODELS_ROOT = "models/";
+    const SUPPORTED_EXTENSIONS = [".obj", ".fbx", ".glb", ".gltf"];
 
     const viewer = document.getElementById("viewer");
     const gate = document.getElementById("gate");
@@ -576,10 +563,8 @@
     const currentDataEl = document.getElementById("currentData");
     const loadingEl = document.getElementById("loading");
     const resetBtn = document.getElementById("resetBtn");
-    const arBtn = document.getElementById("arBtn");
     const hintBubble = document.getElementById("hintBubble");
     const modelList = document.getElementById("modelList");
-    const arProxy = document.getElementById("arProxy");
 
     const topPanelContent = document.getElementById("topPanelContent");
     const modelPanelContent = document.getElementById("modelPanelContent");
@@ -597,6 +582,7 @@
     let hintTimer = null;
     let modelFiles = [];
     let viewerReady = false;
+    let repoTreePaths = new Set();
 
     let topPanelOpen = true;
     let modelPanelOpen = true;
@@ -654,37 +640,68 @@
       applyPanelState();
     }
 
-    async function fetchObjFilesFromGitHub() {
-      const response = await fetch(API_URL, {
-        headers: { "Accept": "application/vnd.github+json" }
-      });
-
-      if (!response.ok) {
-        throw new Error(`GitHub API エラー: ${response.status}`);
-      }
-
-      const items = await response.json();
-
-      return items
-        .filter((item) => item.type === "file" && /\.obj$/i.test(item.name))
-        .map((item) => item.name)
-        .sort((a, b) => a.localeCompare(b, "ja"));
+    function encodePath(path) {
+      return path.split("/").map(encodeURIComponent).join("/");
     }
 
-    async function fetchGlbFilesFromGitHub() {
-      const response = await fetch(API_URL, {
+    function getExt(path) {
+      const i = path.lastIndexOf(".");
+      return i >= 0 ? path.slice(i).toLowerCase() : "";
+    }
+
+    function getBaseName(path) {
+      const lastSlash = path.lastIndexOf("/");
+      return lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
+    }
+
+    function getDir(path) {
+      const lastSlash = path.lastIndexOf("/");
+      return lastSlash >= 0 ? path.slice(0, lastSlash + 1) : "";
+    }
+
+    function getBaseWithoutExt(path) {
+      const name = getBaseName(path);
+      const dot = name.lastIndexOf(".");
+      return dot >= 0 ? name.slice(0, dot) : name;
+    }
+
+    function hasFile(path) {
+      return repoTreePaths.has(path);
+    }
+
+    async function fetchTreeFrom(url) {
+      const response = await fetch(url, {
         headers: { "Accept": "application/vnd.github+json" }
       });
-
       if (!response.ok) {
-        throw new Error(`GitHub API エラー: ${response.status}`);
+        throw new Error(String(response.status));
       }
+      const json = await response.json();
+      return json.tree || [];
+    }
 
-      const items = await response.json();
+    async function fetchRepoTree() {
+      try {
+        return await fetchTreeFrom(API_TREE_MAIN);
+      } catch (e) {
+        return await fetchTreeFrom(API_TREE_MASTER);
+      }
+    }
 
-      return items
-        .filter((item) => item.type === "file" && /\.glb$/i.test(item.name))
-        .map((item) => item.name);
+    async function fetchModelFilesFromGitHub() {
+      const tree = await fetchRepoTree();
+      repoTreePaths = new Set(
+        tree
+          .filter(item => item.type === "blob")
+          .map(item => item.path)
+      );
+
+      return tree
+        .filter(item => item.type === "blob")
+        .map(item => item.path)
+        .filter(path => path.startsWith(MODELS_ROOT))
+        .filter(path => SUPPORTED_EXTENSIONS.includes(getExt(path)))
+        .sort((a, b) => a.localeCompare(b, "ja"));
     }
 
     function initThree() {
@@ -779,16 +796,20 @@
       currentObject = null;
     }
 
-    function applyMaterial(object) {
+    function applyFallbackMaterial(object) {
       object.traverse((child) => {
         if (child.isMesh) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: 0xd9dde4,
-            roughness: 0.84,
-            metalness: 0.03,
-            transparent: true,
-            opacity: 1.0
-          });
+          const hasMaterial =
+            child.material &&
+            (!Array.isArray(child.material) || child.material.length > 0);
+
+          if (!hasMaterial) {
+            child.material = new THREE.MeshStandardMaterial({
+              color: 0xd9dde4,
+              roughness: 0.84,
+              metalness: 0.03
+            });
+          }
         }
       });
     }
@@ -837,45 +858,133 @@
       });
     }
 
-    async function loadModel(file) {
-      setLoading(true);
-      setStatus(file + " を読み込み中...");
-      currentModelFile = file;
-      updateModelButtons();
-      setCurrentData(file, "#79d98f");
-      updateArButtonState();
+    async function tryLoadObjWithMtl(relativePath) {
+      const dir = getDir(relativePath);
+      const base = getBaseWithoutExt(relativePath);
+      const objUrl = "./" + encodePath(relativePath);
+      const guessedMtlPath = dir + base + ".mtl";
 
       return new Promise((resolve, reject) => {
-        const loader = new OBJLoader();
+        if (!hasFile(guessedMtlPath)) {
+          const objLoader = new OBJLoader();
+          objLoader.load(
+            objUrl,
+            (object) => {
+              applyFallbackMaterial(object);
+              resolve(object);
+            },
+            undefined,
+            reject
+          );
+          return;
+        }
 
-        loader.load(
-          "./" + file,
-          (object) => {
-            try {
-              clearCurrentObject();
-              applyMaterial(object);
-              fitObject(object);
-              scene.add(object);
-              currentObject = object;
-              setLoading(false);
-              setStatus("読み込み完了", "#79d98f");
-              resolve();
-            } catch (error) {
-              console.error(error);
-              setLoading(false);
-              setStatus("モデル整形エラー: " + error.message, "#ff8484");
-              reject(error);
-            }
+        const mtlLoader = new MTLLoader();
+        mtlLoader.setPath("./" + encodePath(dir));
+        mtlLoader.setResourcePath("./" + encodePath(dir));
+
+        mtlLoader.load(
+          encodeURIComponent(base + ".mtl"),
+          (materials) => {
+            materials.preload();
+
+            const objLoader = new OBJLoader();
+            objLoader.setMaterials(materials);
+            objLoader.setPath("./" + encodePath(dir));
+
+            objLoader.load(
+              encodeURIComponent(getBaseName(relativePath)),
+              (object) => {
+                resolve(object);
+              },
+              undefined,
+              () => {
+                const fallback = new OBJLoader();
+                fallback.load(
+                  objUrl,
+                  (object) => {
+                    applyFallbackMaterial(object);
+                    resolve(object);
+                  },
+                  undefined,
+                  reject
+                );
+              }
+            );
           },
           undefined,
-          (error) => {
-            console.error(error);
-            setLoading(false);
-            setStatus("読み込み失敗: " + file + "\nファイル名やアップロード先を確認してください。", "#ff8484");
-            reject(error);
+          () => {
+            const fallback = new OBJLoader();
+            fallback.load(
+              objUrl,
+              (object) => {
+                applyFallbackMaterial(object);
+                resolve(object);
+              },
+              undefined,
+              reject
+            );
           }
         );
       });
+    }
+
+    async function loadFbx(relativePath) {
+      const url = "./" + encodePath(relativePath);
+      const loader = new FBXLoader();
+
+      return new Promise((resolve, reject) => {
+        loader.load(url, resolve, undefined, reject);
+      });
+    }
+
+    async function loadGltf(relativePath) {
+      const url = "./" + encodePath(relativePath);
+      const loader = new GLTFLoader();
+
+      return new Promise((resolve, reject) => {
+        loader.load(
+          url,
+          (gltf) => resolve(gltf.scene),
+          undefined,
+          reject
+        );
+      });
+    }
+
+    async function loadModel(relativePath) {
+      setLoading(true);
+      setStatus(relativePath + " を読み込み中...");
+      currentModelFile = relativePath;
+      updateModelButtons();
+      setCurrentData(relativePath, "#79d98f");
+
+      try {
+        let object = null;
+        const ext = getExt(relativePath);
+
+        if (ext === ".obj") {
+          object = await tryLoadObjWithMtl(relativePath);
+        } else if (ext === ".fbx") {
+          object = await loadFbx(relativePath);
+        } else if (ext === ".glb" || ext === ".gltf") {
+          object = await loadGltf(relativePath);
+        } else {
+          throw new Error("未対応形式です: " + ext);
+        }
+
+        clearCurrentObject();
+        fitObject(object);
+        scene.add(object);
+        currentObject = object;
+
+        setStatus("読み込み完了", "#79d98f");
+      } catch (error) {
+        console.error(error);
+        setStatus("読み込み失敗: " + relativePath + "\n" + (error.message || error), "#ff8484");
+      } finally {
+        setLoading(false);
+      }
     }
 
     function buildModelList(files) {
@@ -884,10 +993,9 @@
       if (!files.length) {
         const empty = document.createElement("div");
         empty.className = "emptyBox";
-        empty.textContent = "モデルデータはありません";
+        empty.textContent = "models フォルダ内に対応データはありません";
         modelList.appendChild(empty);
-        setCurrentData("モデルデータはありません", "#ff8484");
-        arBtn.disabled = true;
+        setCurrentData("データはありません", "#ff8484");
         return;
       }
 
@@ -899,14 +1007,10 @@
         btn.dataset.file = file;
 
         btn.addEventListener("click", async () => {
-          try {
-            await loadModel(file);
-            if (window.innerWidth < 900) {
-              modelPanelOpen = false;
-              applyPanelState();
-            }
-          } catch (error) {
-            console.error(error);
+          await loadModel(file);
+          if (window.innerWidth < 900) {
+            modelPanelOpen = false;
+            applyPanelState();
           }
         });
 
@@ -914,59 +1018,6 @@
       });
 
       updateModelButtons();
-      updateArButtonState();
-    }
-
-    function getArFileFromCurrentObj() {
-      if (!currentModelFile) return "";
-      return currentModelFile.replace(/\.obj$/i, ".glb");
-    }
-
-    function getUsdzFileFromCurrentObj() {
-      if (!currentModelFile) return "";
-      return currentModelFile.replace(/\.obj$/i, ".usdz");
-    }
-
-    function updateArButtonState() {
-      const enabled = !!currentModelFile;
-      arBtn.disabled = !enabled;
-    }
-
-    async function openArSmooth() {
-      if (!currentModelFile) {
-        setStatus("表示中のOBJがありません", "#ff8484");
-        return;
-      }
-
-      const glbFile = getArFileFromCurrentObj();
-      const usdzFile = getUsdzFileFromCurrentObj();
-
-      try {
-        setStatus("AR準備中...", "#79d98f");
-        setLoading(true);
-
-        const glbFiles = await fetchGlbFilesFromGitHub();
-        if (!glbFiles.includes(glbFile)) {
-          setLoading(false);
-          setStatus("対応するGLBがありません: " + glbFile, "#ff8484");
-          return;
-        }
-
-        arProxy.setAttribute("src", glbFile);
-        arProxy.setAttribute("ios-src", usdzFile);
-
-        if (typeof arProxy.activateAR === "function") {
-          await arProxy.activateAR();
-          setStatus("ARを開始しました", "#79d98f");
-        } else {
-          setStatus("この端末ではAR起動に対応していません", "#ff8484");
-        }
-      } catch (error) {
-        console.error(error);
-        setStatus("AR起動に失敗しました", "#ff8484");
-      } finally {
-        setLoading(false);
-      }
     }
 
     async function unlockViewer(forceOpen = false) {
@@ -991,21 +1042,16 @@
       }
 
       try {
-        setStatus("モデル一覧を確認中...");
+        setStatus("models フォルダを確認中...");
         initThree();
 
-        modelFiles = await fetchObjFilesFromGitHub();
+        modelFiles = await fetchModelFilesFromGitHub();
         buildModelList(modelFiles);
 
         if (modelFiles.length === 0) {
-          setStatus("モデルデータはありません", "#ff8484");
+          setStatus("models フォルダ内に対応データはありません", "#ff8484");
         } else {
-          setStatus("モデルデータを検出しました: " + modelFiles.length + "件", "#79d98f");
-
-          const savedObj = sessionStorage.getItem("last_obj_file");
-          if (savedObj && modelFiles.includes(savedObj)) {
-            await loadModel(savedObj);
-          }
+          setStatus("データを検出しました: " + modelFiles.length + "件", "#79d98f");
         }
 
         sessionStorage.setItem("obj_viewer_unlocked", "1");
@@ -1017,7 +1063,7 @@
       } catch (error) {
         console.error(error);
         gateMsg.textContent = "起動に失敗しました";
-        setStatus("起動に失敗しました\n" + error.message, "#ff8484");
+        setStatus("起動に失敗しました\n" + (error.message || error), "#ff8484");
       } finally {
         unlockBtn.disabled = false;
         unlockBtn.textContent = "開く";
@@ -1039,8 +1085,6 @@
       resetCamera();
       if (hintBubble) hintBubble.style.opacity = "0";
     });
-
-    arBtn.addEventListener("click", openArSmooth);
 
     setInitialPanelState();
 
