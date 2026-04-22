@@ -892,16 +892,16 @@
         setStatus("表示中のOBJがありません", "#ff8484");
         return;
       }
+
       sessionStorage.setItem("obj_viewer_unlocked", "1");
-      if (currentModelFile) {
-        sessionStorage.setItem("last_obj_file", currentModelFile);
-      }
+      sessionStorage.setItem("last_obj_file", currentModelFile);
+
       const glbFile = getArFileFromCurrentObj();
       const url = `ar.html?file=${encodeURIComponent(glbFile)}`;
       window.location.href = url;
     }
 
-    async function unlockViewer() {
+    async function unlockViewer(forceOpen = false) {
       unlockBtn.disabled = true;
       unlockBtn.textContent = "確認中...";
       gateMsg.textContent = "";
@@ -943,7 +943,9 @@
         sessionStorage.setItem("obj_viewer_unlocked", "1");
         gate.style.display = "none";
 
-        setInitialPanelState();
+        if (!forceOpen) {
+          setInitialPanelState();
+        }
       } catch (error) {
         console.error(error);
         gateMsg.textContent = "起動に失敗しました";
@@ -957,11 +959,11 @@
     topPanelHeader.addEventListener("click", toggleTopPanel);
     modelPanelHeader.addEventListener("click", toggleModelPanel);
 
-    unlockBtn.addEventListener("click", unlockViewer);
+    unlockBtn.addEventListener("click", () => unlockViewer(false));
 
     passwordInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
-        unlockViewer();
+        unlockViewer(false);
       }
     });
 
@@ -976,7 +978,8 @@
 
     if (sessionStorage.getItem("obj_viewer_unlocked") === "1") {
       passwordInput.value = PASSWORD;
-      unlockViewer();
+      unlockViewer(true);
+      gate.style.display = "none";
     }
   </script>
 </body>
