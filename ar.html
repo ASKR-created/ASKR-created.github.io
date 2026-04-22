@@ -60,6 +60,30 @@
       box-shadow:var(--shadow);
       backdrop-filter:blur(10px);
       -webkit-backdrop-filter:blur(10px);
+      overflow:hidden;
+    }
+
+    .panelHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      cursor:pointer;
+      user-select:none;
+    }
+
+    .panelHeaderTitle{
+      font-size:13px;
+      font-weight:800;
+      color:#fff;
+      margin:0;
+    }
+
+    .toggleMark{
+      font-size:12px;
+      color:#fff;
+      opacity:0.9;
+      flex-shrink:0;
     }
 
     #topPanel{
@@ -67,6 +91,10 @@
       left:10px;
       right:10px;
       padding:12px 14px;
+    }
+
+    #topPanelContent{
+      margin-top:8px;
     }
 
     #title{
@@ -91,6 +119,11 @@
       color:var(--sub);
       word-break:break-word;
       white-space:pre-line;
+    }
+
+    #currentData{
+      color:var(--ok);
+      font-weight:700;
     }
 
     #status{
@@ -124,15 +157,13 @@
       bottom:calc(118px + var(--safe-bottom));
       padding:10px;
       max-height:32vh;
-      overflow:auto;
       background:var(--panel-strong);
     }
 
-    #modelPanelTitle{
-      font-size:13px;
-      font-weight:800;
-      color:#fff;
-      margin:0 0 8px 0;
+    #modelPanelContent{
+      margin-top:8px;
+      max-height:calc(32vh - 34px);
+      overflow:auto;
     }
 
     #modelList{
@@ -244,6 +275,10 @@
         max-height:260px;
       }
 
+      #modelPanelContent{
+        max-height:200px;
+      }
+
       #bottomPanel{
         left:auto;
         right:16px;
@@ -278,23 +313,40 @@
     </model-viewer>
 
     <div id="topPanel" class="panel">
-      <div id="title">ARビューア</div>
+      <div id="topPanelHeader" class="panelHeader">
+        <div class="panelHeaderTitle">ARビューア</div>
+        <div id="topToggleMark" class="toggleMark">▼</div>
+      </div>
 
-      <div class="label">表示中のデータ</div>
-      <div id="fileName" class="value">未選択</div>
+      <div id="topPanelContent">
+        <div class="label">表示中のデータ</div>
+        <div id="fileName" class="value">未選択</div>
 
-      <div class="label">操作方法</div>
-      <div class="value">通常表示では指で回転・拡大縮小
-AR対応端末ではARで表示から現実空間に配置</div>
+        <div class="label">操作方法</div>
+        <div class="value">通常表示:
+1本指で回転
+2本指で拡大縮小・移動
 
-      <div id="status">準備中...</div>
+AR表示中:
+1本指で移動
+2本指で回転
+ピンチで拡大縮小</div>
+
+        <div id="status">準備中...</div>
+      </div>
     </div>
 
     <div id="errorBox"></div>
 
     <div id="modelPanel" class="panel">
-      <div id="modelPanelTitle">GLB一覧</div>
-      <div id="modelList"></div>
+      <div id="modelPanelHeader" class="panelHeader">
+        <div class="panelHeaderTitle">GLB一覧</div>
+        <div id="modelToggleMark" class="toggleMark">▼</div>
+      </div>
+
+      <div id="modelPanelContent">
+        <div id="modelList"></div>
+      </div>
     </div>
 
     <div id="bottomPanel" class="panel">
@@ -319,8 +371,17 @@ AR対応端末ではARで表示から現実空間に配置</div>
     const modelList = document.getElementById("modelList");
     const loadingEl = document.getElementById("loading");
 
+    const topPanelContent = document.getElementById("topPanelContent");
+    const modelPanelContent = document.getElementById("modelPanelContent");
+    const topPanelHeader = document.getElementById("topPanelHeader");
+    const modelPanelHeader = document.getElementById("modelPanelHeader");
+    const topToggleMark = document.getElementById("topToggleMark");
+    const modelToggleMark = document.getElementById("modelToggleMark");
+
     let currentFile = "";
     let glbFiles = [];
+    let topPanelOpen = true;
+    let modelPanelOpen = true;
 
     function setStatus(text, isError = false){
       statusEl.textContent = text;
@@ -340,6 +401,34 @@ AR対応端末ではARで表示から現実空間に配置</div>
     function hideError(){
       errorBox.style.display = "none";
       errorBox.textContent = "";
+    }
+
+    function applyPanelState() {
+      topPanelContent.style.display = topPanelOpen ? "block" : "none";
+      modelPanelContent.style.display = modelPanelOpen ? "block" : "none";
+      topToggleMark.textContent = topPanelOpen ? "▼" : "▶";
+      modelToggleMark.textContent = modelPanelOpen ? "▼" : "▶";
+    }
+
+    function setInitialPanelState() {
+      if (window.innerWidth >= 900) {
+        topPanelOpen = true;
+        modelPanelOpen = true;
+      } else {
+        topPanelOpen = false;
+        modelPanelOpen = false;
+      }
+      applyPanelState();
+    }
+
+    function toggleTopPanel() {
+      topPanelOpen = !topPanelOpen;
+      applyPanelState();
+    }
+
+    function toggleModelPanel() {
+      modelPanelOpen = !modelPanelOpen;
+      applyPanelState();
     }
 
     async function fetchGlbFilesFromGitHub() {
@@ -403,6 +492,10 @@ AR対応端末ではARで表示から現実空間に配置</div>
 
         btn.addEventListener("click", () => {
           loadFile(file);
+          if (window.innerWidth < 900) {
+            modelPanelOpen = false;
+            applyPanelState();
+          }
         });
 
         modelList.appendChild(btn);
@@ -487,13 +580,19 @@ AR対応端末ではARで表示から現実空間に配置</div>
         } else {
           loadFile(glbFiles[0]);
         }
+
+        setInitialPanelState();
       } catch (e) {
         setLoading(false);
         showError("起動に失敗しました。\n" + e.message);
       }
     }
 
+    topPanelHeader.addEventListener("click", toggleTopPanel);
+    modelPanelHeader.addEventListener("click", toggleModelPanel);
+
     updateButtons();
+    setInitialPanelState();
     init();
   </script>
 </body>
