@@ -4,6 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>3Dビューア</title>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
   <style>
     :root{
       --panel: rgba(20,24,31,0.58);
@@ -361,6 +373,16 @@
       white-space:pre-line;
     }
 
+    #arProxy{
+      position:fixed;
+      left:-9999px;
+      top:-9999px;
+      width:1px;
+      height:1px;
+      opacity:0;
+      pointer-events:none;
+    }
+
     @media (max-width: 899px) and (orientation: landscape){
       #topPanel{
         left:10px;
@@ -460,15 +482,6 @@
       }
     }
   </style>
-
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-      }
-    }
-  </script>
 </head>
 <body>
   <div id="app">
@@ -533,6 +546,16 @@
     </div>
 
     <div id="loading">モデルを読み込み中...</div>
+
+    <model-viewer
+      id="arProxy"
+      src=""
+      alt="AR proxy"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      camera-controls
+      ios-src="">
+    </model-viewer>
   </div>
 
   <script type="module">
@@ -556,6 +579,7 @@
     const arBtn = document.getElementById("arBtn");
     const hintBubble = document.getElementById("hintBubble");
     const modelList = document.getElementById("modelList");
+    const arProxy = document.getElementById("arProxy");
 
     const topPanelContent = document.getElementById("topPanelContent");
     const modelPanelContent = document.getElementById("modelPanelContent");
@@ -645,6 +669,22 @@
         .filter((item) => item.type === "file" && /\.obj$/i.test(item.name))
         .map((item) => item.name)
         .sort((a, b) => a.localeCompare(b, "ja"));
+    }
+
+    async function fetchGlbFilesFromGitHub() {
+      const response = await fetch(API_URL, {
+        headers: { "Accept": "application/vnd.github+json" }
+      });
+
+      if (!response.ok) {
+        throw new Error(`GitHub API エラー: ${response.status}`);
+      }
+
+      const items = await response.json();
+
+      return items
+        .filter((item) => item.type === "file" && /\.glb$/i.test(item.name))
+        .map((item) => item.name);
     }
 
     function initThree() {
@@ -882,23 +922,51 @@
       return currentModelFile.replace(/\.obj$/i, ".glb");
     }
 
+    function getUsdzFileFromCurrentObj() {
+      if (!currentModelFile) return "";
+      return currentModelFile.replace(/\.obj$/i, ".usdz");
+    }
+
     function updateArButtonState() {
       const enabled = !!currentModelFile;
       arBtn.disabled = !enabled;
     }
 
-    function openArPage() {
+    async function openArSmooth() {
       if (!currentModelFile) {
         setStatus("表示中のOBJがありません", "#ff8484");
         return;
       }
 
-      sessionStorage.setItem("obj_viewer_unlocked", "1");
-      sessionStorage.setItem("last_obj_file", currentModelFile);
-
       const glbFile = getArFileFromCurrentObj();
-      const url = `ar.html?file=${encodeURIComponent(glbFile)}`;
-      window.location.href = url;
+      const usdzFile = getUsdzFileFromCurrentObj();
+
+      try {
+        setStatus("AR準備中...", "#79d98f");
+        setLoading(true);
+
+        const glbFiles = await fetchGlbFilesFromGitHub();
+        if (!glbFiles.includes(glbFile)) {
+          setLoading(false);
+          setStatus("対応するGLBがありません: " + glbFile, "#ff8484");
+          return;
+        }
+
+        arProxy.setAttribute("src", glbFile);
+        arProxy.setAttribute("ios-src", usdzFile);
+
+        if (typeof arProxy.activateAR === "function") {
+          await arProxy.activateAR();
+          setStatus("ARを開始しました", "#79d98f");
+        } else {
+          setStatus("この端末ではAR起動に対応していません", "#ff8484");
+        }
+      } catch (error) {
+        console.error(error);
+        setStatus("AR起動に失敗しました", "#ff8484");
+      } finally {
+        setLoading(false);
+      }
     }
 
     async function unlockViewer(forceOpen = false) {
@@ -972,7 +1040,7 @@
       if (hintBubble) hintBubble.style.opacity = "0";
     });
 
-    arBtn.addEventListener("click", openArPage);
+    arBtn.addEventListener("click", openArSmooth);
 
     setInitialPanelState();
 
