@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>OBJ共有ビューア</title>
   <style>
     :root{
       --bg1:#13161c;
       --bg2:#1b2028;
-      --panel:rgba(20,24,31,0.86);
+      --panel:rgba(20,24,31,0.88);
       --panel-border:rgba(255,255,255,0.10);
       --text:#f4f6f8;
       --sub:#c7cfdb;
@@ -16,6 +16,7 @@
       --accent2:#2b78de;
       --ok:#79d98f;
       --danger:#ff8484;
+      --warn:#ffd38d;
       --shadow:0 10px 30px rgba(0,0,0,0.34);
       --radius:16px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -35,7 +36,6 @@
       background:linear-gradient(180deg,var(--bg1),var(--bg2));
       color:var(--text);
       font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-      touch-action:none;
     }
 
     body{
@@ -47,6 +47,12 @@
       width:100%;
       height:100%;
       overflow:hidden;
+    }
+
+    #viewer{
+      position:absolute;
+      inset:0;
+      display:block;
     }
 
     canvas{
@@ -95,6 +101,78 @@
       word-break:break-word;
     }
 
+    #hintBubble{
+      position:absolute;
+      right:10px;
+      top:calc(96px + var(--safe-top));
+      z-index:18;
+      padding:10px 12px;
+      border-radius:14px;
+      background:rgba(0,0,0,0.42);
+      border:1px solid rgba(255,255,255,0.10);
+      font-size:12px;
+      line-height:1.6;
+      color:#eef3fb;
+      max-width:220px;
+      pointer-events:none;
+      opacity:1;
+      transition:opacity 0.4s ease;
+    }
+
+    #loading{
+      position:absolute;
+      left:50%;
+      bottom:calc(144px + var(--safe-bottom));
+      transform:translateX(-50%);
+      z-index:25;
+      padding:10px 16px;
+      border-radius:999px;
+      font-size:12px;
+      background:rgba(0,0,0,0.58);
+      border:1px solid rgba(255,255,255,0.14);
+      display:none;
+      white-space:nowrap;
+    }
+
+    #modelPanel{
+      left:10px;
+      right:10px;
+      bottom:calc(70px + var(--safe-bottom));
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      max-height:155px;
+      overflow:auto;
+    }
+
+    #modelPanelTitle{
+      font-size:13px;
+      font-weight:700;
+      color:#fff;
+      margin:0 0 2px 0;
+    }
+
+    .modelBtn{
+      width:100%;
+      min-height:42px;
+      border:none;
+      border-radius:12px;
+      color:#fff;
+      font-size:14px;
+      font-weight:700;
+      text-align:left;
+      padding:10px 12px;
+      cursor:pointer;
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.10);
+    }
+
+    .modelBtn.active{
+      background:linear-gradient(180deg,var(--accent),var(--accent2));
+      border-color:rgba(255,255,255,0.18);
+    }
+
     #bottomBar{
       left:10px;
       right:10px;
@@ -125,41 +203,10 @@
       box-shadow:none;
     }
 
-    .bigBtn:active{
+    .bigBtn:active,
+    .modelBtn:active,
+    #unlockBtn:active{
       transform:scale(0.985);
-    }
-
-    #loading{
-      position:absolute;
-      left:50%;
-      bottom:calc(74px + var(--safe-bottom));
-      transform:translateX(-50%);
-      z-index:25;
-      padding:10px 16px;
-      border-radius:999px;
-      font-size:12px;
-      background:rgba(0,0,0,0.58);
-      border:1px solid rgba(255,255,255,0.14);
-      display:none;
-      white-space:nowrap;
-    }
-
-    #hintBubble{
-      position:absolute;
-      right:10px;
-      top:calc(96px + var(--safe-top));
-      z-index:18;
-      padding:10px 12px;
-      border-radius:14px;
-      background:rgba(0,0,0,0.42);
-      border:1px solid rgba(255,255,255,0.10);
-      font-size:12px;
-      line-height:1.6;
-      color:#eef3fb;
-      max-width:220px;
-      pointer-events:none;
-      opacity:1;
-      transition:opacity 0.4s ease;
     }
 
     #gate{
@@ -240,16 +287,13 @@
       cursor:pointer;
     }
 
-    #unlockBtn:active{
-      transform:scale(0.99);
-    }
-
     #gateMsg{
       min-height:22px;
       margin-top:10px;
       font-size:13px;
       color:var(--danger);
       line-height:1.6;
+      white-space:pre-line;
     }
 
     #note{
@@ -258,13 +302,20 @@
       border-radius:12px;
       font-size:12px;
       line-height:1.7;
-      color:#ffd38d;
+      color:var(--warn);
       background:rgba(255,211,141,0.08);
       border:1px solid rgba(255,211,141,0.16);
     }
 
     @media (min-width: 800px){
       #topPanel{
+        left:50%;
+        right:auto;
+        width:430px;
+        transform:translateX(-50%);
+      }
+
+      #modelPanel{
         left:50%;
         right:auto;
         width:430px;
@@ -286,23 +337,24 @@
 </head>
 <body>
   <div id="app">
+    <div id="viewer"></div>
+
     <div id="gate">
       <div id="gateCard">
         <h1 id="gateTitle">閲覧用パスワード</h1>
-        <p id="gateText">
-          共有されたパスワードを入力すると、OBJモデルを表示できます。
-        </p>
+        <p id="gateText">共有されたパスワードを入力すると、OBJモデルを選択して表示できます。</p>
 
         <div class="field">
           <label for="passwordInput">パスワード</label>
-          <input id="passwordInput" type="password" placeholder="パスワードを入力" inputmode="text" />
+          <input id="passwordInput" type="password" placeholder="半角で p001 を入力" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
         </div>
 
-        <button id="unlockBtn">開く</button>
+        <button id="unlockBtn" type="button">開く</button>
         <div id="gateMsg"></div>
 
         <div id="note">
-          この方式は簡易ロックです。GitHub Pages の静的HTMLだけでは、本格的な安全認証にはなりません。
+          パスワードは <strong>半角の p001</strong> です。<br>
+          全角の「ｐ001」でも通るように補正しています。
         </div>
       </div>
     </div>
@@ -311,326 +363,412 @@
       <div id="title">OBJ共有ビューア</div>
       <p id="subText">
         1本指で回転 / 2本指で移動・拡大縮小<br>
-        表示ファイル: <strong>model.obj</strong>
+        パスワード通過後にOBJを選択できます
       </p>
       <div id="status">待機中</div>
     </div>
 
-    <div id="hintBubble">
-      モデルを指で動かせます
+    <div id="hintBubble">モデルを指で動かせます</div>
+
+    <div id="modelPanel" class="panel">
+      <div id="modelPanelTitle">モデル一覧</div>
+      <div id="modelList"></div>
     </div>
 
     <div id="bottomBar" class="panel">
-      <button id="resetBtn" class="bigBtn">視点リセット</button>
-      <button id="copyBtn" class="bigBtn sub">URLコピー</button>
+      <button id="resetBtn" class="bigBtn" type="button">視点リセット</button>
+      <button id="copyBtn" class="bigBtn sub" type="button">URLコピー</button>
     </div>
 
     <div id="loading">モデルを読み込み中...</div>
   </div>
 
-  <script type="module">
-    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
-    import { OBJLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js";
+  <script>
+    (function () {
+      const PASSWORD = "p001";
 
-    const MODEL_URL = "./model.obj";
-    const PASSWORD = "p001";
+      // ここにアップロード予定のOBJファイル名を追加
+      const MODELS = [
+        { name: "モデル1", file: "model1.obj" },
+        { name: "モデル2", file: "model2.obj" },
+        { name: "モデル3", file: "model3.obj" }
+      ];
 
-    const app = document.getElementById("app");
-    const gate = document.getElementById("gate");
-    const passwordInput = document.getElementById("passwordInput");
-    const unlockBtn = document.getElementById("unlockBtn");
-    const gateMsg = document.getElementById("gateMsg");
+      const viewer = document.getElementById("viewer");
+      const gate = document.getElementById("gate");
+      const passwordInput = document.getElementById("passwordInput");
+      const unlockBtn = document.getElementById("unlockBtn");
+      const gateMsg = document.getElementById("gateMsg");
+      const statusEl = document.getElementById("status");
+      const loadingEl = document.getElementById("loading");
+      const resetBtn = document.getElementById("resetBtn");
+      const copyBtn = document.getElementById("copyBtn");
+      const hintBubble = document.getElementById("hintBubble");
+      const modelList = document.getElementById("modelList");
+      const modelPanel = document.getElementById("modelPanel");
 
-    const statusEl = document.getElementById("status");
-    const loadingEl = document.getElementById("loading");
-    const resetBtn = document.getElementById("resetBtn");
-    const copyBtn = document.getElementById("copyBtn");
-    const hintBubble = document.getElementById("hintBubble");
+      let scene = null;
+      let camera = null;
+      let renderer = null;
+      let controls = null;
+      let currentObject = null;
+      let hintTimer = null;
+      let libsLoaded = false;
+      let initDone = false;
+      let currentModelFile = "";
 
-    let scene = null;
-    let camera = null;
-    let renderer = null;
-    let controls = null;
-    let currentObject = null;
-    let hintTimer = null;
-
-    function setStatus(text, color = "") {
-      statusEl.textContent = text;
-      statusEl.style.color = color || "";
-    }
-
-    function setLoading(flag) {
-      loadingEl.style.display = flag ? "block" : "none";
-    }
-
-    function hideHintSoon() {
-      if (hintTimer) clearTimeout(hintTimer);
-      hintTimer = setTimeout(() => {
-        if (hintBubble) hintBubble.style.opacity = "0";
-      }, 3200);
-    }
-
-    function initThree() {
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x161a21);
-
-      camera = new THREE.PerspectiveCamera(
-        45,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        5000
-      );
-      camera.position.set(0, 55, 145);
-
-      renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: false
-      });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.domElement.style.touchAction = "none";
-      app.insertBefore(renderer.domElement, app.firstChild);
-
-      controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.08;
-      controls.screenSpacePanning = true;
-      controls.enablePan = true;
-      controls.enableZoom = true;
-      controls.enableRotate = true;
-      controls.minDistance = 30;
-      controls.maxDistance = 320;
-      controls.target.set(0, 24, 0);
-      controls.update();
-
-      controls.addEventListener("start", () => {
-        if (hintBubble) hintBubble.style.opacity = "0";
-      });
-
-      const ambient = new THREE.AmbientLight(0xffffff, 1.45);
-      scene.add(ambient);
-
-      const dir1 = new THREE.DirectionalLight(0xffffff, 1.1);
-      dir1.position.set(120, 180, 120);
-      scene.add(dir1);
-
-      const dir2 = new THREE.DirectionalLight(0xffffff, 0.45);
-      dir2.position.set(-100, 60, -80);
-      scene.add(dir2);
-
-      const ground = new THREE.Mesh(
-        new THREE.CircleGeometry(130, 64),
-        new THREE.MeshStandardMaterial({
-          color: 0x2a313d,
-          roughness: 1.0,
-          metalness: 0.0
-        })
-      );
-      ground.rotation.x = -Math.PI / 2;
-      ground.position.y = 0;
-      scene.add(ground);
-
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(128, 132, 64),
-        new THREE.MeshBasicMaterial({
-          color: 0x4a5568,
-          transparent: true,
-          opacity: 0.65,
-          side: THREE.DoubleSide
-        })
-      );
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.y = 0.02;
-      scene.add(ring);
-
-      window.addEventListener("resize", onResize, { passive: true });
-
-      hideHintSoon();
-      animate();
-    }
-
-    function onResize() {
-      if (!camera || !renderer) return;
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    function animate() {
-      requestAnimationFrame(animate);
-
-      if (controls) controls.update();
-      if (renderer && scene && camera) {
-        renderer.render(scene, camera);
+      function setStatus(text, color) {
+        statusEl.textContent = text;
+        statusEl.style.color = color || "";
       }
-    }
 
-    function clearCurrentObject() {
-      if (!currentObject) return;
+      function setLoading(flag) {
+        loadingEl.style.display = flag ? "block" : "none";
+      }
 
-      scene.remove(currentObject);
+      function hideHintSoon() {
+        if (hintTimer) clearTimeout(hintTimer);
+        hintTimer = setTimeout(function () {
+          if (hintBubble) hintBubble.style.opacity = "0";
+        }, 3200);
+      }
 
-      currentObject.traverse((child) => {
-        if (child.isMesh) {
-          if (child.geometry) child.geometry.dispose();
-          if (child.material) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((m) => m.dispose());
-            } else {
-              child.material.dispose();
+      function normalizeInput(value) {
+        return value
+          .replace(/ｐ/g, "p")
+          .replace(/Ｐ/g, "P")
+          .trim();
+      }
+
+      function loadScript(src) {
+        return new Promise(function (resolve, reject) {
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = function () { resolve(); };
+          s.onerror = function () { reject(new Error("読み込み失敗: " + src)); };
+          document.head.appendChild(s);
+        });
+      }
+
+      async function ensureThreeLibs() {
+        if (libsLoaded) return;
+
+        setStatus("3Dライブラリを読み込み中...");
+        await loadScript("https://unpkg.com/three@0.160.0/build/three.min.js");
+        await loadScript("https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js");
+        await loadScript("https://unpkg.com/three@0.160.0/examples/js/loaders/OBJLoader.js");
+
+        if (!window.THREE || !THREE.OrbitControls || !THREE.OBJLoader) {
+          throw new Error("3Dライブラリの初期化に失敗しました");
+        }
+
+        libsLoaded = true;
+      }
+
+      function initThree() {
+        if (initDone) return;
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x161a21);
+
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
+        camera.position.set(0, 55, 145);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        viewer.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.screenSpacePanning = true;
+        controls.enablePan = true;
+        controls.enableZoom = true;
+        controls.enableRotate = true;
+        controls.minDistance = 30;
+        controls.maxDistance = 320;
+        controls.target.set(0, 24, 0);
+        controls.update();
+
+        controls.addEventListener("start", function () {
+          if (hintBubble) hintBubble.style.opacity = "0";
+        });
+
+        const ambient = new THREE.AmbientLight(0xffffff, 1.45);
+        scene.add(ambient);
+
+        const dir1 = new THREE.DirectionalLight(0xffffff, 1.1);
+        dir1.position.set(120, 180, 120);
+        scene.add(dir1);
+
+        const dir2 = new THREE.DirectionalLight(0xffffff, 0.45);
+        dir2.position.set(-100, 60, -80);
+        scene.add(dir2);
+
+        const ground = new THREE.Mesh(
+          new THREE.CircleGeometry(130, 64),
+          new THREE.MeshStandardMaterial({
+            color: 0x2a313d,
+            roughness: 1.0,
+            metalness: 0.0
+          })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = 0;
+        scene.add(ground);
+
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(128, 132, 64),
+          new THREE.MeshBasicMaterial({
+            color: 0x4a5568,
+            transparent: true,
+            opacity: 0.65,
+            side: THREE.DoubleSide
+          })
+        );
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = 0.02;
+        scene.add(ring);
+
+        window.addEventListener("resize", onResize, { passive: true });
+
+        hideHintSoon();
+        animate();
+        initDone = true;
+      }
+
+      function onResize() {
+        if (!camera || !renderer) return;
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (controls) controls.update();
+        if (renderer && scene && camera) renderer.render(scene, camera);
+      }
+
+      function clearCurrentObject() {
+        if (!currentObject) return;
+        scene.remove(currentObject);
+        currentObject.traverse(function (child) {
+          if (child.isMesh) {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach(function (m) { m.dispose(); });
+              } else {
+                child.material.dispose();
+              }
             }
           }
-        }
-      });
-
-      currentObject = null;
-    }
-
-    function applyMaterial(object) {
-      object.traverse((child) => {
-        if (child.isMesh) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: 0xd9dde4,
-            roughness: 0.84,
-            metalness: 0.03
-          });
-        }
-      });
-    }
-
-    function fitObject(object) {
-      const box = new THREE.Box3().setFromObject(object);
-      const size = new THREE.Vector3();
-      const center = new THREE.Vector3();
-
-      box.getSize(size);
-      box.getCenter(center);
-
-      object.position.sub(center);
-
-      const maxAxis = Math.max(size.x, size.y, size.z);
-      if (maxAxis > 0) {
-        const scale = 88 / maxAxis;
-        object.scale.setScalar(scale);
+        });
+        currentObject = null;
       }
 
-      const box2 = new THREE.Box3().setFromObject(object);
-      const center2 = new THREE.Vector3();
-      box2.getCenter(center2);
+      function applyMaterial(object) {
+        object.traverse(function (child) {
+          if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({
+              color: 0xd9dde4,
+              roughness: 0.84,
+              metalness: 0.03
+            });
+          }
+        });
+      }
 
-      object.position.x -= center2.x;
-      object.position.y -= box2.min.y;
-      object.position.z -= center2.z;
+      function resetCamera() {
+        if (!camera || !controls) return;
+        camera.position.set(0, 55, 145);
+        controls.target.set(0, 24, 0);
+        controls.update();
+      }
 
-      resetCamera();
-    }
+      function fitObject(object) {
+        const box = new THREE.Box3().setFromObject(object);
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
 
-    function resetCamera() {
-      if (!camera || !controls) return;
-      camera.position.set(0, 55, 145);
-      controls.target.set(0, 24, 0);
-      controls.update();
-    }
+        box.getSize(size);
+        box.getCenter(center);
+        object.position.sub(center);
 
-    async function loadModel() {
-      setLoading(true);
-      setStatus("model.obj を読み込み中...");
+        const maxAxis = Math.max(size.x, size.y, size.z);
+        if (maxAxis > 0) {
+          const scale = 88 / maxAxis;
+          object.scale.setScalar(scale);
+        }
 
-      return new Promise((resolve, reject) => {
-        const loader = new OBJLoader();
+        const box2 = new THREE.Box3().setFromObject(object);
+        const center2 = new THREE.Vector3();
+        box2.getCenter(center2);
 
-        loader.load(
-          MODEL_URL,
-          (object) => {
-            try {
-              clearCurrentObject();
-              applyMaterial(object);
-              fitObject(object);
-              scene.add(object);
-              currentObject = object;
+        object.position.x -= center2.x;
+        object.position.y -= box2.min.y;
+        object.position.z -= center2.z;
+
+        resetCamera();
+      }
+
+      function updateModelButtons() {
+        const buttons = modelList.querySelectorAll(".modelBtn");
+        buttons.forEach(function (btn) {
+          if (btn.dataset.file === currentModelFile) {
+            btn.classList.add("active");
+          } else {
+            btn.classList.remove("active");
+          }
+        });
+      }
+
+      function loadModel(file) {
+        return new Promise(function (resolve, reject) {
+          setLoading(true);
+          setStatus(file + " を読み込み中...");
+          currentModelFile = file;
+          updateModelButtons();
+
+          const loader = new THREE.OBJLoader();
+          loader.load(
+            "./" + file,
+            function (object) {
+              try {
+                clearCurrentObject();
+                applyMaterial(object);
+                fitObject(object);
+                scene.add(object);
+                currentObject = object;
+                setLoading(false);
+                setStatus("表示中: " + file, "#79d98f");
+                resolve();
+              } catch (error) {
+                setLoading(false);
+                setStatus("モデル整形エラー: " + error.message, "#ff8484");
+                reject(error);
+              }
+            },
+            undefined,
+            function (error) {
               setLoading(false);
-              setStatus("表示中: model.obj", "#79d98f");
-              resolve();
-            } catch (error) {
-              console.error(error);
-              setLoading(false);
-              setStatus("モデル整形エラー: " + error.message, "#ff8484");
+              setStatus("読み込み失敗: " + file + " が見つからないか、アップロードされていません。", "#ff8484");
               reject(error);
             }
-          },
-          undefined,
-          (error) => {
-            console.error(error);
-            setLoading(false);
-            setStatus("読み込み失敗。model.obj を同じ場所にアップしてください。", "#ff8484");
-            reject(error);
+          );
+        });
+      }
+
+      function buildModelList() {
+        modelList.innerHTML = "";
+
+        MODELS.forEach(function (model, index) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "modelBtn";
+          btn.textContent = model.name + " (" + model.file + ")";
+          btn.dataset.file = model.file;
+          btn.addEventListener("click", async function () {
+            if (!initDone) return;
+            try {
+              await loadModel(model.file);
+            } catch (error) {
+              console.error(error);
+            }
+          });
+          modelList.appendChild(btn);
+
+          if (index === 0) {
+            currentModelFile = model.file;
           }
-        );
+        });
+
+        updateModelButtons();
+      }
+
+      async function openViewer() {
+        unlockBtn.disabled = true;
+        unlockBtn.textContent = "確認中...";
+        gateMsg.textContent = "ボタンは反応しています";
+
+        const input = normalizeInput(passwordInput.value);
+
+        if (!input) {
+          gateMsg.textContent = "パスワードを入力してください";
+          unlockBtn.disabled = false;
+          unlockBtn.textContent = "開く";
+          return;
+        }
+
+        if (input !== PASSWORD) {
+          gateMsg.textContent = "パスワードが違います";
+          unlockBtn.disabled = false;
+          unlockBtn.textContent = "開く";
+          return;
+        }
+
+        gateMsg.textContent = "パスワードOK。ビューアを起動中...";
+        setStatus("ビューアを起動中...");
+
+        try {
+          await ensureThreeLibs();
+          initThree();
+          buildModelList();
+          modelPanel.style.display = "flex";
+
+          if (MODELS.length > 0) {
+            await loadModel(MODELS[0].file);
+          } else {
+            setStatus("モデル一覧が空です", "#ff8484");
+          }
+
+          sessionStorage.setItem("obj_viewer_unlocked", "1");
+          gate.style.display = "none";
+        } catch (error) {
+          console.error(error);
+          gateMsg.textContent = "起動に失敗しました\n" + error.message;
+          setStatus("起動失敗: " + error.message, "#ff8484");
+        } finally {
+          unlockBtn.disabled = false;
+          unlockBtn.textContent = "開く";
+        }
+      }
+
+      function copyUrl() {
+        if (!navigator.clipboard) {
+          setStatus("URLコピーに未対応です", "#ff8484");
+          return;
+        }
+        navigator.clipboard.writeText(location.href).then(function () {
+          setStatus("URLをコピーしました", "#79d98f");
+        }).catch(function () {
+          setStatus("URLコピーに失敗しました", "#ff8484");
+        });
+      }
+
+      unlockBtn.addEventListener("click", openViewer);
+
+      passwordInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") openViewer();
       });
-    }
 
-    async function tryUnlock() {
-      gateMsg.textContent = "";
+      resetBtn.addEventListener("click", function () {
+        resetCamera();
+        if (hintBubble) hintBubble.style.opacity = "0";
+      });
 
-      const input = passwordInput.value.trim();
+      copyBtn.addEventListener("click", copyUrl);
 
-      if (!input) {
-        gateMsg.textContent = "パスワードを入力してください";
-        return;
+      gateMsg.textContent = "待機中";
+      modelPanel.style.display = "none";
+
+      if (sessionStorage.getItem("obj_viewer_unlocked") === "1") {
+        gateMsg.textContent = "前回の認証を引き継いでいます";
+        openViewer();
       }
-
-      if (input !== PASSWORD) {
-        gateMsg.textContent = "パスワードが違います";
-        return;
-      }
-
-      sessionStorage.setItem("obj_viewer_unlocked", "1");
-      gate.style.display = "none";
-
-      if (!renderer) {
-        initThree();
-      }
-
-      try {
-        await loadModel();
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
-    async function copyUrl() {
-      try {
-        await navigator.clipboard.writeText(location.href);
-        setStatus("URLをコピーしました", "#79d98f");
-      } catch (error) {
-        console.error(error);
-        setStatus("URLコピーに失敗しました", "#ff8484");
-      }
-    }
-
-    unlockBtn.addEventListener("click", tryUnlock);
-
-    passwordInput.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        tryUnlock();
-      }
-    });
-
-    resetBtn.addEventListener("click", () => {
-      resetCamera();
-      if (hintBubble) hintBubble.style.opacity = "0";
-    });
-
-    copyBtn.addEventListener("click", () => {
-      copyUrl();
-    });
-
-    if (sessionStorage.getItem("obj_viewer_unlocked") === "1") {
-      gate.style.display = "none";
-      initThree();
-      loadModel().catch((error) => console.error(error));
-    }
+    })();
   </script>
 </body>
 </html>
