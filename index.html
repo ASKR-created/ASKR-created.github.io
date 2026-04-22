@@ -16,6 +16,7 @@
       --accent2:#2b78de;
       --ok:#79d98f;
       --danger:#ff8484;
+      --warn:#ffd38d;
       --shadow:0 10px 30px rgba(0,0,0,0.34);
       --radius:16px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -221,8 +222,107 @@
     }
 
     .bigBtn:active,
-    .modelBtn:active{
+    .modelBtn:active,
+    #unlockBtn:active{
       transform:scale(0.985);
+    }
+
+    #gate{
+      position:fixed;
+      inset:0;
+      z-index:60;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px 14px;
+      background:
+        radial-gradient(circle at center top, rgba(78,161,255,0.18), transparent 38%),
+        rgba(0,0,0,0.62);
+    }
+
+    #gateCard{
+      width:100%;
+      max-width:420px;
+      background:rgba(18,22,28,0.96);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:20px;
+      box-shadow:0 20px 44px rgba(0,0,0,0.42);
+      padding:20px 16px 16px;
+    }
+
+    #gateTitle{
+      margin:0 0 10px 0;
+      font-size:22px;
+      line-height:1.4;
+      font-weight:800;
+    }
+
+    #gateText{
+      margin:0;
+      font-size:14px;
+      line-height:1.8;
+      color:var(--sub);
+    }
+
+    .field{
+      margin-top:14px;
+    }
+
+    .field label{
+      display:block;
+      margin-bottom:7px;
+      font-size:13px;
+      color:var(--sub);
+    }
+
+    .field input{
+      width:100%;
+      height:50px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(255,255,255,0.06);
+      color:#fff;
+      font-size:16px;
+      padding:0 14px;
+      outline:none;
+    }
+
+    .field input:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(78,161,255,0.18);
+    }
+
+    #unlockBtn{
+      width:100%;
+      height:50px;
+      margin-top:14px;
+      border:none;
+      border-radius:14px;
+      font-size:16px;
+      font-weight:800;
+      color:#fff;
+      background:linear-gradient(180deg,var(--accent),var(--accent2));
+      cursor:pointer;
+    }
+
+    #gateMsg{
+      min-height:22px;
+      margin-top:10px;
+      font-size:13px;
+      color:var(--danger);
+      line-height:1.6;
+      white-space:pre-line;
+    }
+
+    #note{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:12px;
+      line-height:1.7;
+      color:var(--warn);
+      background:rgba(255,211,141,0.08);
+      border:1px solid rgba(255,211,141,0.16);
     }
 
     @media (min-width: 800px){
@@ -266,13 +366,43 @@
   <div id="app">
     <div id="viewer"></div>
 
+    <div id="gate">
+      <div id="gateCard">
+        <h1 id="gateTitle">閲覧用パスワード</h1>
+        <p id="gateText">
+          共有されたパスワードを入力すると、モデル一覧を表示します。
+        </p>
+
+        <div class="field">
+          <label for="passwordInput">パスワード</label>
+          <input
+            id="passwordInput"
+            type="password"
+            placeholder="半角で p001 を入力"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+          >
+        </div>
+
+        <button id="unlockBtn" type="button">開く</button>
+        <div id="gateMsg"></div>
+
+        <div id="note">
+          パスワードは <strong>p001</strong> です。<br>
+          間違った場合は「パスワードが違います」と表示されます。
+        </div>
+      </div>
+    </div>
+
     <div id="topPanel" class="panel">
       <div id="title">OBJビューア</div>
       <p id="subText">
         1本指で回転 / 2本指で移動・拡大縮小<br>
         アップロード済みのOBJだけ一覧表示
       </p>
-      <div id="status">準備中...</div>
+      <div id="status">待機中...</div>
     </div>
 
     <div id="hintBubble">モデルを指で動かせます</div>
@@ -295,7 +425,14 @@
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
     import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 
+    const PASSWORD = "p001";
+
     const viewer = document.getElementById("viewer");
+    const gate = document.getElementById("gate");
+    const passwordInput = document.getElementById("passwordInput");
+    const unlockBtn = document.getElementById("unlockBtn");
+    const gateMsg = document.getElementById("gateMsg");
+
     const statusEl = document.getElementById("status");
     const loadingEl = document.getElementById("loading");
     const resetBtn = document.getElementById("resetBtn");
@@ -311,6 +448,7 @@
     let currentModelFile = "";
     let hintTimer = null;
     let modelFiles = [];
+    let viewerReady = false;
 
     function setStatus(text, color = "") {
       statusEl.textContent = text;
@@ -326,6 +464,13 @@
       hintTimer = setTimeout(() => {
         if (hintBubble) hintBubble.style.opacity = "0";
       }, 3200);
+    }
+
+    function normalizeInput(value) {
+      return value
+        .replace(/ｐ/g, "p")
+        .replace(/Ｐ/g, "P")
+        .trim();
     }
 
     function getRepoInfo() {
@@ -358,6 +503,7 @@
       }
 
       const items = await response.json();
+
       return items
         .filter((item) => item.type === "file" && /\.obj$/i.test(item.name))
         .map((item) => item.name)
@@ -365,6 +511,8 @@
     }
 
     function initThree() {
+      if (viewerReady) return;
+
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x161a21);
 
@@ -440,6 +588,7 @@
 
       hideHintSoon();
       animate();
+      viewerReady = true;
     }
 
     function onResize() {
@@ -624,6 +773,60 @@
       }
     }
 
+    async function unlockViewer() {
+      unlockBtn.disabled = true;
+      unlockBtn.textContent = "確認中...";
+      gateMsg.textContent = "";
+
+      const input = normalizeInput(passwordInput.value);
+
+      if (!input) {
+        gateMsg.textContent = "パスワードを入力してください";
+        unlockBtn.disabled = false;
+        unlockBtn.textContent = "開く";
+        return;
+      }
+
+      if (input !== PASSWORD) {
+        gateMsg.textContent = "パスワードが違います";
+        unlockBtn.disabled = false;
+        unlockBtn.textContent = "開く";
+        return;
+      }
+
+      try {
+        setStatus("モデル一覧を確認中...");
+        initThree();
+
+        modelFiles = await fetchObjFilesFromGitHub();
+        buildModelList(modelFiles);
+
+        if (modelFiles.length === 0) {
+          setStatus("モデルデータはありません", "#ff8484");
+        } else {
+          setStatus("モデルデータを検出しました: " + modelFiles.length + "件", "#79d98f");
+        }
+
+        sessionStorage.setItem("obj_viewer_unlocked", "1");
+        gate.style.display = "none";
+      } catch (error) {
+        console.error(error);
+        gateMsg.textContent = "起動に失敗しました";
+        setStatus("起動に失敗しました\n" + error.message, "#ff8484");
+      } finally {
+        unlockBtn.disabled = false;
+        unlockBtn.textContent = "開く";
+      }
+    }
+
+    unlockBtn.addEventListener("click", unlockViewer);
+
+    passwordInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        unlockViewer();
+      }
+    });
+
     resetBtn.addEventListener("click", () => {
       resetCamera();
       if (hintBubble) hintBubble.style.opacity = "0";
@@ -631,21 +834,9 @@
 
     copyBtn.addEventListener("click", copyUrl);
 
-    try {
-      initThree();
-      setStatus("モデル一覧を確認中...");
-
-      modelFiles = await fetchObjFilesFromGitHub();
-      buildModelList(modelFiles);
-
-      if (modelFiles.length === 0) {
-        setStatus("モデルデータはありません", "#ff8484");
-      } else {
-        setStatus("モデルデータを検出しました: " + modelFiles.length + "件", "#79d98f");
-      }
-    } catch (error) {
-      console.error(error);
-      setStatus("起動に失敗しました\n" + error.message, "#ff8484");
+    if (sessionStorage.getItem("obj_viewer_unlocked") === "1") {
+      passwordInput.value = PASSWORD;
+      unlockViewer();
     }
   </script>
 </body>
