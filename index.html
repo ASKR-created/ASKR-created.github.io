@@ -2,23 +2,29 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>OBJ共有ビューア</title>
   <style>
     :root{
-      --bg:#1e1f22;
-      --panel:rgba(32,34,37,0.88);
-      --panel-border:rgba(255,255,255,0.12);
-      --text:#f2f2f2;
-      --sub:#c8c8c8;
+      --bg1:#13161c;
+      --bg2:#1b2028;
+      --panel:rgba(20,24,31,0.86);
+      --panel-border:rgba(255,255,255,0.10);
+      --text:#f4f6f8;
+      --sub:#c7cfdb;
       --accent:#4ea1ff;
-      --accent2:#2d7de0;
-      --danger:#ff7b7b;
-      --ok:#77d98b;
+      --accent2:#2b78de;
+      --ok:#79d98f;
+      --danger:#ff8484;
+      --shadow:0 10px 30px rgba(0,0,0,0.34);
+      --radius:16px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
     }
 
     *{
       box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent;
     }
 
     html,body{
@@ -26,19 +32,27 @@
       width:100%;
       height:100%;
       overflow:hidden;
-      background:var(--bg);
+      background:linear-gradient(180deg,var(--bg1),var(--bg2));
       color:var(--text);
-      font-family:Arial, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      touch-action:none;
+    }
+
+    body{
+      overscroll-behavior:none;
     }
 
     #app{
       position:relative;
       width:100%;
       height:100%;
+      overflow:hidden;
     }
 
     canvas{
       display:block;
+      width:100%;
+      height:100%;
     }
 
     .panel{
@@ -46,170 +60,188 @@
       z-index:20;
       background:var(--panel);
       border:1px solid var(--panel-border);
-      border-radius:12px;
-      box-shadow:0 8px 24px rgba(0,0,0,0.35);
-      backdrop-filter:blur(8px);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
     }
 
-    #infoPanel{
-      top:12px;
-      left:12px;
-      width:min(360px, calc(100vw - 24px));
-      padding:14px;
+    #topPanel{
+      top:calc(10px + var(--safe-top));
+      left:10px;
+      right:10px;
+      padding:12px 14px;
     }
 
-    #infoPanel h1{
-      margin:0 0 8px 0;
-      font-size:18px;
+    #title{
+      margin:0 0 6px 0;
+      font-size:17px;
+      font-weight:700;
       line-height:1.4;
     }
 
-    #infoPanel p{
-      margin:0 0 8px 0;
-      font-size:13px;
-      color:var(--sub);
+    #subText{
+      margin:0;
+      font-size:12px;
       line-height:1.7;
+      color:var(--sub);
     }
 
     #status{
-      margin-top:10px;
-      font-size:13px;
+      margin-top:8px;
+      font-size:12px;
       line-height:1.6;
       color:var(--sub);
       word-break:break-word;
     }
 
-    .btnRow{
+    #bottomBar{
+      left:10px;
+      right:10px;
+      bottom:calc(10px + var(--safe-bottom));
+      padding:10px;
       display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-top:10px;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
     }
 
-    button{
-      appearance:none;
+    .bigBtn{
+      flex:1;
+      height:48px;
       border:none;
-      border-radius:10px;
-      padding:10px 14px;
-      font-size:13px;
-      font-weight:bold;
+      border-radius:14px;
       color:#fff;
+      font-size:14px;
+      font-weight:700;
       cursor:pointer;
       background:linear-gradient(180deg,var(--accent),var(--accent2));
+      box-shadow:0 6px 16px rgba(43,120,222,0.34);
     }
 
-    button.sub{
-      background:rgba(255,255,255,0.10);
-      border:1px solid rgba(255,255,255,0.12);
+    .bigBtn.sub{
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.10);
+      box-shadow:none;
     }
 
-    button:hover{
-      filter:brightness(1.06);
-    }
-
-    #qrPanel{
-      top:12px;
-      right:12px;
-      width:220px;
-      padding:14px;
-      text-align:center;
-    }
-
-    #qrPanel h2{
-      margin:0 0 10px 0;
-      font-size:15px;
-    }
-
-    #qrArea{
-      background:#fff;
-      border-radius:10px;
-      padding:10px;
-      min-height:180px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-
-    #qrCaption{
-      margin-top:8px;
-      font-size:11px;
-      color:var(--sub);
-      line-height:1.6;
-      word-break:break-all;
+    .bigBtn:active{
+      transform:scale(0.985);
     }
 
     #loading{
       position:absolute;
-      z-index:25;
       left:50%;
-      bottom:14px;
+      bottom:calc(74px + var(--safe-bottom));
       transform:translateX(-50%);
-      padding:10px 14px;
+      z-index:25;
+      padding:10px 16px;
       border-radius:999px;
+      font-size:12px;
       background:rgba(0,0,0,0.58);
       border:1px solid rgba(255,255,255,0.14);
-      font-size:13px;
       display:none;
+      white-space:nowrap;
+    }
+
+    #hintBubble{
+      position:absolute;
+      right:10px;
+      top:calc(96px + var(--safe-top));
+      z-index:18;
+      padding:10px 12px;
+      border-radius:14px;
+      background:rgba(0,0,0,0.42);
+      border:1px solid rgba(255,255,255,0.10);
+      font-size:12px;
+      line-height:1.6;
+      color:#eef3fb;
+      max-width:200px;
+      pointer-events:none;
+      opacity:1;
+      transition:opacity 0.4s ease;
     }
 
     #gate{
       position:fixed;
       inset:0;
-      z-index:50;
+      z-index:60;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding:16px;
-      background:rgba(0,0,0,0.58);
+      padding:18px 14px;
+      background:
+        radial-gradient(circle at center top, rgba(78,161,255,0.18), transparent 38%),
+        rgba(0,0,0,0.62);
     }
 
     #gateCard{
-      width:min(420px,100%);
-      background:rgba(22,24,28,0.96);
+      width:100%;
+      max-width:420px;
+      background:rgba(18,22,28,0.96);
       border:1px solid rgba(255,255,255,0.12);
-      border-radius:16px;
-      box-shadow:0 16px 40px rgba(0,0,0,0.45);
-      padding:20px;
+      border-radius:20px;
+      box-shadow:0 20px 44px rgba(0,0,0,0.42);
+      padding:20px 16px 16px;
     }
 
-    #gateCard h2{
+    #gateTitle{
       margin:0 0 10px 0;
       font-size:22px;
+      line-height:1.4;
+      font-weight:800;
     }
 
-    #gateCard p{
-      margin:0 0 10px 0;
+    #gateText{
+      margin:0;
       font-size:14px;
+      line-height:1.8;
       color:var(--sub);
-      line-height:1.7;
     }
 
     .field{
-      margin-top:12px;
+      margin-top:14px;
     }
 
     .field label{
       display:block;
-      margin-bottom:6px;
+      margin-bottom:7px;
       font-size:13px;
       color:var(--sub);
     }
 
     .field input{
       width:100%;
-      height:44px;
-      border-radius:10px;
+      height:50px;
+      border-radius:14px;
       border:1px solid rgba(255,255,255,0.14);
       background:rgba(255,255,255,0.06);
       color:#fff;
-      padding:0 12px;
-      font-size:15px;
+      font-size:16px;
+      padding:0 14px;
       outline:none;
     }
 
     .field input:focus{
       border-color:var(--accent);
-      box-shadow:0 0 0 3px rgba(78,161,255,0.16);
+      box-shadow:0 0 0 3px rgba(78,161,255,0.18);
+    }
+
+    #unlockBtn{
+      width:100%;
+      height:50px;
+      margin-top:14px;
+      border:none;
+      border-radius:14px;
+      font-size:16px;
+      font-weight:800;
+      color:#fff;
+      background:linear-gradient(180deg,var(--accent),var(--accent2));
+      cursor:pointer;
+    }
+
+    #unlockBtn:active{
+      transform:scale(0.99);
     }
 
     #gateMsg{
@@ -217,26 +249,37 @@
       margin-top:10px;
       font-size:13px;
       color:var(--danger);
-    }
-
-    .note{
-      margin-top:10px;
-      padding:10px;
-      border-radius:10px;
-      font-size:12px;
       line-height:1.6;
-      color:#ffd38a;
-      background:rgba(255,211,138,0.08);
-      border:1px solid rgba(255,211,138,0.16);
     }
 
-    @media (max-width: 700px){
-      #qrPanel{
-        display:none;
+    #note{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:12px;
+      line-height:1.7;
+      color:#ffd38d;
+      background:rgba(255,211,141,0.08);
+      border:1px solid rgba(255,211,141,0.16);
+    }
+
+    @media (min-width: 800px){
+      #topPanel{
+        left:50%;
+        right:auto;
+        width:430px;
+        transform:translateX(-50%);
       }
 
-      #infoPanel{
-        width:calc(100vw - 24px);
+      #bottomBar{
+        left:50%;
+        right:auto;
+        width:430px;
+        transform:translateX(-50%);
+      }
+
+      #hintBubble{
+        right:calc(50% - 325px);
       }
     }
   </style>
@@ -245,49 +288,41 @@
   <div id="app">
     <div id="gate">
       <div id="gateCard">
-        <h2>閲覧用パスワード</h2>
-        <p>共有されたパスワードを入力するとOBJモデルを表示します。</p>
+        <h1 id="gateTitle">閲覧用パスワード</h1>
+        <p id="gateText">
+          共有されたパスワードを入力すると、OBJモデルを表示できます。
+        </p>
 
         <div class="field">
           <label for="passwordInput">パスワード</label>
-          <input id="passwordInput" type="password" placeholder="パスワードを入力" />
+          <input id="passwordInput" type="password" placeholder="パスワードを入力" inputmode="text" />
         </div>
 
-        <div class="btnRow">
-          <button id="unlockBtn">開く</button>
-        </div>
-
+        <button id="unlockBtn">開く</button>
         <div id="gateMsg"></div>
 
-        <div class="note">
-          この方式は簡易ロックです。GitHub Pages の静的HTMLだけでは、
-          本格的な安全認証にはなりません。
+        <div id="note">
+          この方式は簡易ロックです。GitHub Pages の静的HTMLだけでは、本格的な安全認証にはなりません。
         </div>
       </div>
     </div>
 
-    <div id="infoPanel" class="panel">
-      <h1>OBJ共有ビューア</h1>
-      <p>
-        左ドラッグ: 回転 / 右ドラッグ: 移動 / ホイール: 拡大縮小<br>
-        スマホでは指で回転、ピンチで拡大縮小できます。
+    <div id="topPanel" class="panel">
+      <div id="title">OBJ共有ビューア</div>
+      <p id="subText">
+        1本指で回転 / 2本指で移動・拡大縮小<br>
+        表示ファイル: <strong>model.obj</strong>
       </p>
-      <p>
-        読み込みファイル名: <strong>model.obj</strong>
-      </p>
-
-      <div class="btnRow">
-        <button id="resetBtn">視点リセット</button>
-        <button id="copyBtn" class="sub">URLコピー</button>
-      </div>
-
       <div id="status">待機中</div>
     </div>
 
-    <div id="qrPanel" class="panel">
-      <h2>共有QRコード</h2>
-      <div id="qrArea"></div>
-      <div id="qrCaption"></div>
+    <div id="hintBubble">
+      モデルを指で動かせます
+    </div>
+
+    <div id="bottomBar" class="panel">
+      <button id="resetBtn" class="bigBtn">視点リセット</button>
+      <button id="copyBtn" class="bigBtn sub">URLコピー</button>
     </div>
 
     <div id="loading">モデルを読み込み中...</div>
@@ -297,17 +332,13 @@
     import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
     import { OBJLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js";
-    import QRCode from "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm";
 
     // =========================
     // 設定
     // =========================
-
-    // GitHubに一緒に置くOBJファイル名
     const MODEL_URL = "./model.obj";
 
     // 初期パスワードは demo1234
-    // 下のハッシュは "demo1234" の SHA-256
     const PASSWORD_HASH = "34d67b96be8ad9a4a6ec1f4b7f944e4f2c2f7b0d1d4d2c2a7f9d7c7c6d5b5cf5";
 
     // =========================
@@ -323,9 +354,7 @@
     const loadingEl = document.getElementById("loading");
     const resetBtn = document.getElementById("resetBtn");
     const copyBtn = document.getElementById("copyBtn");
-
-    const qrArea = document.getElementById("qrArea");
-    const qrCaption = document.getElementById("qrCaption");
+    const hintBubble = document.getElementById("hintBubble");
 
     // =========================
     // Three.js
@@ -335,6 +364,7 @@
     let renderer = null;
     let controls = null;
     let currentObject = null;
+    let hintTimer = null;
 
     function setStatus(text, color = "") {
       statusEl.textContent = text;
@@ -345,9 +375,16 @@
       loadingEl.style.display = flag ? "block" : "none";
     }
 
+    function hideHintSoon() {
+      if (hintTimer) clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => {
+        if (hintBubble) hintBubble.style.opacity = "0";
+      }, 3200);
+    }
+
     function initThree() {
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x1e1f22);
+      scene.background = new THREE.Color(0x161a21);
 
       camera = new THREE.PerspectiveCamera(
         45,
@@ -355,50 +392,72 @@
         0.1,
         5000
       );
-      camera.position.set(0, 80, 180);
+      camera.position.set(0, 55, 145);
 
       renderer = new THREE.WebGLRenderer({
-        antialias: true
+        antialias: true,
+        alpha: false
       });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
-      app.appendChild(renderer.domElement);
+      renderer.domElement.style.touchAction = "none";
+      app.insertBefore(renderer.domElement, app.firstChild);
 
       controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.08;
-      controls.target.set(0, 30, 0);
+      controls.screenSpacePanning = true;
+      controls.enablePan = true;
+      controls.enableZoom = true;
+      controls.enableRotate = true;
+      controls.minDistance = 30;
+      controls.maxDistance = 320;
+      controls.target.set(0, 24, 0);
       controls.update();
 
-      const ambient = new THREE.AmbientLight(0xffffff, 1.35);
+      controls.addEventListener("start", () => {
+        if (hintBubble) hintBubble.style.opacity = "0";
+      });
+
+      const ambient = new THREE.AmbientLight(0xffffff, 1.45);
       scene.add(ambient);
 
       const dir1 = new THREE.DirectionalLight(0xffffff, 1.1);
-      dir1.position.set(120, 180, 100);
+      dir1.position.set(120, 180, 120);
       scene.add(dir1);
 
-      const dir2 = new THREE.DirectionalLight(0xffffff, 0.55);
-      dir2.position.set(-120, 60, -100);
+      const dir2 = new THREE.DirectionalLight(0xffffff, 0.45);
+      dir2.position.set(-100, 60, -80);
       scene.add(dir2);
 
-      const grid = new THREE.GridHelper(300, 30, 0x888888, 0x444444);
-      scene.add(grid);
-
-      const floor = new THREE.Mesh(
-        new THREE.PlaneGeometry(300, 300),
+      const ground = new THREE.Mesh(
+        new THREE.CircleGeometry(130, 64),
         new THREE.MeshStandardMaterial({
-          color: 0x2b2e34,
+          color: 0x2a313d,
           roughness: 1.0,
-          metalness: 0.0,
-          transparent: true,
-          opacity: 0.35
+          metalness: 0.0
         })
       );
-      floor.rotation.x = -Math.PI / 2;
-      scene.add(floor);
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.y = 0;
+      scene.add(ground);
 
-      window.addEventListener("resize", onResize);
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(128, 132, 64),
+        new THREE.MeshBasicMaterial({
+          color: 0x4a5568,
+          transparent: true,
+          opacity: 0.65,
+          side: THREE.DoubleSide
+        })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.02;
+      scene.add(ring);
 
+      window.addEventListener("resize", onResize, { passive: true });
+
+      hideHintSoon();
       animate();
     }
 
@@ -412,10 +471,7 @@
     function animate() {
       requestAnimationFrame(animate);
 
-      if (controls) {
-        controls.update();
-      }
-
+      if (controls) controls.update();
       if (renderer && scene && camera) {
         renderer.render(scene, camera);
       }
@@ -428,9 +484,7 @@
 
       currentObject.traverse((child) => {
         if (child.isMesh) {
-          if (child.geometry) {
-            child.geometry.dispose();
-          }
+          if (child.geometry) child.geometry.dispose();
           if (child.material) {
             if (Array.isArray(child.material)) {
               child.material.forEach((m) => m.dispose());
@@ -448,8 +502,8 @@
       object.traverse((child) => {
         if (child.isMesh) {
           child.material = new THREE.MeshStandardMaterial({
-            color: 0xd6d8dd,
-            roughness: 0.82,
+            color: 0xd9dde4,
+            roughness: 0.84,
             metalness: 0.03
           });
         }
@@ -468,7 +522,7 @@
 
       const maxAxis = Math.max(size.x, size.y, size.z);
       if (maxAxis > 0) {
-        const scale = 100 / maxAxis;
+        const scale = 88 / maxAxis;
         object.scale.setScalar(scale);
       }
 
@@ -485,8 +539,8 @@
 
     function resetCamera() {
       if (!camera || !controls) return;
-      camera.position.set(0, 80, 180);
-      controls.target.set(0, 30, 0);
+      camera.position.set(0, 55, 145);
+      controls.target.set(0, 24, 0);
       controls.update();
     }
 
@@ -506,14 +560,13 @@
               fitObject(object);
               scene.add(object);
               currentObject = object;
-
               setLoading(false);
-              setStatus("表示中: model.obj", "#77d98b");
+              setStatus("表示中: model.obj", "#79d98f");
               resolve();
             } catch (error) {
               console.error(error);
               setLoading(false);
-              setStatus("モデル整形エラー: " + error.message, "#ff7b7b");
+              setStatus("モデル整形エラー: " + error.message, "#ff8484");
               reject(error);
             }
           },
@@ -521,7 +574,7 @@
           (error) => {
             console.error(error);
             setLoading(false);
-            setStatus("読み込み失敗。model.obj を同じ場所にアップしてください。", "#ff7b7b");
+            setStatus("読み込み失敗。model.obj を同じ場所にアップしてください。", "#ff8484");
             reject(error);
           }
         );
@@ -569,31 +622,10 @@
     async function copyUrl() {
       try {
         await navigator.clipboard.writeText(location.href);
-        setStatus("URLをコピーしました。", "#77d98b");
+        setStatus("URLをコピーしました。", "#79d98f");
       } catch (error) {
         console.error(error);
-        setStatus("URLコピーに失敗しました。", "#ff7b7b");
-      }
-    }
-
-    async function buildQRCode() {
-      qrArea.innerHTML = "";
-      qrCaption.textContent = location.href;
-
-      try {
-        const canvas = document.createElement("canvas");
-        await QRCode.toCanvas(canvas, location.href, {
-          width: 180,
-          margin: 1,
-          color: {
-            dark: "#000000",
-            light: "#ffffff"
-          }
-        });
-        qrArea.appendChild(canvas);
-      } catch (error) {
-        console.error(error);
-        qrArea.textContent = "QR生成失敗";
+        setStatus("URLコピーに失敗しました。", "#ff8484");
       }
     }
 
@@ -607,13 +639,12 @@
 
     resetBtn.addEventListener("click", () => {
       resetCamera();
+      if (hintBubble) hintBubble.style.opacity = "0";
     });
 
     copyBtn.addEventListener("click", () => {
       copyUrl();
     });
-
-    buildQRCode();
 
     if (sessionStorage.getItem("obj_viewer_unlocked") === "1") {
       gate.style.display = "none";
