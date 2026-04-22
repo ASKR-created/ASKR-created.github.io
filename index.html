@@ -156,7 +156,7 @@
       font-size:12px;
       line-height:1.6;
       color:#eef3fb;
-      max-width:200px;
+      max-width:220px;
       pointer-events:none;
       opacity:1;
       transition:opacity 0.4s ease;
@@ -279,7 +279,7 @@
       }
 
       #hintBubble{
-        right:calc(50% - 325px);
+        right:calc(50% - 330px);
       }
     }
   </style>
@@ -333,17 +333,9 @@
     import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
     import { OBJLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js";
 
-    // =========================
-    // 設定
-    // =========================
     const MODEL_URL = "./model.obj";
+    const PASSWORD = "p001";
 
-    // 初期パスワードは demo1234
-    const PASSWORD_HASH = "34d67b96be8ad9a4a6ec1f4b7f944e4f2c2f7b0d1d4d2c2a7f9d7c7c6d5b5cf5";
-
-    // =========================
-    // DOM
-    // =========================
     const app = document.getElementById("app");
     const gate = document.getElementById("gate");
     const passwordInput = document.getElementById("passwordInput");
@@ -356,9 +348,6 @@
     const copyBtn = document.getElementById("copyBtn");
     const hintBubble = document.getElementById("hintBubble");
 
-    // =========================
-    // Three.js
-    // =========================
     let scene = null;
     let camera = null;
     let renderer = null;
@@ -581,27 +570,18 @@
       });
     }
 
-    async function sha256(text) {
-      const bytes = new TextEncoder().encode(text);
-      const digest = await crypto.subtle.digest("SHA-256", bytes);
-      return Array.from(new Uint8Array(digest))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-    }
-
     async function tryUnlock() {
       gateMsg.textContent = "";
 
       const input = passwordInput.value.trim();
+
       if (!input) {
-        gateMsg.textContent = "パスワードを入力してください。";
+        gateMsg.textContent = "パスワードを入力してください";
         return;
       }
 
-      const hash = await sha256(input);
-
-      if (hash !== PASSWORD_HASH) {
-        gateMsg.textContent = "パスワードが違います。";
+      if (input !== PASSWORD) {
+        gateMsg.textContent = "パスワードが違います";
         return;
       }
 
@@ -622,10 +602,10 @@
     async function copyUrl() {
       try {
         await navigator.clipboard.writeText(location.href);
-        setStatus("URLをコピーしました。", "#79d98f");
+        setStatus("URLをコピーしました", "#79d98f");
       } catch (error) {
         console.error(error);
-        setStatus("URLコピーに失敗しました。", "#ff8484");
+        setStatus("URLコピーに失敗しました", "#ff8484");
       }
     }
 
