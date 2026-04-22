@@ -186,13 +186,14 @@
       right:10px;
       bottom:calc(118px + var(--safe-bottom));
       padding:10px;
-      max-height:34vh;
+      max-height:32vh;
+      overflow:auto;
       background:var(--panel-strong);
     }
 
     #modelPanelContent{
       margin-top:8px;
-      max-height:calc(34vh - 34px);
+      max-height:calc(32vh - 34px);
       overflow:auto;
     }
 
@@ -360,11 +361,6 @@
       white-space:pre-line;
     }
 
-    .collapsedContent{
-      display:none;
-    }
-
-    /* スマホ横向き */
     @media (max-width: 899px) and (orientation: landscape){
       #topPanel{
         left:10px;
@@ -423,7 +419,6 @@
       }
     }
 
-    /* PC */
     @media (min-width: 900px){
       #topPanel{
         left:16px;
@@ -546,6 +541,7 @@
     import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 
     const PASSWORD = "p001";
+    const API_URL = "https://api.github.com/repos/ASKR-created/ASKR-created.github.io/contents";
 
     const viewer = document.getElementById("viewer");
     const gate = document.getElementById("gate");
@@ -634,26 +630,8 @@
       applyPanelState();
     }
 
-    function getRepoInfo() {
-      const host = location.hostname.toLowerCase();
-      const path = location.pathname.replace(/^\/+|\/+$/g, "");
-      if (host.endsWith(".github.io")) {
-        const owner = host.replace(".github.io", "");
-        const pathParts = path ? path.split("/") : [];
-        const repo = pathParts.length > 0 ? pathParts[0] : `${owner}.github.io`;
-        return { owner, repo };
-      }
-      return null;
-    }
-
     async function fetchObjFilesFromGitHub() {
-      const repoInfo = getRepoInfo();
-      if (!repoInfo) {
-        throw new Error("GitHub Pages のURLとして認識できません");
-      }
-
-      const apiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents`;
-      const response = await fetch(apiUrl, {
+      const response = await fetch(API_URL, {
         headers: { "Accept": "application/vnd.github+json" }
       });
 
@@ -914,6 +892,10 @@
         setStatus("表示中のOBJがありません", "#ff8484");
         return;
       }
+      sessionStorage.setItem("obj_viewer_unlocked", "1");
+      if (currentModelFile) {
+        sessionStorage.setItem("last_obj_file", currentModelFile);
+      }
       const glbFile = getArFileFromCurrentObj();
       const url = `ar.html?file=${encodeURIComponent(glbFile)}`;
       window.location.href = url;
@@ -951,6 +933,11 @@
           setStatus("モデルデータはありません", "#ff8484");
         } else {
           setStatus("モデルデータを検出しました: " + modelFiles.length + "件", "#79d98f");
+
+          const savedObj = sessionStorage.getItem("last_obj_file");
+          if (savedObj && modelFiles.includes(savedObj)) {
+            await loadModel(savedObj);
+          }
         }
 
         sessionStorage.setItem("obj_viewer_unlocked", "1");
