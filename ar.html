@@ -1,278 +1,70 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>現在のARビューア</title>
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  <style>
-    :root{
-      --panel: rgba(20,24,31,0.62);
-      --panel-border: rgba(255,255,255,0.10);
-      --text: #f4f6f8;
-      --sub: #c7cfdb;
-      --accent: #4ea1ff;
-      --accent2: #2b78de;
-      --danger: #ff8484;
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-      --safe-top: env(safe-area-inset-top, 0px);
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARビューア</title>
 
-    *{
-      box-sizing:border-box;
-      -webkit-tap-highlight-color:transparent;
-    }
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
-    html, body{
-      margin:0;
-      width:100%;
-      height:100%;
-      overflow:hidden;
-      background:linear-gradient(180deg,#13161c,#1b2028);
-      color:var(--text);
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
-    }
-
-    #app{
-      position:relative;
-      width:100%;
-      height:100%;
-      overflow:hidden;
-    }
-
-    model-viewer{
-      width:100%;
-      height:100%;
-      background:transparent;
-      --poster-color:transparent;
-    }
-
-    .panel{
-      position:absolute;
-      z-index:10;
-      left:10px;
-      right:10px;
-      background:rgba(20,24,31,0.62);
-      border:1px solid rgba(255,255,255,0.10);
-      border-radius:16px;
-      backdrop-filter:blur(10px);
-      -webkit-backdrop-filter:blur(10px);
-    }
-
-    #topPanel{
-      top:calc(10px + var(--safe-top));
-      padding:12px 14px;
-    }
-
-    #title{
-      margin:0 0 8px 0;
-      font-size:17px;
-      font-weight:800;
-    }
-
-    .label{
-      margin:8px 0 2px 0;
-      font-size:11px;
-      font-weight:700;
-    }
-
-    .value{
-      margin:0;
-      font-size:12px;
-      line-height:1.55;
-      color:var(--sub);
-      white-space:pre-line;
-      word-break:break-word;
-    }
-
-    #status{
-      margin-top:8px;
-      font-size:11px;
-      line-height:1.45;
-      color:var(--sub);
-    }
-
-    #bottomPanel{
-      bottom:calc(10px + var(--safe-bottom));
-      padding:10px;
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-    }
-
-    .btn{
-      min-height:44px;
-      border:none;
-      border-radius:14px;
-      color:#fff;
-      font-size:13px;
-      font-weight:800;
-      cursor:pointer;
-      background:linear-gradient(180deg,var(--accent),var(--accent2));
-    }
-
-    .btn.sub{
-      background:rgba(255,255,255,0.08);
-      border:1px solid rgba(255,255,255,0.10);
-    }
-
-    #errorBox{
-      position:absolute;
-      left:10px;
-      right:10px;
-      bottom:calc(126px + var(--safe-bottom));
-      z-index:11;
-      padding:12px 14px;
-      border-radius:14px;
-      background:rgba(90,20,20,0.78);
-      border:1px solid rgba(255,255,255,0.10);
-      color:#fff;
-      display:none;
-      font-size:13px;
-      line-height:1.7;
-      white-space:pre-line;
-    }
-
-    @media (min-width: 900px){
-      #topPanel{
-        left:16px;
-        right:auto;
-        width:340px;
-        top:16px;
-      }
-
-      #bottomPanel{
-        left:auto;
-        right:16px;
-        width:300px;
-        bottom:16px;
-      }
-
-      #errorBox{
-        left:auto;
-        right:16px;
-        width:300px;
-        bottom:132px;
-      }
-    }
-  </style>
+<style>
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:sans-serif;
+}
+model-viewer{
+    width:100%;
+    height:100vh;
+}
+button{
+    position:fixed;
+    bottom:10px;
+    left:10px;
+    right:10px;
+    height:50px;
+    font-size:16px;
+}
+</style>
 </head>
+
 <body>
-  <div id="app">
-    <model-viewer
-      id="mv"
-      src=""
-      ios-src=""
-      alt="AR model"
-      ar
-      ar-modes="webxr scene-viewer quick-look"
-      camera-controls
-      touch-action="pan-y"
-      shadow-intensity="1"
-      exposure="1"
-      environment-image="neutral"
-      auto-rotate
-      interaction-prompt="auto">
-    </model-viewer>
 
-    <div id="topPanel" class="panel">
-      <div id="title">現在のARビューア</div>
+<model-viewer
+id="mv"
+src=""
+ios-src=""
+ar
+ar-modes="webxr scene-viewer quick-look"
+camera-controls
+auto-rotate>
+</model-viewer>
 
-      <div class="label">表示中のデータ</div>
-      <div id="fileName" class="value">未選択</div>
+<button onclick="startAR()">AR開始</button>
 
-      <div class="label">操作方法</div>
-      <div class="value">ARで表示 を押すと、端末に応じた方式でARを開始します
-非対応端末では通常の3D表示として閲覧できます</div>
+<script>
+const mv = document.getElementById("mv");
 
-      <div id="status">準備中...</div>
-    </div>
+const params = new URLSearchParams(location.search);
+const file = params.get("file");
 
-    <div id="errorBox"></div>
+if(file){
+    mv.src = file;
 
-    <div id="bottomPanel" class="panel">
-      <button id="arBtn" class="btn" type="button">ARで表示</button>
-      <button id="backBtn" class="btn sub" type="button">3Dビューアへ</button>
-    </div>
-  </div>
+    // iPhone用USDZ
+    const usdz = file.replace(/\.\w+$/, ".usdz");
+    mv.setAttribute("ios-src", usdz);
+}
 
-  <script>
-    const mv = document.getElementById("mv");
-    const statusEl = document.getElementById("status");
-    const errorBox = document.getElementById("errorBox");
-    const arBtn = document.getElementById("arBtn");
-    const backBtn = document.getElementById("backBtn");
-    const fileNameEl = document.getElementById("fileName");
-
-    function getQueryFile() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get("file") || "";
+async function startAR(){
+    if(mv.activateAR){
+        await mv.activateAR();
+    }else{
+        alert("この端末ではAR非対応");
     }
+}
+</script>
 
-    function toUsdzCandidate(path) {
-      const dot = path.lastIndexOf(".");
-      return dot >= 0 ? path.slice(0, dot) + ".usdz" : "";
-    }
-
-    const currentFile = getQueryFile();
-    const usdzFile = currentFile ? toUsdzCandidate(currentFile) : "";
-
-    if (currentFile) {
-      mv.src = currentFile;
-      if (usdzFile) {
-        mv.setAttribute("ios-src", usdzFile);
-      }
-      fileNameEl.textContent = currentFile;
-    } else {
-      fileNameEl.textContent = "未選択";
-    }
-
-    function setStatus(text, isError = false){
-      statusEl.textContent = text;
-      statusEl.style.color = isError ? "#ff8484" : "#79d98f";
-    }
-
-    function showError(text){
-      errorBox.style.display = "block";
-      errorBox.textContent = text;
-      setStatus("読み込み失敗", true);
-    }
-
-    function hideError(){
-      errorBox.style.display = "none";
-      errorBox.textContent = "";
-    }
-
-    mv.addEventListener("load", () => {
-      hideError();
-      setStatus("読み込み完了");
-    });
-
-    mv.addEventListener("error", () => {
-      showError(currentFile + " の読み込みに失敗しました。");
-    });
-
-    arBtn.addEventListener("click", async () => {
-      try{
-        if (!currentFile) {
-          showError("AR用データが指定されていません。");
-          return;
-        }
-        if (typeof mv.activateAR === "function") {
-          await mv.activateAR();
-        } else {
-          showError("この端末ではAR起動に対応していません。");
-        }
-      } catch (e){
-        showError("ARを開始できませんでした。");
-      }
-    });
-
-    backBtn.addEventListener("click", () => {
-      window.location.href = "index.html";
-    });
-
-    setStatus("準備中...");
-  </script>
 </body>
 </html>
