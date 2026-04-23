@@ -1,278 +1,84 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>現在のARビューア</title>
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  <style>
-    :root{
-      --panel: rgba(20,24,31,0.62);
-      --panel-border: rgba(255,255,255,0.10);
-      --text: #f4f6f8;
-      --sub: #c7cfdb;
-      --accent: #4ea1ff;
-      --accent2: #2b78de;
-      --danger: #ff8484;
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-      --safe-top: env(safe-area-inset-top, 0px);
-    }
-
-    *{
-      box-sizing:border-box;
-      -webkit-tap-highlight-color:transparent;
-    }
-
-    html, body{
-      margin:0;
-      width:100%;
-      height:100%;
-      overflow:hidden;
-      background:linear-gradient(180deg,#13161c,#1b2028);
-      color:var(--text);
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
-    }
-
-    #app{
-      position:relative;
-      width:100%;
-      height:100%;
-      overflow:hidden;
-    }
-
-    model-viewer{
-      width:100%;
-      height:100%;
-      background:transparent;
-      --poster-color:transparent;
-    }
-
-    .panel{
-      position:absolute;
-      z-index:10;
-      left:10px;
-      right:10px;
-      background:rgba(20,24,31,0.62);
-      border:1px solid rgba(255,255,255,0.10);
-      border-radius:16px;
-      backdrop-filter:blur(10px);
-      -webkit-backdrop-filter:blur(10px);
-    }
-
-    #topPanel{
-      top:calc(10px + var(--safe-top));
-      padding:12px 14px;
-    }
-
-    #title{
-      margin:0 0 8px 0;
-      font-size:17px;
-      font-weight:800;
-    }
-
-    .label{
-      margin:8px 0 2px 0;
-      font-size:11px;
-      font-weight:700;
-    }
-
-    .value{
-      margin:0;
-      font-size:12px;
-      line-height:1.55;
-      color:var(--sub);
-      white-space:pre-line;
-      word-break:break-word;
-    }
-
-    #status{
-      margin-top:8px;
-      font-size:11px;
-      line-height:1.45;
-      color:var(--sub);
-    }
-
-    #bottomPanel{
-      bottom:calc(10px + var(--safe-bottom));
-      padding:10px;
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-    }
-
-    .btn{
-      min-height:44px;
-      border:none;
-      border-radius:14px;
-      color:#fff;
-      font-size:13px;
-      font-weight:800;
-      cursor:pointer;
-      background:linear-gradient(180deg,var(--accent),var(--accent2));
-    }
-
-    .btn.sub{
-      background:rgba(255,255,255,0.08);
-      border:1px solid rgba(255,255,255,0.10);
-    }
-
-    #errorBox{
-      position:absolute;
-      left:10px;
-      right:10px;
-      bottom:calc(126px + var(--safe-bottom));
-      z-index:11;
-      padding:12px 14px;
-      border-radius:14px;
-      background:rgba(90,20,20,0.78);
-      border:1px solid rgba(255,255,255,0.10);
-      color:#fff;
-      display:none;
-      font-size:13px;
-      line-height:1.7;
-      white-space:pre-line;
-    }
-
-    @media (min-width: 900px){
-      #topPanel{
-        left:16px;
-        right:auto;
-        width:340px;
-        top:16px;
-      }
-
-      #bottomPanel{
-        left:auto;
-        right:16px;
-        width:300px;
-        bottom:16px;
-      }
-
-      #errorBox{
-        left:auto;
-        right:16px;
-        width:300px;
-        bottom:132px;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3Dビューア</title>
 </head>
-<body>
-  <div id="app">
-    <model-viewer
-      id="mv"
-      src=""
-      ios-src=""
-      alt="AR model"
-      ar
-      ar-modes="webxr scene-viewer quick-look"
-      camera-controls
-      touch-action="pan-y"
-      shadow-intensity="1"
-      exposure="1"
-      environment-image="neutral"
-      auto-rotate
-      interaction-prompt="auto">
-    </model-viewer>
 
-    <div id="topPanel" class="panel">
-      <div id="title">現在のARビューア</div>
+<body style="margin:0;background:#111;color:white;font-family:sans-serif">
 
-      <div class="label">表示中のデータ</div>
-      <div id="fileName" class="value">未選択</div>
+<h2>3Dビューア</h2>
 
-      <div class="label">操作方法</div>
-      <div class="value">ARで表示 を押すと、端末に応じた方式でARを開始します
-非対応端末では通常の3D表示として閲覧できます</div>
+<input type="password" id="pass" placeholder="パスワード">
+<button onclick="unlock()">開く</button>
 
-      <div id="status">準備中...</div>
-    </div>
+<div id="main" style="display:none">
 
-    <div id="errorBox"></div>
+<h3>モデル一覧</h3>
+<div id="list"></div>
 
-    <div id="bottomPanel" class="panel">
-      <button id="arBtn" class="btn" type="button">ARで表示</button>
-      <button id="backBtn" class="btn sub" type="button">3Dビューアへ</button>
-    </div>
-  </div>
+<button onclick="openAR()">AR表示</button>
 
-  <script>
-    const mv = document.getElementById("mv");
-    const statusEl = document.getElementById("status");
-    const errorBox = document.getElementById("errorBox");
-    const arBtn = document.getElementById("arBtn");
-    const backBtn = document.getElementById("backBtn");
-    const fileNameEl = document.getElementById("fileName");
+</div>
 
-    function getQueryFile() {
-      const params = new URLSearchParams(location.search);
-      return params.get("file") || "";
+<script>
+const PASSWORD = "p001";
+let currentFile = "";
+
+function unlock(){
+    const val = document.getElementById("pass").value;
+    if(val === PASSWORD){
+        document.getElementById("main").style.display = "block";
+        loadModels();
+    }else{
+        alert("パスワードが違います");
     }
+}
 
-    function toUsdzCandidate(path) {
-      const dot = path.lastIndexOf(".");
-      return dot >= 0 ? path.slice(0, dot) + ".usdz" : "";
-    }
+async function loadModels(){
+    const res = await fetch("https://api.github.com/repos/ASKR-created/ASKR-created.github.io/git/trees/main?recursive=1");
+    const data = await res.json();
 
-    const currentFile = getQueryFile();
-    const usdzFile = currentFile ? toUsdzCandidate(currentFile) : "";
+    const files = data.tree
+        .map(v=>v.path)
+        .filter(v=>v.startsWith("models/"))
+        .filter(v=>v.endsWith(".glb") || v.endsWith(".gltf") || v.endsWith(".obj") || v.endsWith(".fbx"));
 
-    if (currentFile) {
-      mv.src = currentFile;
-      if (usdzFile) {
-        mv.setAttribute("ios-src", usdzFile);
-      }
-      fileNameEl.textContent = currentFile;
-    } else {
-      fileNameEl.textContent = "未選択";
-    }
+    const list = document.getElementById("list");
+    list.innerHTML = "";
 
-    function setStatus(text, isError = false){
-      statusEl.textContent = text;
-      statusEl.style.color = isError ? "#ff8484" : "#79d98f";
-    }
-
-    function showError(text){
-      errorBox.style.display = "block";
-      errorBox.textContent = text;
-      setStatus("読み込み失敗", true);
-    }
-
-    function hideError(){
-      errorBox.style.display = "none";
-      errorBox.textContent = "";
-    }
-
-    mv.addEventListener("load", () => {
-      hideError();
-      setStatus("読み込み完了");
+    files.forEach(f=>{
+        const btn = document.createElement("button");
+        btn.innerText = f;
+        btn.style.display = "block";
+        btn.onclick = ()=>{
+            currentFile = f;
+            alert("選択：" + f);
+        };
+        list.appendChild(btn);
     });
+}
 
-    mv.addEventListener("error", () => {
-      showError(currentFile + " の読み込みに失敗しました。");
-    });
+function getARFile(){
+    if(!currentFile) return "";
 
-    arBtn.addEventListener("click", async () => {
-      try{
-        if (!currentFile) {
-          showError("AR用データが指定されていません。");
-          return;
-        }
-        if (typeof mv.activateAR === "function") {
-          await mv.activateAR();
-        } else {
-          showError("この端末ではAR起動に対応していません。");
-        }
-      } catch (e){
-        showError("ARを開始できませんでした。");
-      }
-    });
+    if(currentFile.endsWith(".glb") || currentFile.endsWith(".gltf")){
+        return currentFile;
+    }
 
-    backBtn.addEventListener("click", () => {
-      window.location.href = "index.html";
-    });
+    return currentFile.replace(/\.\w+$/, ".glb");
+}
 
-    setStatus("準備中...");
-  </script>
+function openAR(){
+    const file = getARFile();
+    if(!file){
+        alert("モデル未選択");
+        return;
+    }
+    location.href = "ar.html?file=" + encodeURIComponent(file);
+}
+</script>
+
 </body>
 </html>
