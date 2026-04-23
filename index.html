@@ -183,12 +183,13 @@
       <div class="label">表示中のデータ</div>
       <div id="fileName" class="value">未選択</div>
 
-      <div class="label">iPhone / iPad のAR方式</div>
-      <div id="iosMode" class="value">確認中...</div>
+      <div class="label">AR方式</div>
+      <div id="arModeInfo" class="value">USDZは使用しません
+GLB / GLTF のみでAR起動します</div>
 
       <div class="label">操作方法</div>
       <div class="value">ARで表示 を押すと、端末に応じた方式でARを開始します。
-iPhone / iPad では Quick Look を使用します。</div>
+うまく起動しない場合は 3Dビューアに戻ってください。</div>
 
       <div id="status">準備中...</div>
     </div>
@@ -208,32 +209,14 @@ iPhone / iPad では Quick Look を使用します。</div>
     const arBtn = document.getElementById("arBtn");
     const backBtn = document.getElementById("backBtn");
     const fileNameEl = document.getElementById("fileName");
-    const iosModeEl = document.getElementById("iosMode");
 
     function getQueryFile() {
       const params = new URLSearchParams(location.search);
       return params.get("file") || "";
     }
 
-    function toUsdzCandidate(path) {
-      const dot = path.lastIndexOf(".");
-      return dot >= 0 ? path.slice(0, dot) + ".usdz" : "";
-    }
-
     function absoluteUrl(path) {
-      return new URL(path, location.href).href;
-    }
-
-    async function fileExists(url) {
-      try {
-        const response = await fetch(url, {
-          method: "HEAD",
-          cache: "no-store"
-        });
-        return response.ok;
-      } catch (e) {
-        return false;
-      }
+      return new URL(path, location.origin + "/").href;
     }
 
     function setStatus(text, isError = false){
@@ -257,31 +240,12 @@ iPhone / iPad では Quick Look を使用します。</div>
 
       if (!currentFile) {
         fileNameEl.textContent = "未選択";
-        iosModeEl.textContent = "AR用データ未指定";
         setStatus("AR用データが指定されていません。", true);
         return;
       }
 
       fileNameEl.textContent = currentFile;
-
-      const absModelUrl = absoluteUrl(currentFile);
-      const usdzFile = toUsdzCandidate(currentFile);
-      const absUsdzUrl = absoluteUrl(usdzFile);
-
-      mv.src = absModelUrl;
-
-      const usdzExists = await fileExists(absUsdzUrl);
-
-      if (usdzExists) {
-        mv.setAttribute("ios-src", absUsdzUrl);
-        iosModeEl.textContent = "同名の .usdz を検出しました。iPhone / iPad ではそれを使います。";
-        iosModeEl.style.color = "#79d98f";
-      } else {
-        mv.removeAttribute("ios-src");
-        iosModeEl.textContent = "同名の .usdz が無いため、iPhone / iPad では自動生成方式を使います。";
-        iosModeEl.style.color = "#ffd36b";
-      }
-
+      mv.src = absoluteUrl(currentFile);
       setStatus("モデル読込準備完了");
     }
 
@@ -311,7 +275,7 @@ iPhone / iPad では Quick Look を使用します。</div>
           showError("この端末ではAR起動に対応していません。");
         }
       } catch (e){
-        showError("ARを開始できませんでした。\n同名の .usdz がある場合は配置を確認してください。");
+        showError("ARを開始できませんでした。\nこの端末では3D表示のみ利用できる可能性があります。");
       }
     });
 
