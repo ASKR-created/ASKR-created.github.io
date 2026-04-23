@@ -14,8 +14,6 @@
     }
   </script>
 
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-
   <style>
     :root{
       --panel: rgba(20,24,31,0.58);
@@ -160,15 +158,10 @@
       word-break:break-word;
     }
 
-    #animStatus{
-      color: var(--warn);
-      font-weight: 700;
-    }
-
     #hintBubble{
       position:absolute;
       right:10px;
-      top:calc(132px + var(--safe-top));
+      top:calc(150px + var(--safe-top));
       z-index:18;
       padding:8px 10px;
       border-radius:14px;
@@ -177,7 +170,7 @@
       font-size:11px;
       line-height:1.5;
       color:#eef3fb;
-      max-width:190px;
+      max-width:210px;
       pointer-events:none;
       opacity:1;
       transition:opacity 0.4s ease;
@@ -186,7 +179,7 @@
     #loading{
       position:absolute;
       left:50%;
-      bottom:calc(110px + var(--safe-bottom));
+      bottom:calc(150px + var(--safe-bottom));
       transform:translateX(-50%);
       z-index:25;
       padding:8px 14px;
@@ -202,16 +195,15 @@
       z-index:22;
       left:10px;
       right:10px;
-      bottom:calc(118px + var(--safe-bottom));
+      bottom:calc(158px + var(--safe-bottom));
       padding:10px;
-      max-height:34vh;
-      overflow:auto;
+      max-height:32vh;
       background:var(--panel-strong);
     }
 
     #modelPanelContent{
       margin-top:8px;
-      max-height:calc(34vh - 34px);
+      max-height:calc(32vh - 34px);
       overflow:auto;
     }
 
@@ -264,6 +256,18 @@
       align-items:center;
     }
 
+    #uiBarRow2{
+      position:absolute;
+      z-index:23;
+      left:10px;
+      right:10px;
+      bottom:calc(66px + var(--safe-bottom));
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+      align-items:center;
+    }
+
     .btn{
       min-height:46px;
       border:none;
@@ -282,6 +286,10 @@
       background:rgba(20,24,31,0.64);
       border:1px solid rgba(255,255,255,0.10);
       box-shadow:none;
+    }
+
+    .btn.warn{
+      background:linear-gradient(180deg,#4f78a8,#31537f);
     }
 
     .btn:disabled{
@@ -380,52 +388,25 @@
       white-space:pre-line;
     }
 
-    #arProxy{
-      position:fixed;
-      left:-9999px;
-      top:-9999px;
-      width:1px;
-      height:1px;
-      opacity:0;
-      pointer-events:none;
-    }
-
     @media (max-width: 899px) and (orientation: landscape){
       #topPanel{
         left:10px;
         right:auto;
         width:280px;
         top:10px;
-        padding:10px 12px;
-      }
-
-      #title{
-        font-size:15px;
-        margin-bottom:6px;
-      }
-
-      .label{
-        font-size:10px;
-        margin-top:6px;
-      }
-
-      .value, #status{
-        font-size:11px;
-        line-height:1.4;
       }
 
       #hintBubble{
         top:auto;
         right:12px;
-        bottom:66px;
-        max-width:190px;
+        bottom:118px;
       }
 
       #modelPanel{
         left:auto;
         right:10px;
         width:280px;
-        bottom:66px;
+        bottom:118px;
         max-height:44vh;
       }
 
@@ -440,10 +421,21 @@
         bottom:10px;
       }
 
+      #uiBarRow2{
+        left:auto;
+        right:10px;
+        width:280px;
+        bottom:66px;
+      }
+
       .btn{
         min-height:38px;
         font-size:12px;
         border-radius:12px;
+      }
+
+      #loading{
+        bottom:145px;
       }
     }
 
@@ -453,20 +445,18 @@
         top:16px;
         right:auto;
         width:330px;
-        padding:12px 14px;
       }
 
       #hintBubble{
         right:16px;
         top:16px;
-        max-width:190px;
       }
 
       #modelPanel{
         left:auto;
         right:16px;
         width:320px;
-        bottom:70px;
+        bottom:122px;
         max-height:280px;
       }
 
@@ -479,6 +469,13 @@
         right:16px;
         width:320px;
         bottom:16px;
+      }
+
+      #uiBarRow2{
+        left:auto;
+        right:16px;
+        width:320px;
+        bottom:72px;
       }
 
       .btn{
@@ -530,18 +527,17 @@
         <div class="label">対応形式</div>
         <div class="value">OBJ / FBX / GLB / GLTF</div>
 
-        <div class="label">アニメーション</div>
-        <div id="animStatus" class="value">アニメーションなし</div>
+        <div class="label">AR切替</div>
+        <div id="arModeInfo" class="value">WebXR判定中...</div>
 
         <div class="label">操作方法</div>
-        <div class="value">1本指で回転 / 2本指で移動・拡大縮小
-モデルを軽くタップで再生 / 停止</div>
+        <div class="value">1本指で回転 / 2本指で移動・拡大縮小</div>
 
         <div id="status">待機中...</div>
       </div>
     </div>
 
-    <div id="hintBubble">モデルを軽くタップするとアニメーション再生 / 停止</div>
+    <div id="hintBubble">非対応端末では「現在のAR」だけ使えます</div>
 
     <div id="modelPanel" class="panel">
       <div id="modelPanelHeader" class="panelHeader">
@@ -554,22 +550,16 @@
       </div>
     </div>
 
+    <div id="uiBarRow2">
+      <button id="currentArBtn" class="btn warn" type="button">現在のAR</button>
+    </div>
+
     <div id="uiBar">
-      <button id="arBtn" class="btn sub" type="button">AR切替</button>
+      <button id="webxrArBtn" class="btn sub" type="button">WebXR AR</button>
       <button id="resetBtn" class="btn" type="button">視点リセット</button>
     </div>
 
     <div id="loading">モデルを読み込み中...</div>
-
-    <model-viewer
-      id="arProxy"
-      src=""
-      ios-src=""
-      alt="AR proxy"
-      ar
-      ar-modes="webxr scene-viewer quick-look"
-      camera-controls>
-    </model-viewer>
   </div>
 
   <script type="module">
@@ -594,13 +584,13 @@
 
     const statusEl = document.getElementById("status");
     const currentDataEl = document.getElementById("currentData");
-    const animStatusEl = document.getElementById("animStatus");
+    const arModeInfoEl = document.getElementById("arModeInfo");
     const loadingEl = document.getElementById("loading");
     const resetBtn = document.getElementById("resetBtn");
-    const arBtn = document.getElementById("arBtn");
+    const currentArBtn = document.getElementById("currentArBtn");
+    const webxrArBtn = document.getElementById("webxrArBtn");
     const hintBubble = document.getElementById("hintBubble");
     const modelList = document.getElementById("modelList");
-    const arProxy = document.getElementById("arProxy");
 
     const topPanelContent = document.getElementById("topPanelContent");
     const modelPanelContent = document.getElementById("modelPanelContent");
@@ -622,17 +612,7 @@
 
     let topPanelOpen = true;
     let modelPanelOpen = true;
-
-    let mixer = null;
-    let animationActions = [];
-    let currentAnimations = [];
-    let isAnimationPlaying = false;
-    let clock = null;
-
-    let pointerDownX = 0;
-    let pointerDownY = 0;
-    let pointerDownTime = 0;
-    let pointerMoved = false;
+    let webxrSupported = false;
 
     function setStatus(text, color = "") {
       statusEl.textContent = text;
@@ -642,11 +622,6 @@
     function setCurrentData(text, color = "") {
       currentDataEl.textContent = text;
       currentDataEl.style.color = color || "";
-    }
-
-    function setAnimStatus(text, color = "") {
-      animStatusEl.textContent = text;
-      animStatusEl.style.color = color || "";
     }
 
     function setLoading(flag) {
@@ -721,6 +696,28 @@
       return repoTreePaths.has(path);
     }
 
+    async function detectWebXRAR() {
+      try {
+        if (!("xr" in navigator) || !navigator.xr || !navigator.xr.isSessionSupported) {
+          webxrSupported = false;
+        } else {
+          webxrSupported = await navigator.xr.isSessionSupported("immersive-ar");
+        }
+      } catch (e) {
+        webxrSupported = false;
+      }
+
+      if (webxrSupported) {
+        arModeInfoEl.textContent = "WebXR AR + 現在のAR の両方が使えます";
+        arModeInfoEl.style.color = "#79d98f";
+        webxrArBtn.disabled = false;
+      } else {
+        arModeInfoEl.textContent = "この端末では WebXR AR 非対応。現在のARのみ使用できます";
+        arModeInfoEl.style.color = "#ffd36b";
+        webxrArBtn.disabled = true;
+      }
+    }
+
     async function fetchTreeFrom(url) {
       const response = await fetch(url, {
         headers: { "Accept": "application/vnd.github+json" }
@@ -759,7 +756,6 @@
       if (viewerReady) return;
 
       scene = new THREE.Scene();
-      clock = new THREE.Clock();
 
       camera = new THREE.PerspectiveCamera(
         45,
@@ -805,42 +801,11 @@
       dir2.position.set(-100, 60, -80);
       scene.add(dir2);
 
-      renderer.domElement.addEventListener("pointerdown", onViewerPointerDown, { passive: true });
-      renderer.domElement.addEventListener("pointermove", onViewerPointerMove, { passive: true });
-      renderer.domElement.addEventListener("pointerup", onViewerPointerUp, { passive: true });
-
       window.addEventListener("resize", onResize, { passive: true });
 
       hideHintSoon();
       animate();
       viewerReady = true;
-    }
-
-    function onViewerPointerDown(event) {
-      pointerDownX = event.clientX;
-      pointerDownY = event.clientY;
-      pointerDownTime = performance.now();
-      pointerMoved = false;
-    }
-
-    function onViewerPointerMove(event) {
-      const dx = event.clientX - pointerDownX;
-      const dy = event.clientY - pointerDownY;
-      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-        pointerMoved = true;
-      }
-    }
-
-    function onViewerPointerUp(event) {
-      const dt = performance.now() - pointerDownTime;
-      const dx = event.clientX - pointerDownX;
-      const dy = event.clientY - pointerDownY;
-
-      const isTap = !pointerMoved && Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 300;
-
-      if (isTap) {
-        toggleAnimation();
-      }
     }
 
     function onResize() {
@@ -852,91 +817,9 @@
 
     function animate() {
       requestAnimationFrame(animate);
-
-      if (mixer) {
-        mixer.update(clock.getDelta());
-      } else if (clock) {
-        clock.getDelta();
-      }
-
       if (controls) controls.update();
       if (renderer && scene && camera) {
         renderer.render(scene, camera);
-      }
-    }
-
-    function clearAnimations() {
-      if (mixer) {
-        mixer.stopAllAction();
-      }
-      mixer = null;
-      animationActions = [];
-      currentAnimations = [];
-      isAnimationPlaying = false;
-      setAnimStatus("アニメーションなし", "#c7cfdb");
-    }
-
-    function setupAnimations(rootObject, animations) {
-      clearAnimations();
-
-      if (!animations || !animations.length) {
-        setAnimStatus("アニメーションなし", "#c7cfdb");
-        return;
-      }
-
-      mixer = new THREE.AnimationMixer(rootObject);
-      currentAnimations = animations;
-      animationActions = animations.map((clip) => {
-        const action = mixer.clipAction(clip);
-        action.loop = THREE.LoopRepeat;
-        action.clampWhenFinished = false;
-        return action;
-      });
-
-      playAnimations();
-    }
-
-    function playAnimations() {
-      if (!animationActions.length) return;
-      animationActions.forEach((action) => {
-        action.reset();
-        action.play();
-      });
-      isAnimationPlaying = true;
-      setAnimStatus("再生中（タップで停止）", "#ffd36b");
-    }
-
-    function pauseAnimations() {
-      if (!animationActions.length) return;
-      animationActions.forEach((action) => {
-        action.paused = true;
-      });
-      isAnimationPlaying = false;
-      setAnimStatus("停止中（タップで再生）", "#ffd36b");
-    }
-
-    function resumeAnimations() {
-      if (!animationActions.length) return;
-      animationActions.forEach((action) => {
-        action.paused = false;
-        action.play();
-      });
-      isAnimationPlaying = true;
-      setAnimStatus("再生中（タップで停止）", "#ffd36b");
-    }
-
-    function toggleAnimation() {
-      if (!animationActions.length) {
-        setStatus("このモデルにアニメーションはありません", "#ff8484");
-        return;
-      }
-
-      if (isAnimationPlaying) {
-        pauseAnimations();
-        setStatus("アニメーションを停止しました", "#ffd36b");
-      } else {
-        resumeAnimations();
-        setStatus("アニメーションを再生しました", "#79d98f");
       }
     }
 
@@ -1030,7 +913,7 @@
             objUrl,
             (object) => {
               applyFallbackMaterial(object);
-              resolve({ object, animations: [] });
+              resolve(object);
             },
             undefined,
             reject
@@ -1053,7 +936,7 @@
 
             objLoader.load(
               encodeURIComponent(getBaseName(relativePath)),
-              (object) => resolve({ object, animations: [] }),
+              (object) => resolve(object),
               undefined,
               () => {
                 const fallback = new OBJLoader();
@@ -1061,7 +944,7 @@
                   objUrl,
                   (object) => {
                     applyFallbackMaterial(object);
-                    resolve({ object, animations: [] });
+                    resolve(object);
                   },
                   undefined,
                   reject
@@ -1076,7 +959,7 @@
               objUrl,
               (object) => {
                 applyFallbackMaterial(object);
-                resolve({ object, animations: [] });
+                resolve(object);
               },
               undefined,
               reject
@@ -1091,12 +974,7 @@
       const loader = new FBXLoader();
 
       return new Promise((resolve, reject) => {
-        loader.load(
-          url,
-          (object) => resolve({ object, animations: object.animations || [] }),
-          undefined,
-          reject
-        );
+        loader.load(url, resolve, undefined, reject);
       });
     }
 
@@ -1107,7 +985,7 @@
       return new Promise((resolve, reject) => {
         loader.load(
           url,
-          (gltf) => resolve({ object: gltf.scene, animations: gltf.animations || [] }),
+          (gltf) => resolve(gltf.scene),
           undefined,
           reject
         );
@@ -1120,35 +998,30 @@
       currentModelFile = relativePath;
       updateModelButtons();
       setCurrentData(relativePath, "#79d98f");
-      updateArButtonState();
+      updateArButtons();
 
       try {
-        let loaded = null;
+        let object = null;
         const ext = getExt(relativePath);
 
         if (ext === ".obj") {
-          loaded = await tryLoadObjWithMtl(relativePath);
+          object = await tryLoadObjWithMtl(relativePath);
         } else if (ext === ".fbx") {
-          loaded = await loadFbx(relativePath);
+          object = await loadFbx(relativePath);
         } else if (ext === ".glb" || ext === ".gltf") {
-          loaded = await loadGltf(relativePath);
+          object = await loadGltf(relativePath);
         } else {
           throw new Error("未対応形式です: " + ext);
         }
 
         clearCurrentObject();
-        clearAnimations();
-
-        fitObject(loaded.object);
-        scene.add(loaded.object);
-        currentObject = loaded.object;
-
-        setupAnimations(loaded.object, loaded.animations || []);
+        fitObject(object);
+        scene.add(object);
+        currentObject = object;
 
         setStatus("読み込み完了", "#79d98f");
       } catch (error) {
         console.error(error);
-        clearAnimations();
         setStatus("読み込み失敗: " + relativePath + "\n" + (error.message || error), "#ff8484");
       } finally {
         setLoading(false);
@@ -1164,7 +1037,7 @@
         empty.textContent = "models フォルダ内に対応データはありません";
         modelList.appendChild(empty);
         setCurrentData("データはありません", "#ff8484");
-        updateArButtonState();
+        updateArButtons();
         return;
       }
 
@@ -1187,7 +1060,7 @@
       });
 
       updateModelButtons();
-      updateArButtonState();
+      updateArButtons();
     }
 
     function getSiblingPathWithExt(path, ext) {
@@ -1196,68 +1069,47 @@
       return dir + base + ext;
     }
 
-    function getArGlbPathForCurrentModel() {
+    function getCurrentArFile() {
       if (!currentModelFile) return "";
       const ext = getExt(currentModelFile);
 
-      if (ext === ".glb") return currentModelFile;
-      if (ext === ".gltf") {
-        const glbCandidate = getSiblingPathWithExt(currentModelFile, ".glb");
-        return hasFile(glbCandidate) ? glbCandidate : "";
-      }
+      if (ext === ".glb" || ext === ".gltf") return currentModelFile;
 
-      const siblingGlb = getSiblingPathWithExt(currentModelFile, ".glb");
-      return hasFile(siblingGlb) ? siblingGlb : "";
+      const glb = getSiblingPathWithExt(currentModelFile, ".glb");
+      if (hasFile(glb)) return glb;
+
+      const gltf = getSiblingPathWithExt(currentModelFile, ".gltf");
+      if (hasFile(gltf)) return gltf;
+
+      return "";
     }
 
-    function getArUsdzPathForCurrentModel() {
-      if (!currentModelFile) return "";
-      const siblingUsdz = getSiblingPathWithExt(currentModelFile, ".usdz");
-      return hasFile(siblingUsdz) ? siblingUsdz : "";
+    function updateArButtons() {
+      const arFile = getCurrentArFile();
+      currentArBtn.disabled = !arFile;
+      webxrArBtn.disabled = !arFile || !webxrSupported;
     }
 
-    function updateArButtonState() {
-      const arGlb = getArGlbPathForCurrentModel();
-      arBtn.disabled = !arGlb;
-    }
-
-    async function openArSmooth() {
-      if (!currentModelFile) {
-        setStatus("表示中のデータがありません", "#ff8484");
+    function openCurrentAr() {
+      const arFile = getCurrentArFile();
+      if (!arFile) {
+        setStatus("対応するAR用データがありません", "#ff8484");
         return;
       }
+      window.location.href = `ar.html?file=${encodeURIComponent(arFile)}`;
+    }
 
-      const glbPath = getArGlbPathForCurrentModel();
-      const usdzPath = getArUsdzPathForCurrentModel();
-
-      if (!glbPath) {
-        setStatus("対応するGLBがありません", "#ff8484");
+    function openWebxrAr() {
+      const arFile = getCurrentArFile();
+      if (!arFile) {
+        setStatus("対応するAR用データがありません", "#ff8484");
         return;
       }
-
-      try {
-        setLoading(true);
-        setStatus("AR準備中...", "#79d98f");
-
-        arProxy.setAttribute("src", "./" + encodePath(glbPath));
-        if (usdzPath) {
-          arProxy.setAttribute("ios-src", "./" + encodePath(usdzPath));
-        } else {
-          arProxy.removeAttribute("ios-src");
-        }
-
-        if (typeof arProxy.activateAR === "function") {
-          await arProxy.activateAR();
-          setStatus("ARを開始しました", "#79d98f");
-        } else {
-          setStatus("この端末ではAR起動に対応していません", "#ff8484");
-        }
-      } catch (error) {
-        console.error(error);
-        setStatus("AR起動に失敗しました", "#ff8484");
-      } finally {
-        setLoading(false);
+      if (!webxrSupported) {
+        setStatus("この端末ではWebXR ARは使えません。現在のARをご利用ください", "#ffd36b");
+        return;
       }
+      window.location.href = `webxr_ar.html?file=${encodeURIComponent(arFile)}`;
     }
 
     async function unlockViewer(forceOpen = false) {
@@ -1284,6 +1136,7 @@
       try {
         setStatus("models フォルダを確認中...");
         initThree();
+        await detectWebXRAR();
 
         modelFiles = await fetchModelFilesFromGitHub();
         buildModelList(modelFiles);
@@ -1326,9 +1179,11 @@
       if (hintBubble) hintBubble.style.opacity = "0";
     });
 
-    arBtn.addEventListener("click", openArSmooth);
+    currentArBtn.addEventListener("click", openCurrentAr);
+    webxrArBtn.addEventListener("click", openWebxrAr);
 
     setInitialPanelState();
+    detectWebXRAR();
 
     if (sessionStorage.getItem("obj_viewer_unlocked") === "1") {
       passwordInput.value = PASSWORD;
