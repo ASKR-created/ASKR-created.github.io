@@ -3,80 +3,66 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3Dビューア</title>
+<title>ARビューア</title>
+
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+<style>
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:sans-serif;
+}
+model-viewer{
+    width:100%;
+    height:100vh;
+}
+button{
+    position:fixed;
+    bottom:10px;
+    left:10px;
+    right:10px;
+    height:50px;
+    font-size:16px;
+}
+</style>
 </head>
 
-<body style="margin:0;background:#111;color:white;font-family:sans-serif">
+<body>
 
-<h2>3Dビューア</h2>
+<model-viewer
+id="mv"
+src=""
+ios-src=""
+ar
+ar-modes="webxr scene-viewer quick-look"
+camera-controls
+auto-rotate>
+</model-viewer>
 
-<input type="password" id="pass" placeholder="パスワード">
-<button onclick="unlock()">開く</button>
-
-<div id="main" style="display:none">
-
-<h3>モデル一覧</h3>
-<div id="list"></div>
-
-<button onclick="openAR()">AR表示</button>
-
-</div>
+<button onclick="startAR()">AR開始</button>
 
 <script>
-const PASSWORD = "p001";
-let currentFile = "";
+const mv = document.getElementById("mv");
 
-function unlock(){
-    const val = document.getElementById("pass").value;
-    if(val === PASSWORD){
-        document.getElementById("main").style.display = "block";
-        loadModels();
+const params = new URLSearchParams(location.search);
+const file = params.get("file");
+
+if(file){
+    mv.src = file;
+
+    // iPhone用
+    const usdz = file.replace(/\.\w+$/, ".usdz");
+    mv.setAttribute("ios-src", usdz);
+}
+
+async function startAR(){
+    if(mv.activateAR){
+        await mv.activateAR();
     }else{
-        alert("パスワードが違います");
+        alert("この端末ではAR非対応");
     }
-}
-
-async function loadModels(){
-    const res = await fetch("https://api.github.com/repos/ASKR-created/ASKR-created.github.io/git/trees/main?recursive=1");
-    const data = await res.json();
-
-    const files = data.tree
-        .map(v=>v.path)
-        .filter(v=>v.startsWith("models/"))
-        .filter(v=>v.endsWith(".glb") || v.endsWith(".gltf") || v.endsWith(".obj") || v.endsWith(".fbx"));
-
-    const list = document.getElementById("list");
-    list.innerHTML = "";
-
-    files.forEach(f=>{
-        const btn = document.createElement("button");
-        btn.innerText = f;
-        btn.style.display = "block";
-        btn.onclick = ()=>{
-            currentFile = f;
-            alert("選択：" + f);
-        };
-        list.appendChild(btn);
-    });
-}
-
-function getARFile(){
-    if(!currentFile) return "";
-
-    if(currentFile.endsWith(".glb") || currentFile.endsWith(".gltf")){
-        return currentFile;
-    }
-
-    return currentFile.replace(/\.\w+$/, ".glb");
-}
-
-function openAR(){
-    const file = getARFile();
-    if(!file){
-        alert("モデル未選択");
-        return;
-    }
-    location.href = "ar.html?file=" + encodeURIComponent(file);
 }
 </script>
 
