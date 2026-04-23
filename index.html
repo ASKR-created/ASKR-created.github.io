@@ -170,7 +170,7 @@
       font-size:11px;
       line-height:1.5;
       color:#eef3fb;
-      max-width:210px;
+      max-width:220px;
       pointer-events:none;
       opacity:1;
       transition:opacity 0.4s ease;
@@ -244,18 +244,6 @@
       line-height:1.7;
     }
 
-    #uiBar{
-      position:absolute;
-      z-index:23;
-      left:10px;
-      right:10px;
-      bottom:calc(10px + var(--safe-bottom));
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-      align-items:center;
-    }
-
     #uiBarRow2{
       position:absolute;
       z-index:23;
@@ -263,7 +251,19 @@
       right:10px;
       bottom:calc(66px + var(--safe-bottom));
       display:grid;
-      grid-template-columns: 1fr;
+      grid-template-columns:1fr;
+      gap:10px;
+      align-items:center;
+    }
+
+    #uiBar{
+      position:absolute;
+      z-index:23;
+      left:10px;
+      right:10px;
+      bottom:calc(10px + var(--safe-bottom));
+      display:grid;
+      grid-template-columns:1fr 1fr;
       gap:10px;
       align-items:center;
     }
@@ -289,7 +289,7 @@
     }
 
     .btn.warn{
-      background:linear-gradient(180deg,#4f78a8,#31537f);
+      background:linear-gradient(180deg,#547fb2,#355b88);
     }
 
     .btn:disabled{
@@ -537,7 +537,7 @@
       </div>
     </div>
 
-    <div id="hintBubble">非対応端末では「現在のAR」だけ使えます</div>
+    <div id="hintBubble">WebXR非対応端末では「現在のAR」を使ってください</div>
 
     <div id="modelPanel" class="panel">
       <div id="modelPanelHeader" class="panelHeader">
@@ -631,7 +631,7 @@
     function hideHintSoon() {
       if (hintTimer) clearTimeout(hintTimer);
       hintTimer = setTimeout(() => {
-        if (hintBubble) hintBubble.style.opacity = "0";
+        hintBubble.style.opacity = "0";
       }, 3200);
     }
 
@@ -708,14 +708,14 @@
       }
 
       if (webxrSupported) {
-        arModeInfoEl.textContent = "WebXR AR + 現在のAR の両方が使えます";
+        arModeInfoEl.textContent = "WebXR AR と 現在のAR の両方が使えます";
         arModeInfoEl.style.color = "#79d98f";
-        webxrArBtn.disabled = false;
       } else {
-        arModeInfoEl.textContent = "この端末では WebXR AR 非対応。現在のARのみ使用できます";
+        arModeInfoEl.textContent = "WebXR AR 非対応。現在のARのみ使用できます";
         arModeInfoEl.style.color = "#ffd36b";
-        webxrArBtn.disabled = true;
       }
+
+      updateArButtons();
     }
 
     async function fetchTreeFrom(url) {
@@ -787,7 +787,7 @@
       controls.update();
 
       controls.addEventListener("start", () => {
-        if (hintBubble) hintBubble.style.opacity = "0";
+        hintBubble.style.opacity = "0";
       });
 
       const ambient = new THREE.AmbientLight(0xffffff, 1.45);
@@ -1176,7 +1176,7 @@
 
     resetBtn.addEventListener("click", () => {
       resetCamera();
-      if (hintBubble) hintBubble.style.opacity = "0";
+      hintBubble.style.opacity = "0";
     });
 
     currentArBtn.addEventListener("click", openCurrentAr);
