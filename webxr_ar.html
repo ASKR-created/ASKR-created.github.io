@@ -167,7 +167,6 @@
     let renderer, scene, camera, controller;
     let reticle, hitTestSource = null, hitTestSourceRequested = false;
     let loadedScene = null;
-    let currentPlaced = null;
 
     function setStatus(text, error = false) {
       statusEl.textContent = text;
@@ -246,9 +245,7 @@
       const placed = loadedScene.clone(true);
       placed.position.setFromMatrixPosition(reticle.matrix);
       placed.scale.setScalar(0.3);
-
       scene.add(placed);
-      currentPlaced = placed;
       setStatus("配置しました");
     }
 
@@ -320,6 +317,7 @@
       }
 
       initThree();
+
       try {
         await loadModel();
       } catch (e) {
