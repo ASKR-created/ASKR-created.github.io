@@ -25,14 +25,30 @@
       --accent2: #2b78de;
       --ok: #79d98f;
       --danger: #ff8484;
+      --warn: #ffd36b;
+      --shadow: 0 10px 30px rgba(0,0,0,0.18);
+      --radius: 16px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
     }
 
-    *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    *{
+      box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent;
+    }
 
     html, body{
-      margin:0; width:100%; height:100%; overflow:hidden;
-      background:#0f1218; color:var(--text);
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+      margin:0;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      background:#0f1218;
+      color:var(--text);
+      font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    }
+
+    body{
+      overscroll-behavior:none;
     }
 
     #app{
@@ -46,12 +62,15 @@
     #viewer{
       position:absolute;
       inset:0;
+      display:block;
+      background:transparent;
     }
 
     canvas{
       display:block;
       width:100%;
       height:100%;
+      touch-action:none;
       background:transparent !important;
     }
 
@@ -60,30 +79,60 @@
       z-index:20;
       background:var(--panel);
       border:1px solid var(--panel-border);
-      border-radius:16px;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
       backdrop-filter:blur(10px);
       -webkit-backdrop-filter:blur(10px);
       overflow:hidden;
     }
 
+    .panelHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      cursor:pointer;
+      user-select:none;
+      padding:12px 14px;
+    }
+
+    .panelHeaderTitle{
+      font-size:13px;
+      font-weight:800;
+      color:#fff;
+      margin:0;
+    }
+
+    .toggleMark{
+      font-size:12px;
+      color:#fff;
+      opacity:0.9;
+      flex-shrink:0;
+    }
+
     #topPanel{
-      top:10px;
+      top:calc(10px + var(--safe-top));
       left:10px;
       right:10px;
-      padding:12px 14px;
+    }
+
+    #topPanelContent{
+      padding:0 14px 12px 14px;
     }
 
     #title{
       margin:0 0 8px 0;
-      font-size:18px;
+      font-size:17px;
       font-weight:800;
+      line-height:1.35;
     }
 
     .label{
       margin:8px 0 2px 0;
       font-size:11px;
       font-weight:700;
-      color:#fff;
+      color:#ffffff;
+      opacity:0.95;
     }
 
     .value{
@@ -91,8 +140,8 @@
       font-size:12px;
       line-height:1.55;
       color:var(--sub);
-      white-space:pre-line;
       word-break:break-word;
+      white-space:pre-line;
     }
 
     #currentData{
@@ -106,25 +155,55 @@
       line-height:1.45;
       color:var(--sub);
       white-space:pre-line;
+      word-break:break-word;
+    }
+
+    #hintBubble{
+      position:absolute;
+      right:10px;
+      top:calc(170px + var(--safe-top));
+      z-index:18;
+      padding:8px 10px;
+      border-radius:14px;
+      background:rgba(0,0,0,0.18);
+      border:1px solid rgba(255,255,255,0.10);
+      font-size:11px;
+      line-height:1.5;
+      color:#eef3fb;
+      max-width:240px;
+      pointer-events:none;
+      opacity:1;
+      transition:opacity 0.4s ease;
+    }
+
+    #loading{
+      position:absolute;
+      left:50%;
+      bottom:calc(150px + var(--safe-bottom));
+      transform:translateX(-50%);
+      z-index:25;
+      padding:8px 14px;
+      border-radius:999px;
+      font-size:11px;
+      background:rgba(0,0,0,0.52);
+      border:1px solid rgba(255,255,255,0.14);
+      display:none;
+      white-space:nowrap;
     }
 
     #modelPanel{
-      position:absolute;
       z-index:22;
       left:10px;
       right:10px;
-      bottom:70px;
+      bottom:calc(158px + var(--safe-bottom));
       background:var(--panel-strong);
-      border:1px solid var(--panel-border);
-      border-radius:16px;
-      padding:10px;
       max-height:34vh;
-      overflow:auto;
     }
 
-    #modelPanel h3{
-      margin:0 0 8px 0;
-      font-size:14px;
+    #modelPanelContent{
+      padding:0 10px 10px 10px;
+      max-height:calc(34vh - 46px);
+      overflow:auto;
     }
 
     #modelList{
@@ -146,10 +225,12 @@
       cursor:pointer;
       background:rgba(255,255,255,0.08);
       border:1px solid rgba(255,255,255,0.10);
+      line-height:1.45;
     }
 
     .modelBtn.active{
       background:linear-gradient(180deg,var(--accent),var(--accent2));
+      border-color:rgba(255,255,255,0.18);
     }
 
     .emptyBox{
@@ -162,15 +243,28 @@
       line-height:1.7;
     }
 
-    #bottomBar{
+    #uiBarRow2{
       position:absolute;
+      z-index:23;
       left:10px;
       right:10px;
-      bottom:10px;
-      z-index:23;
+      bottom:calc(66px + var(--safe-bottom));
       display:grid;
       grid-template-columns:1fr;
       gap:10px;
+      align-items:center;
+    }
+
+    #uiBar{
+      position:absolute;
+      z-index:23;
+      left:10px;
+      right:10px;
+      bottom:calc(10px + var(--safe-bottom));
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      align-items:center;
     }
 
     .btn{
@@ -182,6 +276,30 @@
       font-weight:800;
       cursor:pointer;
       background:linear-gradient(180deg,var(--accent),var(--accent2));
+      box-shadow:0 6px 16px rgba(43,120,222,0.20);
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+    }
+
+    .btn.sub{
+      background:rgba(20,24,31,0.64);
+      border:1px solid rgba(255,255,255,0.10);
+      box-shadow:none;
+    }
+
+    .btn.warn{
+      background:linear-gradient(180deg,#547fb2,#355b88);
+    }
+
+    .btn:disabled{
+      opacity:0.45;
+      cursor:default;
+    }
+
+    .btn:active,
+    .modelBtn:active,
+    #unlockBtn:active{
+      transform:scale(0.985);
     }
 
     #gate{
@@ -201,12 +319,14 @@
       background:rgba(18,22,28,0.94);
       border:1px solid rgba(255,255,255,0.12);
       border-radius:20px;
+      box-shadow:0 20px 44px rgba(0,0,0,0.42);
       padding:20px 16px 16px;
     }
 
     #gateTitle{
       margin:0 0 10px 0;
       font-size:22px;
+      line-height:1.4;
       font-weight:800;
     }
 
@@ -217,7 +337,9 @@
       color:var(--sub);
     }
 
-    .field{ margin-top:14px; }
+    .field{
+      margin-top:14px;
+    }
 
     .field label{
       display:block;
@@ -236,6 +358,11 @@
       font-size:16px;
       padding:0 14px;
       outline:none;
+    }
+
+    .field input:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(78,161,255,0.18);
     }
 
     #unlockBtn{
@@ -260,6 +387,57 @@
       white-space:pre-line;
     }
 
+    @media (max-width: 899px) and (orientation: landscape){
+      #topPanel{
+        left:10px;
+        right:auto;
+        width:290px;
+        top:10px;
+      }
+
+      #hintBubble{
+        top:auto;
+        right:12px;
+        bottom:118px;
+      }
+
+      #modelPanel{
+        left:auto;
+        right:10px;
+        width:290px;
+        bottom:118px;
+        max-height:44vh;
+      }
+
+      #modelPanelContent{
+        max-height:calc(44vh - 46px);
+      }
+
+      #uiBar{
+        left:auto;
+        right:10px;
+        width:290px;
+        bottom:10px;
+      }
+
+      #uiBarRow2{
+        left:auto;
+        right:10px;
+        width:290px;
+        bottom:66px;
+      }
+
+      .btn{
+        min-height:38px;
+        font-size:12px;
+        border-radius:12px;
+      }
+
+      #loading{
+        bottom:145px;
+      }
+    }
+
     @media (min-width: 900px){
       #topPanel{
         left:16px;
@@ -268,19 +446,40 @@
         width:340px;
       }
 
+      #hintBubble{
+        right:16px;
+        top:16px;
+      }
+
       #modelPanel{
         left:auto;
         right:16px;
-        width:320px;
-        bottom:16px;
-        max-height:320px;
+        width:460px;
+        bottom:122px;
+        max-height:470px;
       }
 
-      #bottomBar{
+      #modelPanelContent{
+        max-height:410px;
+      }
+
+      #uiBar{
         left:auto;
-        right:352px;
-        width:180px;
+        right:16px;
+        width:460px;
         bottom:16px;
+      }
+
+      #uiBarRow2{
+        left:auto;
+        right:16px;
+        width:460px;
+        bottom:72px;
+      }
+
+      .btn{
+        min-height:40px;
+        font-size:12px;
       }
     }
   </style>
@@ -305,28 +504,53 @@
     </div>
 
     <div id="topPanel" class="panel">
-      <div id="title">3Dビューア</div>
+      <div id="topPanelHeader" class="panelHeader">
+        <div class="panelHeaderTitle">3Dビューア</div>
+        <div id="topToggleMark" class="toggleMark">▼</div>
+      </div>
 
-      <div class="label">表示中のデータ</div>
-      <div id="currentData" class="value">未選択</div>
+      <div id="topPanelContent">
+        <div id="title">3Dビューア</div>
 
-      <div class="label">対応形式</div>
-      <div class="value">OBJ / FBX / GLB / GLTF</div>
+        <div class="label">表示中のデータ</div>
+        <div id="currentData" class="value">未選択</div>
 
-      <div class="label">操作方法</div>
-      <div class="value">1本指で回転 / 2本指で移動・拡大縮小</div>
+        <div class="label">対応形式</div>
+        <div class="value">OBJ / FBX / GLB / GLTF</div>
 
-      <div id="status">待機中...</div>
+        <div class="label">AR切替</div>
+        <div id="arModeInfo" class="value">WebXR判定中...</div>
+
+        <div class="label">操作方法</div>
+        <div class="value">1本指で回転 / 2本指で移動・拡大縮小</div>
+
+        <div id="status">待機中...</div>
+      </div>
     </div>
 
-    <div id="modelPanel">
-      <h3>models フォルダ内データ一覧</h3>
-      <div id="modelList"></div>
+    <div id="hintBubble">スマホでは各パネルをタップで収納できます</div>
+
+    <div id="modelPanel" class="panel">
+      <div id="modelPanelHeader" class="panelHeader">
+        <div class="panelHeaderTitle">models フォルダ内データ一覧</div>
+        <div id="modelToggleMark" class="toggleMark">▼</div>
+      </div>
+
+      <div id="modelPanelContent">
+        <div id="modelList"></div>
+      </div>
     </div>
 
-    <div id="bottomBar">
+    <div id="uiBarRow2">
+      <button id="currentArBtn" class="btn warn" type="button">現在のAR</button>
+    </div>
+
+    <div id="uiBar">
+      <button id="webxrArBtn" class="btn sub" type="button">WebXR AR</button>
       <button id="resetBtn" class="btn" type="button">視点リセット</button>
     </div>
+
+    <div id="loading">モデルを読み込み中...</div>
   </div>
 
   <script type="module">
@@ -343,20 +567,45 @@
     const MODELS_ROOT = "models/";
     const SUPPORTED_EXTENSIONS = [".obj", ".fbx", ".glb", ".gltf"];
 
+    const ABS_AR_URL = location.origin + "/ar.html";
+    const ABS_WEBXR_URL = location.origin + "/webxr_ar.html";
+
     const viewer = document.getElementById("viewer");
     const gate = document.getElementById("gate");
     const passwordInput = document.getElementById("passwordInput");
     const unlockBtn = document.getElementById("unlockBtn");
     const gateMsg = document.getElementById("gateMsg");
+
     const statusEl = document.getElementById("status");
     const currentDataEl = document.getElementById("currentData");
-    const modelList = document.getElementById("modelList");
+    const arModeInfoEl = document.getElementById("arModeInfo");
+    const loadingEl = document.getElementById("loading");
     const resetBtn = document.getElementById("resetBtn");
+    const currentArBtn = document.getElementById("currentArBtn");
+    const webxrArBtn = document.getElementById("webxrArBtn");
+    const hintBubble = document.getElementById("hintBubble");
+    const modelList = document.getElementById("modelList");
 
-    let scene, camera, renderer, controls;
+    const topPanelHeader = document.getElementById("topPanelHeader");
+    const topPanelContent = document.getElementById("topPanelContent");
+    const topToggleMark = document.getElementById("topToggleMark");
+
+    const modelPanelHeader = document.getElementById("modelPanelHeader");
+    const modelPanelContent = document.getElementById("modelPanelContent");
+    const modelToggleMark = document.getElementById("modelToggleMark");
+
+    let scene = null;
+    let camera = null;
+    let renderer = null;
+    let controls = null;
     let currentObject = null;
     let currentModelFile = "";
+    let hintTimer = null;
     let repoTreePaths = new Set();
+
+    let topPanelOpen = true;
+    let modelPanelOpen = true;
+    let webxrSupported = false;
 
     function setStatus(text, color = "") {
       statusEl.textContent = text;
@@ -368,8 +617,47 @@
       currentDataEl.style.color = color || "";
     }
 
+    function setLoading(flag) {
+      loadingEl.style.display = flag ? "block" : "none";
+    }
+
+    function hideHintSoon() {
+      if (hintTimer) clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => {
+        hintBubble.style.opacity = "0";
+      }, 3200);
+    }
+
     function normalizeInput(value) {
       return value.replace(/ｐ/g, "p").replace(/Ｐ/g, "P").trim();
+    }
+
+    function applyPanelState() {
+      topPanelContent.style.display = topPanelOpen ? "block" : "none";
+      modelPanelContent.style.display = modelPanelOpen ? "block" : "none";
+      topToggleMark.textContent = topPanelOpen ? "▼" : "▶";
+      modelToggleMark.textContent = modelPanelOpen ? "▼" : "▶";
+    }
+
+    function setInitialPanelState() {
+      if (window.innerWidth >= 900) {
+        topPanelOpen = true;
+        modelPanelOpen = true;
+      } else {
+        topPanelOpen = false;
+        modelPanelOpen = false;
+      }
+      applyPanelState();
+    }
+
+    function toggleTopPanel() {
+      topPanelOpen = !topPanelOpen;
+      applyPanelState();
+    }
+
+    function toggleModelPanel() {
+      modelPanelOpen = !modelPanelOpen;
+      applyPanelState();
     }
 
     function encodePath(path) {
@@ -399,6 +687,28 @@
 
     function hasFile(path) {
       return repoTreePaths.has(path);
+    }
+
+    async function detectWebXRAR() {
+      try {
+        if (!("xr" in navigator) || !navigator.xr || !navigator.xr.isSessionSupported) {
+          webxrSupported = false;
+        } else {
+          webxrSupported = await navigator.xr.isSessionSupported("immersive-ar");
+        }
+      } catch (e) {
+        webxrSupported = false;
+      }
+
+      if (webxrSupported) {
+        arModeInfoEl.textContent = "WebXR AR と 現在のAR の両方が使えます";
+        arModeInfoEl.style.color = "#79d98f";
+      } else {
+        arModeInfoEl.textContent = "WebXR AR 非対応。現在のARのみ使用できます";
+        arModeInfoEl.style.color = "#ffd36b";
+      }
+
+      updateArButtons();
     }
 
     async function fetchTreeFrom(url) {
@@ -630,10 +940,12 @@
     }
 
     async function loadModel(relativePath) {
+      setLoading(true);
       setStatus(relativePath + " を読み込み中...");
       currentModelFile = relativePath;
       setCurrentData(relativePath, "#79d98f");
       updateModelButtons();
+      updateArButtons();
 
       try {
         let object = null;
@@ -653,6 +965,8 @@
       } catch (error) {
         console.error(error);
         setStatus("読み込み失敗: " + relativePath + "\n" + (error.message || error), "#ff8484");
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -680,9 +994,79 @@
         btn.className = "modelBtn";
         btn.textContent = file;
         btn.dataset.file = file;
-        btn.addEventListener("click", () => loadModel(file));
+        btn.addEventListener("click", async () => {
+          await loadModel(file);
+          if (window.innerWidth < 900) {
+            modelPanelOpen = false;
+            applyPanelState();
+          }
+        });
         modelList.appendChild(btn);
       });
+    }
+
+    function getSiblingPathWithExt(path, ext) {
+      const dir = getDir(path);
+      const base = getBaseWithoutExt(path);
+      return dir + base + ext;
+    }
+
+    function getCurrentArFile() {
+      if (!currentModelFile) return "";
+      const ext = getExt(currentModelFile);
+
+      if (ext === ".glb" || ext === ".gltf") return currentModelFile;
+
+      const glb = getSiblingPathWithExt(currentModelFile, ".glb");
+      if (hasFile(glb)) return glb;
+
+      const gltf = getSiblingPathWithExt(currentModelFile, ".gltf");
+      if (hasFile(gltf)) return gltf;
+
+      return "";
+    }
+
+    function updateArButtons() {
+      const arFile = getCurrentArFile();
+      currentArBtn.disabled = !arFile;
+      webxrArBtn.disabled = !arFile || !webxrSupported;
+    }
+
+    function openCurrentAr() {
+      const arFile = getCurrentArFile();
+      if (!arFile) {
+        setStatus("対応するAR用データがありません", "#ff8484");
+        return;
+      }
+      window.location.href = ABS_AR_URL + "?file=" + encodeURIComponent(arFile);
+    }
+
+    async function openWebxrAr() {
+      const arFile = getCurrentArFile();
+      if (!arFile) {
+        setStatus("対応するAR用データがありません", "#ff8484");
+        return;
+      }
+
+      if (!webxrSupported) {
+        setStatus("この端末ではWebXR ARは使えません。現在のARをご利用ください", "#ffd36b");
+        window.location.href = ABS_AR_URL + "?file=" + encodeURIComponent(arFile);
+        return;
+      }
+
+      try {
+        const testUrl = ABS_WEBXR_URL + "?v=" + Date.now();
+        const response = await fetch(testUrl, { method: "HEAD", cache: "no-store" });
+
+        if (!response.ok) {
+          window.location.href = ABS_AR_URL + "?file=" + encodeURIComponent(arFile);
+          return;
+        }
+
+        window.location.href = ABS_WEBXR_URL + "?file=" + encodeURIComponent(arFile);
+      } catch (error) {
+        window.location.href = ABS_AR_URL + "?file=" + encodeURIComponent(arFile);
+      }
     }
 
     async function unlockViewer() {
@@ -709,6 +1093,7 @@
       try {
         setStatus("models フォルダを確認中...");
         initThree();
+        await detectWebXRAR();
 
         const files = await fetchModelFilesFromGitHub();
         buildModelList(files);
@@ -720,6 +1105,7 @@
         }
 
         gate.style.display = "none";
+        setInitialPanelState();
       } catch (error) {
         console.error(error);
         gateMsg.textContent = "起動に失敗しました";
@@ -736,6 +1122,13 @@
     });
 
     resetBtn.addEventListener("click", resetCamera);
+    currentArBtn.addEventListener("click", openCurrentAr);
+    webxrArBtn.addEventListener("click", openWebxrAr);
+
+    topPanelHeader.addEventListener("click", toggleTopPanel);
+    modelPanelHeader.addEventListener("click", toggleModelPanel);
+
+    hideHintSoon();
   </script>
 </body>
 </html>
