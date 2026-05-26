@@ -1,21 +1,25 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initia<!doctype html>
+<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer</title>
+  <title>SF 3D Viewer</title>
 
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
 
   <style>
     :root{
       --bg0:#02030a;
       --bg1:#061020;
       --panel:rgba(8,16,32,.74);
+      --panel2:rgba(14,24,48,.82);
       --cyan:#22f8ff;
       --blue:#377cff;
       --magenta:#ff2deb;
@@ -23,7 +27,8 @@
       --yellow:#ffe66d;
       --text:#eafbff;
       --sub:#91a6c9;
-      --line:rgba(34,248,255,.36);
+      --danger:#ff477e;
+      --line:rgba(34,248,255,.32);
       --shadow:0 0 18px rgba(34,248,255,.20), 0 0 36px rgba(255,45,235,.10);
     }
 
@@ -35,8 +40,8 @@
       margin:0;
       overflow:hidden;
       background:
-        radial-gradient(circle at 20% 20%, rgba(34,248,255,.10), transparent 30%),
-        radial-gradient(circle at 80% 70%, rgba(255,45,235,.12), transparent 32%),
+        radial-gradient(circle at 20% 20%, rgba(34,248,255,.10), transparent 28%),
+        radial-gradient(circle at 80% 70%, rgba(255,45,235,.11), transparent 32%),
         linear-gradient(135deg, var(--bg0), var(--bg1) 55%, #050616);
       color:var(--text);
       font-family:"MS UI Gothic","Yu Gothic UI","Meiryo",sans-serif;
@@ -46,39 +51,60 @@
       content:"";
       position:fixed;
       inset:0;
-      z-index:4;
+      z-index:1;
       pointer-events:none;
       background:
-        linear-gradient(rgba(255,255,255,.026) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
         linear-gradient(90deg, rgba(34,248,255,.025) 1px, transparent 1px);
-      background-size:5px 5px,18px 18px;
+      background-size:4px 4px, 18px 18px;
       mix-blend-mode:screen;
     }
 
-    model-viewer{
+    body::after{
+      content:"";
+      position:fixed;
+      inset:0;
+      z-index:2;
+      pointer-events:none;
+      background:
+        linear-gradient(to bottom, rgba(255,255,255,.04), transparent 1px);
+      background-size:100% 5px;
+      opacity:.34;
+    }
+
+    #app{
+      position:relative;
+      z-index:3;
+      width:100%;
+      height:100%;
+    }
+
+    #viewer{
       position:absolute;
       inset:0;
       width:100%;
       height:100%;
-      background:transparent;
-      --poster-color:transparent;
-      --progress-bar-color:#22f8ff;
-      --progress-bar-height:3px;
+      display:block;
+      outline:none;
+      cursor:grab;
     }
+    #viewer:active{ cursor:grabbing; }
 
-    .hud{
+    .hud-top{
       position:absolute;
-      z-index:10;
       top:10px;
       left:10px;
       right:10px;
+      z-index:10;
       display:flex;
       gap:10px;
+      align-items:stretch;
       pointer-events:none;
     }
 
     .brand{
       flex:1;
+      min-width:0;
       pointer-events:auto;
       border:1px solid rgba(34,248,255,.45);
       background:linear-gradient(90deg, rgba(8,16,32,.86), rgba(10,22,44,.62));
@@ -87,7 +113,6 @@
       -webkit-backdrop-filter:blur(12px);
       clip-path:polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
       padding:10px 14px;
-      min-width:0;
     }
 
     .brand-line{
@@ -101,10 +126,10 @@
       font-size:16px;
       font-weight:bold;
       letter-spacing:.12em;
-      text-shadow:0 0 9px rgba(34,248,255,.7);
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+      text-shadow:0 0 9px rgba(34,248,255,.7);
     }
 
     .brand-sub{
@@ -116,15 +141,48 @@
       text-overflow:ellipsis;
     }
 
+    .digital{
+      width:210px;
+      max-width:34vw;
+      pointer-events:auto;
+      border:1px solid rgba(166,255,45,.45);
+      background:rgba(2,5,14,.78);
+      box-shadow:0 0 18px rgba(166,255,45,.16);
+      padding:10px;
+      text-align:right;
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+    }
+
+    .digital .label{
+      color:var(--sub);
+      font-size:10px;
+      letter-spacing:.18em;
+    }
+
+    .digital .value{
+      margin-top:4px;
+      color:var(--lime);
+      font-family:Consolas,"Courier New",monospace;
+      font-size:14px;
+      font-weight:bold;
+      text-shadow:0 0 8px rgba(166,255,45,.55);
+    }
+
     .panel{
       position:absolute;
-      z-index:11;
+      z-index:12;
       border:1px solid var(--line);
       background:var(--panel);
       box-shadow:var(--shadow);
       backdrop-filter:blur(12px);
       -webkit-backdrop-filter:blur(12px);
       color:var(--text);
+    }
+
+    .panel:hover{
+      border-color:rgba(255,45,235,.62);
+      box-shadow:0 0 20px rgba(255,45,235,.20), 0 0 34px rgba(34,248,255,.16);
     }
 
     .panel-head{
@@ -145,8 +203,9 @@
       text-shadow:0 0 8px rgba(34,248,255,.6);
     }
 
-    .panel-body{ padding:10px; }
-    .collapsed .panel-body{ display:none; }
+    .panel-body{
+      padding:10px;
+    }
 
     .toggle{
       border:1px solid rgba(34,248,255,.48);
@@ -156,29 +215,147 @@
       min-width:32px;
       cursor:pointer;
       font-weight:bold;
+      box-shadow:inset 0 0 12px rgba(34,248,255,.08);
     }
 
-    .info{
+    .toggle:hover{
+      color:white;
+      background:linear-gradient(90deg, rgba(34,248,255,.22), rgba(255,45,235,.20));
+      box-shadow:0 0 16px rgba(34,248,255,.28);
+    }
+
+    .collapsed .panel-body{ display:none; }
+
+    #modelPanel{
       left:10px;
+      top:92px;
       bottom:12px;
-      width:360px;
+      width:330px;
+      max-width:calc(100vw - 20px);
+      display:flex;
+      flex-direction:column;
+    }
+
+    #modelPanel .panel-body{
+      flex:1;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    #infoPanel{
+      right:10px;
+      top:92px;
+      width:330px;
       max-width:calc(100vw - 20px);
     }
 
-    .commands{
+    #commandPanel{
       right:10px;
       bottom:12px;
       width:330px;
       max-width:calc(100vw - 20px);
     }
 
+    .search{
+      width:100%;
+      height:34px;
+      border:1px solid rgba(34,248,255,.34);
+      background:rgba(1,5,14,.88);
+      color:var(--text);
+      padding:0 10px;
+      outline:none;
+    }
+
+    .search:focus{
+      border-color:var(--magenta);
+      box-shadow:0 0 14px rgba(255,45,235,.22);
+    }
+
+    .list{
+      flex:1;
+      min-height:0;
+      overflow:auto;
+      padding-right:2px;
+    }
+
+    .item{
+      width:100%;
+      margin:0 0 7px 0;
+      padding:9px 10px;
+      border:1px solid rgba(55,124,255,.28);
+      background:linear-gradient(90deg, rgba(5,13,28,.92), rgba(12,23,48,.68));
+      color:var(--text);
+      text-align:left;
+      cursor:pointer;
+      font-size:12px;
+      line-height:1.35;
+    }
+
+    .item:hover{
+      border-color:var(--cyan);
+      box-shadow:0 0 14px rgba(34,248,255,.20);
+      transform:translateX(2px);
+    }
+
+    .item.active{
+      border-color:var(--magenta);
+      background:linear-gradient(90deg, rgba(255,45,235,.20), rgba(34,248,255,.10));
+      box-shadow:0 0 18px rgba(255,45,235,.18);
+    }
+
+    .item-name{
+      font-weight:bold;
+      word-break:break-all;
+    }
+
+    .item-path{
+      margin-top:3px;
+      color:var(--sub);
+      font-size:10px;
+      word-break:break-all;
+    }
+
+    .badge-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:7px;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      min-height:18px;
+      border:1px solid rgba(34,248,255,.35);
+      color:var(--cyan);
+      background:rgba(34,248,255,.06);
+      padding:2px 6px;
+      font-size:10px;
+      font-family:Consolas,"Courier New",monospace;
+    }
+
+    .badge.magenta{
+      border-color:rgba(255,45,235,.45);
+      color:var(--magenta);
+      background:rgba(255,45,235,.07);
+    }
+
+    .badge.lime{
+      border-color:rgba(166,255,45,.45);
+      color:var(--lime);
+      background:rgba(166,255,45,.07);
+    }
+
     .row{
       display:grid;
-      grid-template-columns:86px 1fr;
+      grid-template-columns:96px 1fr;
       gap:8px;
       margin:7px 0;
       font-size:12px;
     }
+
     .row .k{ color:var(--sub); }
     .row .v{ color:var(--text); word-break:break-all; }
 
@@ -188,7 +365,9 @@
       line-height:1.55;
     }
 
-    .warning{ color:var(--yellow); }
+    .warning{
+      color:var(--yellow);
+    }
 
     .button-grid{
       display:grid;
@@ -196,9 +375,9 @@
       gap:8px;
     }
 
-    .btn, .ar-button{
+    .btn{
       position:relative;
-      min-height:38px;
+      min-height:36px;
       border:1px solid rgba(34,248,255,.42);
       background:linear-gradient(180deg, rgba(15,28,58,.92), rgba(3,8,18,.92));
       color:var(--text);
@@ -206,10 +385,21 @@
       cursor:pointer;
       overflow:hidden;
       letter-spacing:.04em;
-      padding:0 10px;
     }
 
-    .btn:hover, .ar-button:hover{
+    .btn::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:radial-gradient(circle at center, rgba(34,248,255,.32), transparent 62%);
+      transform:scaleX(0);
+      transform-origin:center;
+      transition:transform .22s ease;
+    }
+
+    .btn:hover::before{ transform:scaleX(1); }
+
+    .btn:hover{
       border-color:var(--cyan);
       color:white;
       box-shadow:0 0 18px rgba(34,248,255,.22);
@@ -218,125 +408,304 @@
     .btn.magenta{ border-color:rgba(255,45,235,.42); }
     .btn.magenta:hover{ border-color:var(--magenta); box-shadow:0 0 18px rgba(255,45,235,.24); }
 
-    .ar-button{
+    .btn.lime{ border-color:rgba(166,255,45,.42); }
+    .btn.lime:hover{ border-color:var(--lime); box-shadow:0 0 18px rgba(166,255,45,.20); }
+
+    .btn span{
+      position:relative;
+      z-index:1;
+    }
+
+    .statusbar{
       position:absolute;
-      left:50%;
-      bottom:24px;
-      transform:translateX(-50%);
-      z-index:15;
-      border-color:rgba(166,255,45,.60);
+      left:10px;
+      bottom:12px;
+      z-index:9;
+      max-width:calc(100vw - 370px);
+      border:1px solid rgba(166,255,45,.32);
+      background:rgba(2,8,16,.70);
       color:var(--lime);
-      min-width:180px;
-      box-shadow:0 0 18px rgba(166,255,45,.18);
+      padding:8px 10px;
+      font-size:12px;
+      font-family:Consolas,"Courier New",monospace;
+      box-shadow:0 0 14px rgba(166,255,45,.12);
+      pointer-events:none;
     }
 
-    .message{
-      position:absolute;
-      inset:auto 10px 110px 10px;
-      z-index:12;
+    .mobile-panel-button{
       display:none;
-      border:1px solid rgba(255,230,109,.42);
-      background:rgba(24,20,6,.78);
-      color:var(--yellow);
-      padding:10px;
-      font-size:13px;
-      line-height:1.5;
-      box-shadow:0 0 18px rgba(255,230,109,.12);
+      position:absolute;
+      left:10px;
+      top:92px;
+      z-index:20;
+      min-height:38px;
+      padding:0 12px;
+      border:1px solid rgba(34,248,255,.48);
+      background:rgba(5,12,28,.88);
+      color:var(--cyan);
+      font-weight:bold;
+      box-shadow:var(--shadow);
     }
 
-    @media (max-width:820px){
-      .hud{
+    .empty{
+      border:1px dashed rgba(145,166,201,.34);
+      color:var(--sub);
+      padding:12px;
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    @media (max-width: 820px){
+      .hud-top{
         top:8px;
         left:8px;
         right:8px;
       }
+      .digital{ display:none; }
       .brand-title{ font-size:13px; }
       .brand-sub{ font-size:11px; }
 
-      .info{
+      .mobile-panel-button{ display:block; }
+
+      #modelPanel,
+      #infoPanel,
+      #commandPanel{
         left:8px;
         right:8px;
-        bottom:172px;
         width:auto;
+        max-width:none;
       }
-      .commands{
-        left:8px;
-        right:8px;
+
+      #modelPanel{
+        top:138px;
+        bottom:calc(50vh + 8px);
+        display:none;
+      }
+
+      #infoPanel{
+        top:auto;
+        bottom:188px;
+        display:none;
+      }
+
+      #commandPanel{
         bottom:8px;
-        width:auto;
       }
-      .ar-button{
-        bottom:96px;
+
+      body.mobile-open #modelPanel,
+      body.mobile-open #infoPanel{
+        display:flex;
+      }
+
+      .button-grid{
+        grid-template-columns:1fr 1fr;
+      }
+
+      .statusbar{
+        display:none;
       }
     }
   </style>
 </head>
 <body>
-  <model-viewer
-    id="viewer"
-    camera-controls
-    touch-action="pan-y"
-    auto-rotate
-    shadow-intensity="0.75"
-    exposure="1.1"
-    ar
-    ar-modes="webxr scene-viewer"
-    ar-scale="auto"
-  >
-    <button slot="ar-button" class="ar-button">ARで表示</button>
-  </model-viewer>
+  <div id="app">
+    <canvas id="viewer"></canvas>
 
-  <div class="hud">
-    <div class="brand">
-      <div class="brand-line"></div>
-      <div class="brand-title">SF AR VIEWER</div>
-      <div class="brand-sub">model-viewer / GLB・GLTF推奨 / USDZなし</div>
+    <div class="hud-top">
+      <div class="brand">
+        <div class="brand-line"></div>
+        <div class="brand-title">SF 3D MODEL VIEWER</div>
+        <div class="brand-sub">NO PASSWORD / NO ADS / GitHub Pages Teaching Viewer</div>
+      </div>
+      <div class="digital">
+        <div class="label">SYSTEM DATE</div>
+        <div class="value" id="dateText">----</div>
+      </div>
     </div>
+
+    <button class="mobile-panel-button" id="mobilePanelBtn">PANEL</button>
+
+    <section class="panel" id="modelPanel">
+      <div class="panel-head">
+        <div class="panel-title">MODEL LIST</div>
+        <button class="toggle" data-target="modelPanel">−</button>
+      </div>
+      <div class="panel-body">
+        <input class="search" id="searchInput" placeholder="モデル名で検索">
+        <div class="badge-row">
+          <span class="badge">OBJ</span>
+          <span class="badge">FBX</span>
+          <span class="badge lime">GLB</span>
+          <span class="badge lime">GLTF</span>
+        </div>
+        <div class="list" id="modelList">
+          <div class="empty">models/ を読み込み中...</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="infoPanel">
+      <div class="panel-head">
+        <div class="panel-title">MODEL INFO</div>
+        <button class="toggle" data-target="infoPanel">−</button>
+      </div>
+      <div class="panel-body">
+        <div class="row"><div class="k">NAME</div><div class="v" id="infoName">未選択</div></div>
+        <div class="row"><div class="k">TYPE</div><div class="v" id="infoType">---</div></div>
+        <div class="row"><div class="k">PATH</div><div class="v" id="infoPath">---</div></div>
+        <div class="row"><div class="k">AR</div><div class="v" id="infoAr">GLB / GLTF推奨</div></div>
+        <div class="hint warning" id="infoHint">OBJ / FBXは3D表示用。ARはGLB / GLTFが安定。</div>
+      </div>
+    </section>
+
+    <section class="panel" id="commandPanel">
+      <div class="panel-head">
+        <div class="panel-title">COMMAND</div>
+        <button class="toggle" data-target="commandPanel">−</button>
+      </div>
+      <div class="panel-body">
+        <div class="button-grid">
+          <button class="btn" id="reloadBtn"><span>再読み込み</span></button>
+          <button class="btn lime" id="resetViewBtn"><span>視点リセット</span></button>
+          <button class="btn magenta" id="openArBtn"><span>現在AR</span></button>
+          <button class="btn magenta" id="openWebxrBtn"><span>WebXR AR</span></button>
+          <button class="btn" id="toggleAnimBtn"><span>アニメ再生/停止</span></button>
+          <button class="btn lime" id="fitBtn"><span>画面に合わせる</span></button>
+        </div>
+        <p class="hint">マウス：回転 / ホイール：拡大縮小 / 右ドラッグ：移動</p>
+      </div>
+    </section>
+
+    <div class="statusbar" id="statusText">SYSTEM READY</div>
   </div>
 
-  <section class="panel info" id="infoPanel">
-    <div class="panel-head">
-      <div class="panel-title">MODEL INFO</div>
-      <button class="toggle" data-target="infoPanel">−</button>
-    </div>
-    <div class="panel-body">
-      <div class="row"><div class="k">FILE</div><div class="v" id="fileText">---</div></div>
-      <div class="row"><div class="k">TYPE</div><div class="v" id="typeText">---</div></div>
-      <div class="row"><div class="k">STATUS</div><div class="v" id="statusText">READY</div></div>
-      <p class="hint warning">ARはGLB / GLTF中心。iPhoneはUSDZなしだと安定しない場合があります。</p>
-    </div>
-  </section>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+    import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
+    import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
 
-  <section class="panel commands" id="commandPanel">
-    <div class="panel-head">
-      <div class="panel-title">COMMAND</div>
-      <button class="toggle" data-target="commandPanel">−</button>
-    </div>
-    <div class="panel-body">
-      <div class="button-grid">
-        <button class="btn" id="backBtn">3Dへ戻る</button>
-        <button class="btn magenta" id="webxrBtn">WebXR AR</button>
-        <button class="btn" id="resetBtn">視点リセット</button>
-        <button class="btn magenta" id="rotateBtn">回転 ON/OFF</button>
-      </div>
-      <p class="hint">ピンチ：拡大縮小 / ドラッグ：回転 / ARボタン：端末のAR機能を起動</p>
-    </div>
-  </section>
+    const GITHUB_OWNER = "ASKR-created";
+    const GITHUB_REPO = "ASKR-created.github.io";
+    const GITHUB_REFS = ["main", "master"];
+    const MODELS_ROOT = "models";
+    const MODEL_EXTENSIONS = [".obj", ".fbx", ".glb", ".gltf"];
 
-  <div class="message" id="messageBox"></div>
-
-  <script>
-    const viewer = document.getElementById("viewer");
-    const fileText = document.getElementById("fileText");
-    const typeText = document.getElementById("typeText");
+    const canvas = document.getElementById("viewer");
+    const modelList = document.getElementById("modelList");
+    const searchInput = document.getElementById("searchInput");
     const statusText = document.getElementById("statusText");
-    const messageBox = document.getElementById("messageBox");
+    const dateText = document.getElementById("dateText");
 
-    const params = new URLSearchParams(location.search);
-    const rawFile = params.get("file") ? decodeURIComponent(params.get("file")) : "";
+    const infoName = document.getElementById("infoName");
+    const infoType = document.getElementById("infoType");
+    const infoPath = document.getElementById("infoPath");
+    const infoAr = document.getElementById("infoAr");
+    const infoHint = document.getElementById("infoHint");
+
+    const reloadBtn = document.getElementById("reloadBtn");
+    const resetViewBtn = document.getElementById("resetViewBtn");
+    const openArBtn = document.getElementById("openArBtn");
+    const openWebxrBtn = document.getElementById("openWebxrBtn");
+    const toggleAnimBtn = document.getElementById("toggleAnimBtn");
+    const fitBtn = document.getElementById("fitBtn");
+    const mobilePanelBtn = document.getElementById("mobilePanelBtn");
+
+    let allModels = [];
+    let fileMap = new Map();
+    let selectedModel = null;
+    let currentObject = null;
+    let mixer = null;
+    let animationsEnabled = true;
+    let currentBox = null;
+    let currentSize = 1;
+
+    const clock = new THREE.Clock();
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x02030a);
+
+    const camera = new THREE.PerspectiveCamera(55, 1, 0.01, 100000);
+    camera.position.set(3, 2, 4);
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: false,
+      powerPreference: "high-performance"
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.screenSpacePanning = true;
+    controls.target.set(0, 0, 0);
+
+    const hemi = new THREE.HemisphereLight(0xddeeff, 0x101018, 1.6);
+    scene.add(hemi);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    keyLight.position.set(4, 8, 6);
+    keyLight.castShadow = true;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x22f8ff, 0.8);
+    fillLight.position.set(-5, 2, -4);
+    scene.add(fillLight);
+
+    const magentaLight = new THREE.PointLight(0xff2deb, 0.9, 18);
+    magentaLight.position.set(-3, 2.5, 3);
+    scene.add(magentaLight);
+
+    const grid = new THREE.GridHelper(10, 20, 0x22f8ff, 0x18324f);
+    grid.material.transparent = true;
+    grid.material.opacity = 0.28;
+    scene.add(grid);
+
+    const axesGroup = new THREE.Group();
+    scene.add(axesGroup);
+    makeAxisLine(0xff477e, new THREE.Vector3(1, 0, 0), "X");
+    makeAxisLine(0xa6ff2d, new THREE.Vector3(0, 1, 0), "Y");
+    makeAxisLine(0x22f8ff, new THREE.Vector3(0, 0, 1), "Z");
+
+    function makeAxisLine(color, dir, label){
+      const mat = new THREE.LineBasicMaterial({ color, transparent:true, opacity:.65 });
+      const geo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0,0,0),
+        dir.clone().multiplyScalar(1.2)
+      ]);
+      const line = new THREE.Line(geo, mat);
+      axesGroup.add(line);
+    }
+
+    function setStatus(text){
+      statusText.textContent = text;
+      console.log("[STATUS]", text);
+    }
+
+    function updateDate(){
+      const now = new Date();
+      const week = ["SUN","MON","TUE","WED","THU","FRI","SAT"][now.getDay()];
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth()+1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mi = String(now.getMinutes()).padStart(2, "0");
+      dateText.textContent = `${yyyy}.${mm}.${dd} ${week} ${hh}:${mi}`;
+    }
+    updateDate();
+    setInterval(updateDate, 15000);
 
     function encodePath(path){
-      return String(path).split("/").map(part => encodeURIComponent(part)).join("/");
+      return String(path)
+        .split("/")
+        .map(part => encodeURIComponent(part))
+        .join("/");
     }
 
     function toAssetUrl(path){
@@ -350,65 +719,381 @@
       return m ? m[0] : "";
     }
 
-    function setStatus(text){
-      statusText.textContent = text;
-      console.log("[AR]", text);
+    function getBaseName(path){
+      return String(path).split("/").pop() || path;
     }
 
-    function showMessage(text){
-      messageBox.textContent = text;
-      messageBox.style.display = "block";
+    function getDir(path){
+      const s = String(path);
+      const i = s.lastIndexOf("/");
+      return i >= 0 ? s.slice(0, i + 1) : "";
     }
 
-    if (!rawFile){
-      setStatus("NO FILE");
-      showMessage("fileパラメータがありません。index.htmlからモデルを選択してARを開いてください。");
-    } else {
-      const src = toAssetUrl(rawFile);
-      const ext = getExt(rawFile);
+    function withoutExt(path){
+      return String(path).replace(/\.[^.\/]+$/, "");
+    }
 
-      fileText.textContent = rawFile;
-      typeText.textContent = ext ? ext.toUpperCase().slice(1) : "---";
+    async function fetchGitHubContents(path, ref){
+      const safePath = encodePath(path);
+      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${safePath}?ref=${encodeURIComponent(ref)}`;
+      const res = await fetch(url, {
+        headers: { "Accept": "application/vnd.github+json" }
+      });
+      if (!res.ok){
+        throw new Error(`GitHub API ${res.status}: ${path}`);
+      }
+      return await res.json();
+    }
 
-      if (ext !== ".glb" && ext !== ".gltf"){
-        showMessage("このARビューアはGLB / GLTF推奨です。OBJ / FBXの場合は表示できない可能性があります。");
+    async function scanModelsRecursive(path, ref, bucket){
+      const items = await fetchGitHubContents(path, ref);
+      if (!Array.isArray(items)) return bucket;
+
+      for (const item of items){
+        if (item.type === "dir"){
+          await scanModelsRecursive(item.path, ref, bucket);
+        } else if (item.type === "file"){
+          const ext = getExt(item.path);
+          const record = {
+            name: item.name,
+            path: item.path,
+            ext,
+            size: item.size || 0,
+            html_url: item.html_url || "",
+            download_url: item.download_url || ""
+          };
+          fileMap.set(item.path.toLowerCase(), record);
+          if (MODEL_EXTENSIONS.includes(ext)){
+            bucket.push(record);
+          }
+        }
+      }
+      return bucket;
+    }
+
+    async function loadModelList(){
+      setStatus("SCANNING models/ ...");
+      modelList.innerHTML = `<div class="empty">GitHub APIで models/ を走査中...</div>`;
+      allModels = [];
+      fileMap = new Map();
+
+      let lastError = null;
+
+      for (const ref of GITHUB_REFS){
+        try{
+          const bucket = [];
+          await scanModelsRecursive(MODELS_ROOT, ref, bucket);
+          allModels = bucket.sort((a,b) => a.path.localeCompare(b.path, "ja"));
+          setStatus(`LOADED ${allModels.length} MODELS / BRANCH ${ref}`);
+          renderModelList();
+          if (allModels.length > 0){
+            selectModel(allModels[0]);
+          }
+          return;
+        }catch(err){
+          lastError = err;
+          console.warn(err);
+        }
       }
 
-      viewer.src = src;
-      setStatus("LOADING");
+      modelList.innerHTML = `
+        <div class="empty">
+          models/ を読み込めませんでした。<br>
+          GitHub Pages上で実行しているか、リポジトリ名・modelsフォルダを確認してください。<br>
+          ${lastError ? String(lastError.message) : ""}
+        </div>
+      `;
+      setStatus("MODEL SCAN FAILED");
     }
 
-    viewer.addEventListener("load", () => setStatus("LOADED"));
-    viewer.addEventListener("error", () => {
-      setStatus("LOAD ERROR");
-      showMessage("モデルの読み込みに失敗しました。GLBにテクスチャが埋め込まれているか、パスが正しいか確認してください。");
-    });
-    viewer.addEventListener("ar-status", event => {
-      setStatus("AR " + event.detail.status);
-    });
+    function renderModelList(){
+      const q = searchInput.value.trim().toLowerCase();
+      const filtered = allModels.filter(m => {
+        if (!q) return true;
+        return m.name.toLowerCase().includes(q) || m.path.toLowerCase().includes(q);
+      });
 
-    document.getElementById("backBtn").addEventListener("click", () => {
-      location.href = location.origin + "/index.html";
-    });
-
-    document.getElementById("webxrBtn").addEventListener("click", () => {
-      if (!rawFile){
-        alert("モデルが選択されていません。");
+      if (filtered.length === 0){
+        modelList.innerHTML = `<div class="empty">該当するモデルがありません。</div>`;
         return;
       }
-      location.href = location.origin + "/webxr_ar.html?file=" + encodeURIComponent(rawFile);
-    });
 
-    document.getElementById("resetBtn").addEventListener("click", () => {
-      viewer.cameraOrbit = "0deg 75deg auto";
-      viewer.cameraTarget = "auto auto auto";
-      viewer.fieldOfView = "auto";
+      modelList.innerHTML = "";
+      for (const m of filtered){
+        const btn = document.createElement("button");
+        btn.className = "item" + (selectedModel && selectedModel.path === m.path ? " active" : "");
+        btn.innerHTML = `
+          <div class="item-name">${escapeHtml(m.name)}</div>
+          <div class="item-path">${escapeHtml(m.path)}</div>
+          <div class="badge-row">
+            <span class="badge ${m.ext === ".glb" || m.ext === ".gltf" ? "lime" : ""}">${escapeHtml(m.ext.toUpperCase().slice(1))}</span>
+            ${m.ext === ".obj" ? `<span class="badge magenta">${hasSameMtl(m) ? "MTLあり" : "MTLなし"}</span>` : ""}
+            ${m.ext === ".glb" || m.ext === ".gltf" ? `<span class="badge lime">AR推奨</span>` : `<span class="badge">3D表示</span>`}
+          </div>
+        `;
+        btn.addEventListener("click", () => selectModel(m));
+        modelList.appendChild(btn);
+      }
+    }
+
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, s => ({
+        "&":"&amp;",
+        "<":"&lt;",
+        ">":"&gt;",
+        '"':"&quot;",
+        "'":"&#39;"
+      }[s]));
+    }
+
+    function hasSameMtl(model){
+      const mtlPath = withoutExt(model.path) + ".mtl";
+      return fileMap.has(mtlPath.toLowerCase());
+    }
+
+    async function selectModel(model){
+      selectedModel = model;
+      renderModelList();
+
+      infoName.textContent = model.name;
+      infoType.textContent = model.ext.toUpperCase().slice(1);
+      infoPath.textContent = model.path;
+
+      const arReady = model.ext === ".glb" || model.ext === ".gltf";
+      infoAr.textContent = arReady ? "対応しやすい形式" : "AR用GLB/GLTFを別途推奨";
+      infoHint.textContent = arReady
+        ? "GLB / GLTFはAR表示に向いています。端末によってWebXR対応状況は異なります。"
+        : "OBJ / FBXは3D表示用です。ARでは同名GLBを用意すると安定します。";
+
+      await loadSelectedModel(model);
+    }
+
+    function clearCurrentModel(){
+      if (currentObject){
+        scene.remove(currentObject);
+        disposeObject(currentObject);
+      }
+      currentObject = null;
+      mixer = null;
+      currentBox = null;
+    }
+
+    function disposeObject(obj){
+      obj.traverse(child => {
+        if (child.geometry) child.geometry.dispose?.();
+        if (child.material){
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach(mat => {
+            for (const key in mat){
+              const v = mat[key];
+              if (v && v.isTexture) v.dispose?.();
+            }
+            mat.dispose?.();
+          });
+        }
+      });
+    }
+
+    async function loadSelectedModel(model){
+      clearCurrentModel();
+      setStatus(`LOADING ${model.path}`);
+
+      const ext = model.ext;
+      const url = toAssetUrl(model.path);
+      const baseDir = toAssetUrl(getDir(model.path));
+      const filename = getBaseName(model.path);
+
+      try{
+        if (ext === ".glb" || ext === ".gltf"){
+          await loadGltf(url);
+        } else if (ext === ".obj"){
+          await loadObj(model, baseDir, filename);
+        } else if (ext === ".fbx"){
+          await loadFbx(url, baseDir);
+        } else {
+          throw new Error("Unsupported format: " + ext);
+        }
+
+        fitCurrentObject();
+        setStatus(`DISPLAYING ${model.name}`);
+      }catch(err){
+        console.error(err);
+        setStatus("LOAD ERROR");
+        alert("モデルの読み込みに失敗しました。\n\n" + model.path + "\n\n" + err.message);
+      }
+    }
+
+    function prepareModelObject(obj){
+      obj.traverse(child => {
+        if (child.isMesh){
+          child.castShadow = true;
+          child.receiveShadow = true;
+
+          if (!child.material){
+            child.material = new THREE.MeshStandardMaterial({
+              color: 0xbfd8ff,
+              roughness: .7,
+              metalness: .05
+            });
+          }
+
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach(mat => {
+            if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
+            mat.needsUpdate = true;
+          });
+        }
+      });
+    }
+
+    async function loadGltf(url){
+      const loader = new GLTFLoader();
+      const gltf = await loader.loadAsync(url);
+      currentObject = gltf.scene || gltf.scenes[0];
+      prepareModelObject(currentObject);
+      scene.add(currentObject);
+
+      if (gltf.animations && gltf.animations.length){
+        mixer = new THREE.AnimationMixer(currentObject);
+        gltf.animations.forEach(clip => mixer.clipAction(clip).play());
+        animationsEnabled = true;
+      }
+    }
+
+    async function loadObj(model, baseDir, filename){
+      const objLoader = new OBJLoader();
+      objLoader.setPath(baseDir);
+
+      const mtlPath = withoutExt(model.path) + ".mtl";
+      const mtlRecord = fileMap.get(mtlPath.toLowerCase());
+
+      if (mtlRecord){
+        const mtlLoader = new MTLLoader();
+        mtlLoader.setPath(baseDir);
+        mtlLoader.setResourcePath(baseDir);
+        const materials = await mtlLoader.loadAsync(getBaseName(mtlRecord.path));
+        materials.preload();
+        objLoader.setMaterials(materials);
+      }
+
+      currentObject = await objLoader.loadAsync(filename);
+      prepareModelObject(currentObject);
+      scene.add(currentObject);
+    }
+
+    async function loadFbx(url, baseDir){
+      const loader = new FBXLoader();
+      loader.setResourcePath(baseDir);
+      currentObject = await loader.loadAsync(url);
+      prepareModelObject(currentObject);
+      scene.add(currentObject);
+
+      if (currentObject.animations && currentObject.animations.length){
+        mixer = new THREE.AnimationMixer(currentObject);
+        currentObject.animations.forEach(clip => mixer.clipAction(clip).play());
+        animationsEnabled = true;
+      }
+    }
+
+    function fitCurrentObject(){
+      if (!currentObject) return;
+
+      currentObject.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(currentObject);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+
+      currentObject.position.sub(center);
+      currentObject.updateWorldMatrix(true, true);
+
+      const centeredBox = new THREE.Box3().setFromObject(currentObject);
+      const centeredSize = new THREE.Vector3();
+      centeredBox.getSize(centeredSize);
+
+      const maxDim = Math.max(centeredSize.x, centeredSize.y, centeredSize.z) || 1;
+      currentSize = maxDim;
+      currentBox = centeredBox;
+
+      camera.near = Math.max(maxDim / 1000, 0.001);
+      camera.far = Math.max(maxDim * 100, 1000);
+      camera.updateProjectionMatrix();
+
+      camera.position.set(maxDim * 1.25, maxDim * 0.9, maxDim * 1.65);
+      controls.target.set(0, 0, 0);
+      controls.update();
+
+      grid.scale.setScalar(Math.max(maxDim / 5, 1));
+      axesGroup.scale.setScalar(Math.max(maxDim / 5, 1));
+    }
+
+    function resetView(){
+      if (!currentObject){
+        camera.position.set(3, 2, 4);
+        controls.target.set(0, 0, 0);
+        controls.update();
+        return;
+      }
+      fitCurrentObject();
       setStatus("VIEW RESET");
-    });
+    }
 
-    document.getElementById("rotateBtn").addEventListener("click", () => {
-      viewer.autoRotate = !viewer.autoRotate;
-      setStatus(viewer.autoRotate ? "AUTO ROTATE ON" : "AUTO ROTATE OFF");
+    function openAr(kind){
+      if (!selectedModel){
+        alert("モデルを選択してください。");
+        return;
+      }
+
+      const ext = selectedModel.ext;
+      if (ext !== ".glb" && ext !== ".gltf"){
+        const ok = confirm("AR表示はGLB / GLTF推奨です。\nOBJ / FBXの場合はAR側で表示できない可能性があります。\nそれでも開きますか？");
+        if (!ok) return;
+      }
+
+      const file = encodeURIComponent(selectedModel.path);
+      const page = kind === "webxr" ? "webxr_ar.html" : "ar.html";
+      location.href = `${location.origin}/${page}?file=${file}`;
+    }
+
+    function toggleAnimation(){
+      if (!mixer){
+        setStatus("NO ANIMATION DATA");
+        return;
+      }
+      animationsEnabled = !animationsEnabled;
+      setStatus(animationsEnabled ? "ANIMATION PLAY" : "ANIMATION PAUSE");
+    }
+
+    function resize(){
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / Math.max(h, 1);
+      camera.updateProjectionMatrix();
+    }
+
+    function animate(){
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      if (mixer && animationsEnabled){
+        mixer.update(delta);
+      }
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener("resize", resize);
+    searchInput.addEventListener("input", renderModelList);
+    reloadBtn.addEventListener("click", loadModelList);
+    resetViewBtn.addEventListener("click", resetView);
+    fitBtn.addEventListener("click", fitCurrentObject);
+    openArBtn.addEventListener("click", () => openAr("current"));
+    openWebxrBtn.addEventListener("click", () => openAr("webxr"));
+    toggleAnimBtn.addEventListener("click", toggleAnimation);
+
+    mobilePanelBtn.addEventListener("click", () => {
+      document.body.classList.toggle("mobile-open");
     });
 
     document.querySelectorAll(".toggle").forEach(btn => {
@@ -419,1136 +1104,10 @@
         btn.textContent = panel.classList.contains("collapsed") ? "+" : "−";
       });
     });
-  </script>
-</body>
-</html>
-l-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>3Dビューア</title>
 
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-      }
-    }
-  </script>
-
-  <style>
-    :root{
-      --panel: rgba(20,24,31,0.58);
-      --panel-strong: rgba(20,24,31,0.84);
-      --panel-border: rgba(255,255,255,0.10);
-      --text: #f4f6f8;
-      --sub: #c7cfdb;
-      --accent: #4ea1ff;
-      --accent2: #2b78de;
-      --ok: #79d98f;
-      --danger: #ff8484;
-      --warn: #ffd36b;
-      --shadow: 0 10px 30px rgba(0,0,0,0.18);
-      --radius: 16px;
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-      --safe-top: env(safe-area-inset-top, 0px);
-    }
-
-    *{
-      box-sizing:border-box;
-      -webkit-tap-highlight-color:transparent;
-    }
-
-    html, body{
-      margin:0;
-      width:100%;
-      height:100%;
-      overflow:hidden;
-      background:#0f1218;
-      color:var(--text);
-      font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-    }
-
-    body{
-      overscroll-behavior:none;
-    }
-
-    #app{
-      position:relative;
-      width:100%;
-      height:100%;
-      overflow:hidden;
-      background:radial-gradient(circle at center, #1b2230 0%, #0f1218 75%);
-    }
-
-    #viewer{
-      position:absolute;
-      inset:0;
-      display:block;
-      background:transparent;
-    }
-
-    canvas{
-      display:block;
-      width:100%;
-      height:100%;
-      touch-action:none;
-      background:transparent !important;
-    }
-
-    .panel{
-      position:absolute;
-      z-index:20;
-      background:var(--panel);
-      border:1px solid var(--panel-border);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      backdrop-filter:blur(10px);
-      -webkit-backdrop-filter:blur(10px);
-      overflow:hidden;
-    }
-
-    .panelHeader{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      cursor:pointer;
-      user-select:none;
-      padding:12px 14px;
-    }
-
-    .panelHeaderTitle{
-      font-size:13px;
-      font-weight:800;
-      color:#fff;
-      margin:0;
-    }
-
-    .toggleMark{
-      font-size:12px;
-      color:#fff;
-      opacity:0.9;
-      flex-shrink:0;
-    }
-
-    #topPanel{
-      top:calc(10px + var(--safe-top));
-      left:10px;
-      right:10px;
-    }
-
-    #topPanelContent{
-      padding:0 14px 12px 14px;
-    }
-
-    #title{
-      margin:0 0 8px 0;
-      font-size:17px;
-      font-weight:800;
-      line-height:1.35;
-    }
-
-    .label{
-      margin:8px 0 2px 0;
-      font-size:11px;
-      font-weight:700;
-      color:#ffffff;
-      opacity:0.95;
-    }
-
-    .value{
-      margin:0;
-      font-size:12px;
-      line-height:1.55;
-      color:var(--sub);
-      word-break:break-word;
-      white-space:pre-line;
-    }
-
-    #currentData{
-      color:var(--ok);
-      font-weight:700;
-    }
-
-    #status{
-      margin-top:8px;
-      font-size:11px;
-      line-height:1.45;
-      color:var(--sub);
-      white-space:pre-line;
-      word-break:break-word;
-    }
-
-    #hintBubble{
-      position:absolute;
-      right:10px;
-      top:calc(170px + var(--safe-top));
-      z-index:18;
-      padding:8px 10px;
-      border-radius:14px;
-      background:rgba(0,0,0,0.18);
-      border:1px solid rgba(255,255,255,0.10);
-      font-size:11px;
-      line-height:1.5;
-      color:#eef3fb;
-      max-width:240px;
-      pointer-events:none;
-      opacity:1;
-      transition:opacity 0.4s ease;
-    }
-
-    #loading{
-      position:absolute;
-      left:50%;
-      bottom:calc(150px + var(--safe-bottom));
-      transform:translateX(-50%);
-      z-index:25;
-      padding:8px 14px;
-      border-radius:999px;
-      font-size:11px;
-      background:rgba(0,0,0,0.52);
-      border:1px solid rgba(255,255,255,0.14);
-      display:none;
-      white-space:nowrap;
-    }
-
-    #modelPanel{
-      z-index:22;
-      left:10px;
-      right:10px;
-      bottom:calc(158px + var(--safe-bottom));
-      background:var(--panel-strong);
-      max-height:34vh;
-    }
-
-    #modelPanelContent{
-      padding:0 10px 10px 10px;
-      max-height:calc(34vh - 46px);
-      overflow:auto;
-    }
-
-    #modelList{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
-
-    .modelBtn{
-      width:100%;
-      min-height:40px;
-      border:none;
-      border-radius:12px;
-      color:#fff;
-      font-size:13px;
-      font-weight:700;
-      text-align:left;
-      padding:9px 11px;
-      cursor:pointer;
-      background:rgba(255,255,255,0.08);
-      border:1px solid rgba(255,255,255,0.10);
-      line-height:1.45;
-    }
-
-    .modelBtn.active{
-      background:linear-gradient(180deg,var(--accent),var(--accent2));
-      border-color:rgba(255,255,255,0.18);
-    }
-
-    .emptyBox{
-      padding:14px 12px;
-      border-radius:12px;
-      background:rgba(255,255,255,0.04);
-      border:1px solid rgba(255,255,255,0.08);
-      color:var(--sub);
-      font-size:13px;
-      line-height:1.7;
-    }
-
-    #uiBarRow2{
-      position:absolute;
-      z-index:23;
-      left:10px;
-      right:10px;
-      bottom:calc(66px + var(--safe-bottom));
-      display:grid;
-      grid-template-columns:1fr;
-      gap:10px;
-      align-items:center;
-    }
-
-    #uiBar{
-      position:absolute;
-      z-index:23;
-      left:10px;
-      right:10px;
-      bottom:calc(10px + var(--safe-bottom));
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-      align-items:center;
-    }
-
-    .btn{
-      min-height:46px;
-      border:none;
-      border-radius:14px;
-      color:#fff;
-      font-size:13px;
-      font-weight:800;
-      cursor:pointer;
-      background:linear-gradient(180deg,var(--accent),var(--accent2));
-      box-shadow:0 6px 16px rgba(43,120,222,0.20);
-      backdrop-filter:blur(8px);
-      -webkit-backdrop-filter:blur(8px);
-    }
-
-    .btn.sub{
-      background:rgba(20,24,31,0.64);
-      border:1px solid rgba(255,255,255,0.10);
-      box-shadow:none;
-    }
-
-    .btn.warn{
-      background:linear-gradient(180deg,#547fb2,#355b88);
-    }
-
-    .btn:disabled{
-      opacity:0.45;
-      cursor:default;
-    }
-
-    .btn:active,
-    .modelBtn:active,
-    #unlockBtn:active{
-      transform:scale(0.985);
-    }
-
-    #gate{
-      position:fixed;
-      inset:0;
-      z-index:60;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:18px 14px;
-      background:rgba(0,0,0,0.52);
-    }
-
-    #gateCard{
-      width:100%;
-      max-width:420px;
-      background:rgba(18,22,28,0.94);
-      border:1px solid rgba(255,255,255,0.12);
-      border-radius:20px;
-      box-shadow:0 20px 44px rgba(0,0,0,0.42);
-      padding:20px 16px 16px;
-    }
-
-    #gateTitle{
-      margin:0 0 10px 0;
-      font-size:22px;
-      line-height:1.4;
-      font-weight:800;
-    }
-
-    #gateText{
-      margin:0;
-      font-size:14px;
-      line-height:1.8;
-      color:var(--sub);
-    }
-
-    .field{
-      margin-top:14px;
-    }
-
-    .field label{
-      display:block;
-      margin-bottom:7px;
-      font-size:13px;
-      color:var(--sub);
-    }
-
-    .field input{
-      width:100%;
-      height:50px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.14);
-      background:rgba(255,255,255,0.06);
-      color:#fff;
-      font-size:16px;
-      padding:0 14px;
-      outline:none;
-    }
-
-    .field input:focus{
-      border-color:var(--accent);
-      box-shadow:0 0 0 3px rgba(78,161,255,0.18);
-    }
-
-    #unlockBtn{
-      width:100%;
-      height:50px;
-      margin-top:14px;
-      border:none;
-      border-radius:14px;
-      font-size:16px;
-      font-weight:800;
-      color:#fff;
-      background:linear-gradient(180deg,var(--accent),var(--accent2));
-      cursor:pointer;
-    }
-
-    #gateMsg{
-      min-height:22px;
-      margin-top:10px;
-      font-size:13px;
-      color:var(--danger);
-      line-height:1.6;
-      white-space:pre-line;
-    }
-
-    @media (max-width: 899px) and (orientation: landscape){
-      #topPanel{
-        left:10px;
-        right:auto;
-        width:290px;
-        top:10px;
-      }
-
-      #hintBubble{
-        top:auto;
-        right:12px;
-        bottom:118px;
-      }
-
-      #modelPanel{
-        left:auto;
-        right:10px;
-        width:290px;
-        bottom:118px;
-        max-height:44vh;
-      }
-
-      #modelPanelContent{
-        max-height:calc(44vh - 46px);
-      }
-
-      #uiBar{
-        left:auto;
-        right:10px;
-        width:290px;
-        bottom:10px;
-      }
-
-      #uiBarRow2{
-        left:auto;
-        right:10px;
-        width:290px;
-        bottom:66px;
-      }
-
-      .btn{
-        min-height:38px;
-        font-size:12px;
-        border-radius:12px;
-      }
-
-      #loading{
-        bottom:145px;
-      }
-    }
-
-    @media (min-width: 900px){
-      #topPanel{
-        left:16px;
-        top:16px;
-        right:auto;
-        width:340px;
-      }
-
-      #hintBubble{
-        right:16px;
-        top:16px;
-      }
-
-      #modelPanel{
-        left:auto;
-        right:16px;
-        width:460px;
-        bottom:122px;
-        max-height:470px;
-      }
-
-      #modelPanelContent{
-        max-height:410px;
-      }
-
-      #uiBar{
-        left:auto;
-        right:16px;
-        width:460px;
-        bottom:16px;
-      }
-
-      #uiBarRow2{
-        left:auto;
-        right:16px;
-        width:460px;
-        bottom:72px;
-      }
-
-      .btn{
-        min-height:40px;
-        font-size:12px;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div id="app">
-    <div id="viewer"></div>
-
-    <div id="gate">
-      <div id="gateCard">
-        <h1 id="gateTitle">閲覧用パスワード</h1>
-        <p id="gateText">共有されたパスワードを入力すると、モデル一覧を表示します。</p>
-
-        <div class="field">
-          <label for="passwordInput">パスワード</label>
-          <input id="passwordInput" type="password" placeholder="パスワードを入力" />
-        </div>
-
-        <button id="unlockBtn" type="button">開く</button>
-        <div id="gateMsg"></div>
-      </div>
-    </div>
-
-    <div id="topPanel" class="panel">
-      <div id="topPanelHeader" class="panelHeader">
-        <div class="panelHeaderTitle">3Dビューア</div>
-        <div id="topToggleMark" class="toggleMark">▼</div>
-      </div>
-
-      <div id="topPanelContent">
-        <div id="title">3Dビューア</div>
-
-        <div class="label">表示中のデータ</div>
-        <div id="currentData" class="value">未選択</div>
-
-        <div class="label">対応形式</div>
-        <div class="value">OBJ / FBX / GLB / GLTF</div>
-
-        <div class="label">AR切替</div>
-        <div id="arModeInfo" class="value">WebXR判定中...</div>
-
-        <div class="label">操作方法</div>
-        <div class="value">1本指で回転 / 2本指で移動・拡大縮小</div>
-
-        <div id="status">待機中...</div>
-      </div>
-    </div>
-
-    <div id="hintBubble">スマホでは各パネルをタップで収納できます</div>
-
-    <div id="modelPanel" class="panel">
-      <div id="modelPanelHeader" class="panelHeader">
-        <div class="panelHeaderTitle">models フォルダ内データ一覧</div>
-        <div id="modelToggleMark" class="toggleMark">▼</div>
-      </div>
-
-      <div id="modelPanelContent">
-        <div id="modelList"></div>
-      </div>
-    </div>
-
-    <div id="uiBarRow2">
-      <button id="currentArBtn" class="btn warn" type="button">現在のAR</button>
-    </div>
-
-    <div id="uiBar">
-      <button id="webxrArBtn" class="btn sub" type="button">WebXR AR</button>
-      <button id="resetBtn" class="btn" type="button">視点リセット</button>
-    </div>
-
-    <div id="loading">モデルを読み込み中...</div>
-  </div>
-
-  <script type="module">
-    import * as THREE from "three";
-    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-    import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
-    import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
-    import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
-    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-
-    const PASSWORD = "p001";
-    const API_TREE_MAIN = "https://api.github.com/repos/ASKR-created/ASKR-created.github.io/git/trees/main?recursive=1";
-    const API_TREE_MASTER = "https://api.github.com/repos/ASKR-created/ASKR-created.github.io/git/trees/master?recursive=1";
-    const MODELS_ROOT = "models/";
-    const SUPPORTED_EXTENSIONS = [".obj", ".fbx", ".glb", ".gltf"];
-
-    const ABS_AR_URL = location.origin + "/ar.html";
-    const ABS_WEBXR_URL = location.origin + "/webxr_ar.html";
-
-    const viewer = document.getElementById("viewer");
-    const gate = document.getElementById("gate");
-    const passwordInput = document.getElementById("passwordInput");
-    const unlockBtn = document.getElementById("unlockBtn");
-    const gateMsg = document.getElementById("gateMsg");
-
-    const statusEl = document.getElementById("status");
-    const currentDataEl = document.getElementById("currentData");
-    const arModeInfoEl = document.getElementById("arModeInfo");
-    const loadingEl = document.getElementById("loading");
-    const resetBtn = document.getElementById("resetBtn");
-    const currentArBtn = document.getElementById("currentArBtn");
-    const webxrArBtn = document.getElementById("webxrArBtn");
-    const hintBubble = document.getElementById("hintBubble");
-    const modelList = document.getElementById("modelList");
-
-    const topPanelHeader = document.getElementById("topPanelHeader");
-    const topPanelContent = document.getElementById("topPanelContent");
-    const topToggleMark = document.getElementById("topToggleMark");
-
-    const modelPanelHeader = document.getElementById("modelPanelHeader");
-    const modelPanelContent = document.getElementById("modelPanelContent");
-    const modelToggleMark = document.getElementById("modelToggleMark");
-
-    let scene = null;
-    let camera = null;
-    let renderer = null;
-    let controls = null;
-    let currentObject = null;
-    let currentModelFile = "";
-    let hintTimer = null;
-    let repoTreePaths = new Set();
-
-    let topPanelOpen = true;
-    let modelPanelOpen = true;
-    let webxrSupported = false;
-
-    function setStatus(text, color = "") {
-      statusEl.textContent = text;
-      statusEl.style.color = color || "";
-    }
-
-    function setCurrentData(text, color = "") {
-      currentDataEl.textContent = text;
-      currentDataEl.style.color = color || "";
-    }
-
-    function setLoading(flag) {
-      loadingEl.style.display = flag ? "block" : "none";
-    }
-
-    function hideHintSoon() {
-      if (hintTimer) clearTimeout(hintTimer);
-      hintTimer = setTimeout(() => {
-        hintBubble.style.opacity = "0";
-      }, 3200);
-    }
-
-    function normalizeInput(value) {
-      return value.replace(/ｐ/g, "p").replace(/Ｐ/g, "P").trim();
-    }
-
-    function applyPanelState() {
-      topPanelContent.style.display = topPanelOpen ? "block" : "none";
-      modelPanelContent.style.display = modelPanelOpen ? "block" : "none";
-      topToggleMark.textContent = topPanelOpen ? "▼" : "▶";
-      modelToggleMark.textContent = modelPanelOpen ? "▼" : "▶";
-    }
-
-    function setInitialPanelState() {
-      if (window.innerWidth >= 900) {
-        topPanelOpen = true;
-        modelPanelOpen = true;
-      } else {
-        topPanelOpen = false;
-        modelPanelOpen = false;
-      }
-      applyPanelState();
-    }
-
-    function toggleTopPanel() {
-      topPanelOpen = !topPanelOpen;
-      applyPanelState();
-    }
-
-    function toggleModelPanel() {
-      modelPanelOpen = !modelPanelOpen;
-      applyPanelState();
-    }
-
-    function encodePath(path) {
-      return path.split("/").map(encodeURIComponent).join("/");
-    }
-
-    function getExt(path) {
-      const i = path.lastIndexOf(".");
-      return i >= 0 ? path.slice(i).toLowerCase() : "";
-    }
-
-    function getDir(path) {
-      const lastSlash = path.lastIndexOf("/");
-      return lastSlash >= 0 ? path.slice(0, lastSlash + 1) : "";
-    }
-
-    function getBaseName(path) {
-      const lastSlash = path.lastIndexOf("/");
-      return lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
-    }
-
-    function getBaseWithoutExt(path) {
-      const name = getBaseName(path);
-      const dot = name.lastIndexOf(".");
-      return dot >= 0 ? name.slice(0, dot) : name;
-    }
-
-    function hasFile(path) {
-      return repoTreePaths.has(path);
-    }
-
-    async function detectWebXRAR() {
-      try {
-        if (!("xr" in navigator) || !navigator.xr || !navigator.xr.isSessionSupported) {
-          webxrSupported = false;
-        } else {
-          webxrSupported = await navigator.xr.isSessionSupported("immersive-ar");
-        }
-      } catch (e) {
-        webxrSupported = false;
-      }
-
-      if (webxrSupported) {
-        arModeInfoEl.textContent = "WebXR AR と 現在のAR の両方が使えます";
-        arModeInfoEl.style.color = "#79d98f";
-      } else {
-        arModeInfoEl.textContent = "WebXR AR 非対応。現在のARのみ使用できます";
-        arModeInfoEl.style.color = "#ffd36b";
-      }
-
-      updateArButtons();
-    }
-
-    async function fetchTreeFrom(url) {
-      const response = await fetch(url, {
-        headers: { "Accept": "application/vnd.github+json" }
-      });
-      if (!response.ok) throw new Error(String(response.status));
-      const json = await response.json();
-      return json.tree || [];
-    }
-
-    async function fetchRepoTree() {
-      try {
-        return await fetchTreeFrom(API_TREE_MAIN);
-      } catch (e) {
-        return await fetchTreeFrom(API_TREE_MASTER);
-      }
-    }
-
-    async function fetchModelFilesFromGitHub() {
-      const tree = await fetchRepoTree();
-
-      repoTreePaths = new Set(
-        tree.filter(item => item.type === "blob").map(item => item.path)
-      );
-
-      return tree
-        .filter(item => item.type === "blob")
-        .map(item => item.path)
-        .filter(path => path.startsWith(MODELS_ROOT))
-        .filter(path => SUPPORTED_EXTENSIONS.includes(getExt(path)))
-        .sort((a, b) => a.localeCompare(b, "ja"));
-    }
-
-    function initThree() {
-      scene = new THREE.Scene();
-
-      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
-      camera.position.set(0, 55, 145);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setClearColor(0x000000, 0);
-      viewer.appendChild(renderer.domElement);
-
-      controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.08;
-      controls.screenSpacePanning = true;
-      controls.enablePan = true;
-      controls.enableZoom = true;
-      controls.enableRotate = true;
-      controls.minDistance = 30;
-      controls.maxDistance = 320;
-      controls.target.set(0, 24, 0);
-      controls.update();
-
-      const ambient = new THREE.AmbientLight(0xffffff, 1.6);
-      scene.add(ambient);
-
-      const dir1 = new THREE.DirectionalLight(0xffffff, 1.2);
-      dir1.position.set(120, 180, 120);
-      scene.add(dir1);
-
-      const dir2 = new THREE.DirectionalLight(0xffffff, 0.55);
-      dir2.position.set(-100, 60, -80);
-      scene.add(dir2);
-
-      window.addEventListener("resize", onResize, { passive: true });
-      animate();
-    }
-
-    function onResize() {
-      if (!camera || !renderer) return;
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    function animate() {
-      requestAnimationFrame(animate);
-      if (controls) controls.update();
-      if (renderer && scene && camera) renderer.render(scene, camera);
-    }
-
-    function clearCurrentObject() {
-      if (!currentObject) return;
-      scene.remove(currentObject);
-
-      currentObject.traverse((child) => {
-        if (child.isMesh) {
-          if (child.geometry) child.geometry.dispose();
-          if (child.material) {
-            if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
-            else child.material.dispose();
-          }
-        }
-      });
-
-      currentObject = null;
-    }
-
-    function applyFallbackMaterial(object) {
-      object.traverse((child) => {
-        if (child.isMesh && !child.material) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: 0xd9dde4,
-            roughness: 0.84,
-            metalness: 0.03
-          });
-        }
-      });
-    }
-
-    function resetCamera() {
-      camera.position.set(0, 55, 145);
-      controls.target.set(0, 24, 0);
-      controls.update();
-    }
-
-    function fitObject(object) {
-      const box = new THREE.Box3().setFromObject(object);
-      const size = new THREE.Vector3();
-      const center = new THREE.Vector3();
-
-      box.getSize(size);
-      box.getCenter(center);
-      object.position.sub(center);
-
-      const maxAxis = Math.max(size.x, size.y, size.z);
-      if (maxAxis > 0) {
-        const scale = 88 / maxAxis;
-        object.scale.setScalar(scale);
-      }
-
-      const box2 = new THREE.Box3().setFromObject(object);
-      const center2 = new THREE.Vector3();
-      box2.getCenter(center2);
-
-      object.position.x -= center2.x;
-      object.position.y -= box2.min.y;
-      object.position.z -= center2.z;
-
-      resetCamera();
-    }
-
-    async function tryLoadObjWithMtl(relativePath) {
-      const dir = getDir(relativePath);
-      const base = getBaseWithoutExt(relativePath);
-      const objUrl = "./" + encodePath(relativePath);
-      const guessedMtlPath = dir + base + ".mtl";
-
-      return new Promise((resolve, reject) => {
-        if (!hasFile(guessedMtlPath)) {
-          const objLoader = new OBJLoader();
-          objLoader.load(
-            objUrl,
-            (object) => {
-              applyFallbackMaterial(object);
-              resolve(object);
-            },
-            undefined,
-            reject
-          );
-          return;
-        }
-
-        const mtlLoader = new MTLLoader();
-        mtlLoader.setPath("./" + encodePath(dir));
-        mtlLoader.setResourcePath("./" + encodePath(dir));
-
-        mtlLoader.load(
-          encodeURIComponent(base + ".mtl"),
-          (materials) => {
-            materials.preload();
-
-            const objLoader = new OBJLoader();
-            objLoader.setMaterials(materials);
-            objLoader.setPath("./" + encodePath(dir));
-
-            objLoader.load(
-              encodeURIComponent(getBaseName(relativePath)),
-              (object) => resolve(object),
-              undefined,
-              () => {
-                const fallback = new OBJLoader();
-                fallback.load(
-                  objUrl,
-                  (object) => {
-                    applyFallbackMaterial(object);
-                    resolve(object);
-                  },
-                  undefined,
-                  reject
-                );
-              }
-            );
-          },
-          undefined,
-          () => {
-            const fallback = new OBJLoader();
-            fallback.load(
-              objUrl,
-              (object) => {
-                applyFallbackMaterial(object);
-                resolve(object);
-              },
-              undefined,
-              reject
-            );
-          }
-        );
-      });
-    }
-
-    async function loadFbx(relativePath) {
-      const url = "./" + encodePath(relativePath);
-      const loader = new FBXLoader();
-      return new Promise((resolve, reject) => loader.load(url, resolve, undefined, reject));
-    }
-
-    async function loadGltf(relativePath) {
-      const url = "./" + encodePath(relativePath);
-      const loader = new GLTFLoader();
-      return new Promise((resolve, reject) => {
-        loader.load(url, (gltf) => resolve(gltf.scene), undefined, reject);
-      });
-    }
-
-    async function loadModel(relativePath) {
-      setLoading(true);
-      setStatus(relativePath + " を読み込み中...");
-      currentModelFile = relativePath;
-      setCurrentData(relativePath, "#79d98f");
-      updateModelButtons();
-      updateArButtons();
-
-      try {
-        let object = null;
-        const ext = getExt(relativePath);
-
-        if (ext === ".obj") object = await tryLoadObjWithMtl(relativePath);
-        else if (ext === ".fbx") object = await loadFbx(relativePath);
-        else if (ext === ".glb" || ext === ".gltf") object = await loadGltf(relativePath);
-        else throw new Error("未対応形式です: " + ext);
-
-        clearCurrentObject();
-        fitObject(object);
-        scene.add(object);
-        currentObject = object;
-
-        setStatus("読み込み完了", "#79d98f");
-      } catch (error) {
-        console.error(error);
-        setStatus("読み込み失敗: " + relativePath + "\n" + (error.message || error), "#ff8484");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    function updateModelButtons() {
-      const buttons = modelList.querySelectorAll(".modelBtn");
-      buttons.forEach((btn) => {
-        btn.classList.toggle("active", btn.dataset.file === currentModelFile);
-      });
-    }
-
-    function buildModelList(files) {
-      modelList.innerHTML = "";
-
-      if (!files.length) {
-        const empty = document.createElement("div");
-        empty.className = "emptyBox";
-        empty.textContent = "models フォルダ内に対応データはありません";
-        modelList.appendChild(empty);
-        return;
-      }
-
-      files.forEach((file) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "modelBtn";
-        btn.textContent = file;
-        btn.dataset.file = file;
-        btn.addEventListener("click", async () => {
-          await loadModel(file);
-          if (window.innerWidth < 900) {
-            modelPanelOpen = false;
-            applyPanelState();
-          }
-        });
-        modelList.appendChild(btn);
-      });
-    }
-
-    function getSiblingPathWithExt(path, ext) {
-      const dir = getDir(path);
-      const base = getBaseWithoutExt(path);
-      return dir + base + ext;
-    }
-
-    function getCurrentArFile() {
-      if (!currentModelFile) return "";
-      const ext = getExt(currentModelFile);
-
-      if (ext === ".glb" || ext === ".gltf") return currentModelFile;
-
-      const glb = getSiblingPathWithExt(currentModelFile, ".glb");
-      if (hasFile(glb)) return glb;
-
-      const gltf = getSiblingPathWithExt(currentModelFile, ".gltf");
-      if (hasFile(gltf)) return gltf;
-
-      return "";
-    }
-
-    function updateArButtons() {
-      const arFile = getCurrentArFile();
-      currentArBtn.disabled = !arFile;
-      webxrArBtn.disabled = !arFile || !webxrSupported;
-    }
-
-    function openCurrentAr() {
-      const arFile = getCurrentArFile();
-      if (!arFile) {
-        setStatus("対応するAR用データがありません", "#ff8484");
-        return;
-      }
-      window.location.href = ABS_AR_URL + "?file=" + encodeURIComponent(arFile);
-    }
-
-    async function openWebxrAr() {
-      const arFile = getCurrentArFile();
-      if (!arFile) {
-        setStatus("対応するAR用データがありません", "#ff8484");
-        return;
-      }
-
-      if (!webxrSupported) {
-        setStatus("この端末ではWebXR ARは使えません。現在のARをご利用ください", "#ffd36b");
-        window.location.href = ABS_AR_URL + "?file=" + encodeURIComponent(arFile);
-        return;
-      }
-
-      try {
-        const testUrl = ABS_WEBXR_URL + "?v=" + Date.now();
-        const response = await fetch(testUrl, { method: "HEAD", cache: "no-store" });
-
-        if (!response.ok) {
-          window.location.href = ABS_AR_URL + "?file=" + encodeURIComponent(arFile);
-          return;
-        }
-
-        window.location.href = ABS_WEBXR_URL + "?file=" + encodeURIComponent(arFile);
-      } catch (error) {
-        window.location.href = ABS_AR_URL + "?file=" + encodeURIComponent(arFile);
-      }
-    }
-
-    async function unlockViewer() {
-      unlockBtn.disabled = true;
-      unlockBtn.textContent = "確認中...";
-      gateMsg.textContent = "";
-
-      const input = normalizeInput(passwordInput.value);
-
-      if (!input) {
-        gateMsg.textContent = "パスワードを入力してください";
-        unlockBtn.disabled = false;
-        unlockBtn.textContent = "開く";
-        return;
-      }
-
-      if (input !== PASSWORD) {
-        gateMsg.textContent = "パスワードが違います";
-        unlockBtn.disabled = false;
-        unlockBtn.textContent = "開く";
-        return;
-      }
-
-      try {
-        setStatus("models フォルダを確認中...");
-        initThree();
-        await detectWebXRAR();
-
-        const files = await fetchModelFilesFromGitHub();
-        buildModelList(files);
-
-        if (files.length === 0) {
-          setStatus("models フォルダ内に対応データはありません", "#ff8484");
-        } else {
-          setStatus("データを検出しました: " + files.length + "件", "#79d98f");
-        }
-
-        gate.style.display = "none";
-        setInitialPanelState();
-      } catch (error) {
-        console.error(error);
-        gateMsg.textContent = "起動に失敗しました";
-        setStatus("起動に失敗しました\n" + (error.message || error), "#ff8484");
-      } finally {
-        unlockBtn.disabled = false;
-        unlockBtn.textContent = "開く";
-      }
-    }
-
-    unlockBtn.addEventListener("click", unlockViewer);
-    passwordInput.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") unlockViewer();
-    });
-
-    resetBtn.addEventListener("click", resetCamera);
-    currentArBtn.addEventListener("click", openCurrentAr);
-    webxrArBtn.addEventListener("click", openWebxrAr);
-
-    topPanelHeader.addEventListener("click", toggleTopPanel);
-    modelPanelHeader.addEventListener("click", toggleModelPanel);
-
-    hideHintSoon();
+    resize();
+    animate();
+    loadModelList();
   </script>
 </body>
 </html>
