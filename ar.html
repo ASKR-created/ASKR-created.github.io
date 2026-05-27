@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Model Select</title>
+  <title>SF AR Viewer - Model Select + Placement</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 
@@ -11,8 +11,8 @@
     :root{
       --bg0:#02030a;
       --bg1:#061020;
-      --panel:rgba(8,16,32,.80);
-      --panel2:rgba(14,24,48,.92);
+      --panel:rgba(8,16,32,.88);
+      --panel2:rgba(14,24,48,.94);
       --cyan:#22f8ff;
       --blue:#377cff;
       --magenta:#ff2deb;
@@ -62,7 +62,7 @@
       pointer-events:none;
       background:linear-gradient(to bottom, rgba(255,255,255,.04), transparent 1px);
       background-size:100% 5px;
-      opacity:.34;
+      opacity:.25;
     }
 
     model-viewer{
@@ -77,68 +77,101 @@
       z-index:1;
     }
 
-    .hud{
+    .top-mini-hud{
       position:absolute;
-      z-index:10;
-      top:10px;
-      left:10px;
-      right:10px;
+      z-index:20;
+      top:8px;
+      left:8px;
+      right:8px;
+      display:flex;
+      align-items:center;
+      gap:8px;
       pointer-events:none;
     }
 
-    .brand{
+    .brand-mini{
       pointer-events:auto;
-      border:1px solid rgba(34,248,255,.45);
-      background:linear-gradient(90deg, rgba(8,16,32,.88), rgba(10,22,44,.66));
-      box-shadow:var(--shadow);
-      backdrop-filter:blur(12px);
-      -webkit-backdrop-filter:blur(12px);
-      clip-path:polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
-      padding:10px 14px;
-      max-width:760px;
-    }
-
-    .brand-line{
-      height:2px;
-      margin-bottom:7px;
-      background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--lime));
-      box-shadow:0 0 12px rgba(34,248,255,.65);
+      flex:1;
+      min-width:0;
+      border:1px solid rgba(34,248,255,.38);
+      background:linear-gradient(90deg, rgba(8,16,32,.72), rgba(10,22,44,.42));
+      box-shadow:0 0 12px rgba(34,248,255,.12);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      padding:7px 10px;
+      clip-path:polygon(0 0, calc(100% - 13px) 0, 100% 13px, 100% 100%, 13px 100%, 0 calc(100% - 13px));
     }
 
     .brand-title{
-      font-size:16px;
+      font-size:13px;
       font-weight:bold;
-      letter-spacing:.12em;
-      text-shadow:0 0 9px rgba(34,248,255,.7);
+      letter-spacing:.10em;
+      text-shadow:0 0 8px rgba(34,248,255,.64);
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
 
     .brand-sub{
-      margin-top:4px;
+      margin-top:2px;
       color:var(--sub);
-      font-size:12px;
+      font-size:10px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
 
+    .hud-buttons{
+      pointer-events:auto;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .mini-btn{
+      min-height:34px;
+      border:1px solid rgba(34,248,255,.46);
+      background:rgba(3,8,18,.78);
+      color:var(--cyan);
+      font-weight:bold;
+      cursor:pointer;
+      padding:0 10px;
+      font-size:12px;
+      box-shadow:0 0 12px rgba(34,248,255,.10);
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+    }
+
+    .mini-btn:hover,
+    .mini-btn.active{
+      color:white;
+      border-color:var(--magenta);
+      background:linear-gradient(90deg, rgba(34,248,255,.18), rgba(255,45,235,.18));
+      box-shadow:0 0 16px rgba(255,45,235,.18);
+    }
+
+    .panel-layer{
+      position:absolute;
+      inset:0;
+      z-index:18;
+      pointer-events:none;
+    }
+
     .panel{
       position:absolute;
-      z-index:12;
+      display:none;
       border:1px solid var(--line);
       background:var(--panel);
       box-shadow:var(--shadow);
-      backdrop-filter:blur(12px);
-      -webkit-backdrop-filter:blur(12px);
+      backdrop-filter:blur(13px);
+      -webkit-backdrop-filter:blur(13px);
       color:var(--text);
       pointer-events:auto;
     }
 
-    .panel:hover{
-      border-color:rgba(255,45,235,.55);
-      box-shadow:0 0 20px rgba(255,45,235,.20), 0 0 34px rgba(34,248,255,.16);
+    .panel.open{
+      display:block;
     }
 
     .panel-head{
@@ -159,6 +192,22 @@
       text-shadow:0 0 8px rgba(34,248,255,.6);
     }
 
+    .close-btn{
+      border:1px solid rgba(255,71,126,.55);
+      background:rgba(20,4,10,.74);
+      color:#ffdce6;
+      height:26px;
+      min-width:34px;
+      cursor:pointer;
+      font-weight:bold;
+    }
+
+    .close-btn:hover{
+      border-color:var(--danger);
+      color:white;
+      box-shadow:0 0 14px rgba(255,71,126,.20);
+    }
+
     .panel-body{
       padding:9px;
       font-size:12px;
@@ -166,26 +215,28 @@
       color:var(--sub);
     }
 
-    .toggle{
-      border:1px solid rgba(34,248,255,.48);
-      background:rgba(2,8,18,.75);
-      color:var(--cyan);
-      height:24px;
-      min-width:32px;
-      cursor:pointer;
-      font-weight:bold;
+    .model-panel{
+      left:8px;
+      top:66px;
+      width:360px;
+      max-width:calc(100vw - 16px);
+      max-height:calc(100vh - 140px);
     }
 
-    .collapsed .panel-body{ display:none; }
+    .placement-panel{
+      right:8px;
+      top:66px;
+      width:380px;
+      max-width:calc(100vw - 16px);
+      max-height:calc(100vh - 140px);
+      overflow:auto;
+    }
 
-    .model-panel{
-      left:10px;
-      top:92px;
+    .info-panel{
+      right:8px;
+      bottom:74px;
       width:360px;
-      max-width:calc(100vw - 20px);
-      max-height:calc(100vh - 115px);
-      display:flex;
-      flex-direction:column;
+      max-width:calc(100vw - 16px);
     }
 
     .model-panel .panel-body{
@@ -193,20 +244,6 @@
       flex-direction:column;
       min-height:0;
       gap:7px;
-    }
-
-    .info-panel{
-      right:10px;
-      top:92px;
-      width:360px;
-      max-width:calc(100vw - 20px);
-    }
-
-    .command-panel{
-      right:10px;
-      bottom:12px;
-      width:360px;
-      max-width:calc(100vw - 20px);
     }
 
     .model-search,
@@ -228,7 +265,7 @@
     }
 
     .model-list{
-      min-height:180px;
+      min-height:130px;
       max-height:42vh;
       overflow:auto;
       border:1px solid rgba(34,248,255,.18);
@@ -283,7 +320,7 @@
 
     .row{
       display:grid;
-      grid-template-columns:86px 1fr;
+      grid-template-columns:92px 1fr;
       gap:8px;
       margin:7px 0;
       font-size:12px;
@@ -309,6 +346,13 @@
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:8px;
+    }
+
+    .button-grid-3{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:7px;
+      margin-top:7px;
     }
 
     .button-row{
@@ -367,28 +411,34 @@
     .btn.lime{ border-color:rgba(166,255,45,.42); }
     .btn.lime:hover{ border-color:var(--lime); box-shadow:0 0 18px rgba(166,255,45,.20); }
 
+    .btn.yellow{ border-color:rgba(255,230,109,.42); }
+    .btn.yellow:hover{ border-color:var(--yellow); box-shadow:0 0 18px rgba(255,230,109,.18); }
+
     .ar-button{
       position:absolute;
       left:50%;
-      bottom:24px;
+      bottom:18px;
       transform:translateX(-50%);
       z-index:15;
       border-color:rgba(166,255,45,.60);
       color:var(--lime);
-      min-width:180px;
+      min-width:172px;
       box-shadow:0 0 18px rgba(166,255,45,.18);
+      background:rgba(3,8,18,.72);
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
     }
 
     .message{
       position:absolute;
       left:50%;
-      bottom:76px;
+      bottom:66px;
       transform:translateX(-50%);
-      z-index:14;
-      width:min(680px, calc(100vw - 20px));
+      z-index:16;
+      width:min(720px, calc(100vw - 20px));
       display:none;
       border:1px solid rgba(255,230,109,.42);
-      background:rgba(24,20,6,.78);
+      background:rgba(24,20,6,.80);
       color:var(--yellow);
       padding:10px;
       font-size:13px;
@@ -397,56 +447,110 @@
       pointer-events:none;
     }
 
+    .view-help{
+      position:absolute;
+      z-index:14;
+      left:8px;
+      bottom:18px;
+      max-width:calc(100vw - 205px);
+      border:1px solid rgba(166,255,45,.30);
+      background:rgba(2,8,16,.62);
+      color:var(--lime);
+      padding:7px 9px;
+      font-size:11px;
+      font-family:Consolas,"Courier New",monospace;
+      box-shadow:0 0 12px rgba(166,255,45,.10);
+      pointer-events:none;
+    }
+
+    .setting-card{
+      border:1px solid rgba(34,248,255,.22);
+      background:rgba(2,8,18,.46);
+      padding:8px;
+      margin-bottom:8px;
+    }
+
+    .setting-title{
+      color:var(--cyan);
+      font-weight:bold;
+      margin-bottom:6px;
+    }
+
+    .readout{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:6px;
+      margin:8px 0;
+    }
+
+    .readout div{
+      border:1px solid rgba(34,248,255,.24);
+      background:rgba(2,8,18,.58);
+      padding:6px;
+      text-align:center;
+      color:var(--cyan);
+      font-family:Consolas,"Courier New",monospace;
+    }
+
     @media (max-width:900px){
-      .hud{
-        top:8px;
-        left:8px;
-        right:8px;
+      .top-mini-hud{
+        top:6px;
+        left:6px;
+        right:6px;
+        align-items:flex-start;
       }
 
-      .brand{
-        max-width:none;
+      .brand-mini{
+        padding:6px 8px;
       }
 
-      .brand-title{ font-size:13px; }
-      .brand-sub{ font-size:11px; }
+      .brand-title{ font-size:12px; }
+      .brand-sub{ display:none; }
 
-      .model-panel{
-        left:8px;
-        right:8px;
-        top:82px;
+      .hud-buttons{
+        max-width:52vw;
+      }
+
+      .mini-btn{
+        min-height:30px;
+        padding:0 8px;
+        font-size:11px;
+      }
+
+      .model-panel,
+      .placement-panel,
+      .info-panel{
+        left:6px;
+        right:6px;
         width:auto;
         max-width:none;
-        max-height:31vh;
+      }
+
+      .model-panel,
+      .placement-panel{
+        top:58px;
+        max-height:calc(100vh - 132px);
+      }
+
+      .info-panel{
+        bottom:74px;
       }
 
       .model-list{
         min-height:80px;
-        max-height:15vh;
-      }
-
-      .info-panel{
-        left:8px;
-        right:8px;
-        top:calc(82px + 31vh + 8px);
-        width:auto;
-        max-width:none;
-      }
-
-      .command-panel{
-        left:8px;
-        right:8px;
-        bottom:8px;
-        width:auto;
-        max-width:none;
+        max-height:42vh;
       }
 
       .ar-button{
-        bottom:112px;
+        bottom:14px;
       }
 
       .message{
-        bottom:160px;
+        bottom:62px;
+      }
+
+      .view-help{
+        display:none;
       }
 
       .panel-body{
@@ -454,6 +558,7 @@
       }
 
       .button-grid,
+      .button-grid-3,
       .button-row{
         gap:6px;
       }
@@ -464,7 +569,7 @@
       }
 
       .row{
-        grid-template-columns:70px 1fr;
+        grid-template-columns:76px 1fr;
       }
     }
   </style>
@@ -480,74 +585,139 @@
     ar
     ar-modes="webxr scene-viewer quick-look"
     ar-scale="auto"
+    ar-placement="floor"
+    scale="1 1 1"
+    orientation="0deg 0deg 0deg"
   >
     <button slot="ar-button" class="ar-button"><span>ARで表示</span></button>
   </model-viewer>
 
-  <div class="hud">
-    <div class="brand">
-      <div class="brand-line"></div>
-      <div class="brand-title">SF AR VIEWER / MODEL SELECT</div>
-      <div class="brand-sub">iPhone確認用：ARビューアー側でモデル選択。4点指定はWebXR側専用。</div>
+  <div class="top-mini-hud">
+    <div class="brand-mini">
+      <div class="brand-title">SF AR VIEWER</div>
+      <div class="brand-sub">モデル選択・配置設定は必要な時だけ開く</div>
+    </div>
+    <div class="hud-buttons">
+      <button class="mini-btn" id="openModelBtn">モデル</button>
+      <button class="mini-btn" id="openPlaceBtn">配置</button>
+      <button class="mini-btn" id="openInfoBtn">情報</button>
     </div>
   </div>
 
-  <section class="panel model-panel" id="modelPanel">
-    <div class="panel-head">
-      <div class="panel-title">MODEL SELECT</div>
-      <button class="toggle" data-target="modelPanel">−</button>
-    </div>
-    <div class="panel-body">
-      <input class="model-search" id="modelSearch" placeholder="モデル名で検索">
-      <div class="model-list" id="modelList">
-        <div class="empty">models/ から GLB / GLTF を読み込み中...</div>
+  <div class="panel-layer">
+    <section class="panel model-panel" id="modelPanel">
+      <div class="panel-head">
+        <div class="panel-title">MODEL SELECT</div>
+        <button class="close-btn" data-close="modelPanel">×</button>
       </div>
-      <input class="manual-path" id="manualPathInput" placeholder="手入力例：models/test.glb">
-      <div class="button-row">
-        <button class="btn lime" id="loadPathBtn"><span>パス読込</span></button>
-        <button class="btn" id="reloadModelsBtn"><span>一覧再読込</span></button>
+      <div class="panel-body">
+        <input class="model-search" id="modelSearch" placeholder="モデル名で検索">
+        <div class="model-list" id="modelList">
+          <div class="empty">models/ から GLB / GLTF を読み込み中...</div>
+        </div>
+        <input class="manual-path" id="manualPathInput" placeholder="手入力例：models/test.glb">
+        <div class="button-row">
+          <button class="btn lime" id="loadPathBtn"><span>パス読込</span></button>
+          <button class="btn" id="reloadModelsBtn"><span>一覧再読込</span></button>
+        </div>
+        <div class="hint small">
+          一覧が出ない場合は <span class="cyan">models/ファイル名.glb</span> を入力して「パス読込」。
+        </div>
       </div>
-      <div class="hint small">
-        一覧が出ない場合は <span class="cyan">models/ファイル名.glb</span> を入力して「パス読込」。
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="panel info-panel" id="infoPanel">
-    <div class="panel-head">
-      <div class="panel-title">MODEL INFO</div>
-      <button class="toggle" data-target="infoPanel">−</button>
-    </div>
-    <div class="panel-body">
-      <div class="row"><div class="k">FILE</div><div class="v" id="fileText">未選択</div></div>
-      <div class="row"><div class="k">TYPE</div><div class="v" id="typeText">---</div></div>
-      <div class="row"><div class="k">STATUS</div><div class="v" id="statusText">READY</div></div>
-      <div class="row"><div class="k">iPhone</div><div class="v" id="iosText">プレビュー確認用</div></div>
-      <p class="hint warning">
-        iPhoneの実ARはQuick Look側に移るため、4点タップ範囲指定は使えません。4点指定はAndroid ChromeのWebXR版で確認してください。
-      </p>
-    </div>
-  </section>
-
-  <section class="panel command-panel" id="commandPanel">
-    <div class="panel-head">
-      <div class="panel-title">COMMAND</div>
-      <button class="toggle" data-target="commandPanel">−</button>
-    </div>
-    <div class="panel-body">
-      <div class="button-grid">
-        <button class="btn" id="backBtn"><span>3Dへ戻る</span></button>
-        <button class="btn magenta" id="webxrBtn"><span>WebXR 4点指定</span></button>
-        <button class="btn" id="resetBtn"><span>視点リセット</span></button>
-        <button class="btn magenta" id="rotateBtn"><span>回転 ON/OFF</span></button>
+    <section class="panel placement-panel" id="placementPanel">
+      <div class="panel-head">
+        <div class="panel-title">PLACEMENT SETTING</div>
+        <button class="close-btn" data-close="placementPanel">×</button>
       </div>
-      <p class="hint">
-        iPhoneではこの画面でモデル選択とプレビュー確認を行います。WebXR 4点指定はAndroid Chrome / ARCoreで確認してください。
-      </p>
-    </div>
-  </section>
+      <div class="panel-body">
+        <div class="setting-card">
+          <div class="setting-title">AR配置面</div>
+          <div class="button-row">
+            <button class="btn lime" id="floorBtn"><span>床に配置</span></button>
+            <button class="btn magenta" id="wallBtn"><span>壁に配置</span></button>
+          </div>
+          <div class="hint small">ar-placement を floor / wall に切替。</div>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">ARスケール</div>
+          <div class="button-row">
+            <button class="btn lime" id="autoScaleBtn"><span>自動</span></button>
+            <button class="btn magenta" id="fixedScaleBtn"><span>固定</span></button>
+          </div>
+          <div class="hint small">ar-scale を auto / fixed に切替。</div>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">サイズ・向き</div>
+          <div class="readout">
+            <div>S <span id="scaleText">1.00</span></div>
+            <div>Y <span id="yawText">0</span>°</div>
+            <div>P <span id="pitchText">0</span>°</div>
+          </div>
+          <div class="button-grid-3">
+            <button class="btn" id="scaleMinusBtn"><span>縮小</span></button>
+            <button class="btn" id="scaleResetBtn"><span>標準</span></button>
+            <button class="btn" id="scalePlusBtn"><span>拡大</span></button>
+          </div>
+          <div class="button-grid-3">
+            <button class="btn magenta" id="yawMinusBtn"><span>左回転</span></button>
+            <button class="btn magenta" id="yawResetBtn"><span>向き0</span></button>
+            <button class="btn magenta" id="yawPlusBtn"><span>右回転</span></button>
+          </div>
+          <div class="button-grid-3">
+            <button class="btn yellow" id="pitchMinusBtn"><span>前傾</span></button>
+            <button class="btn yellow" id="pitchResetBtn"><span>傾き0</span></button>
+            <button class="btn yellow" id="pitchPlusBtn"><span>後傾</span></button>
+          </div>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">プレビュー位置</div>
+          <div class="button-grid">
+            <button class="btn" id="viewCenterBtn"><span>中央表示</span></button>
+            <button class="btn" id="viewLowBtn"><span>低め表示</span></button>
+            <button class="btn" id="viewCloseBtn"><span>近く表示</span></button>
+            <button class="btn" id="viewFarBtn"><span>遠く表示</span></button>
+          </div>
+          <div class="hint small">
+            これはプレビュー上の見え方調整です。現実空間での正確な位置指定は端末側のAR操作になります。
+          </div>
+        </div>
+
+        <div class="hint warning">
+          iPhoneのQuick LookやAndroidのScene Viewerへ移った後は、実際の置き場所は端末側で動かします。紙の4点指定はWebXR版で確認してください。
+        </div>
+      </div>
+    </section>
+
+    <section class="panel info-panel" id="infoPanel">
+      <div class="panel-head">
+        <div class="panel-title">MODEL INFO</div>
+        <button class="close-btn" data-close="infoPanel">×</button>
+      </div>
+      <div class="panel-body">
+        <div class="row"><div class="k">FILE</div><div class="v" id="fileText">未選択</div></div>
+        <div class="row"><div class="k">TYPE</div><div class="v" id="typeText">---</div></div>
+        <div class="row"><div class="k">STATUS</div><div class="v" id="statusText">READY</div></div>
+        <div class="row"><div class="k">PLACE</div><div class="v" id="placeText">floor / auto</div></div>
+        <div class="button-grid">
+          <button class="btn" id="backBtn"><span>3Dへ戻る</span></button>
+          <button class="btn magenta" id="webxrBtn"><span>WebXR 4点指定</span></button>
+          <button class="btn" id="resetBtn"><span>視点リセット</span></button>
+          <button class="btn magenta" id="rotateBtn"><span>回転 ON/OFF</span></button>
+        </div>
+        <p class="hint warning">
+          iPhoneではWebXR 4点指定を確認しにくいため、このar.htmlではモデル選択・プレビュー・配置面/サイズ/向きの事前設定を確認します。
+        </p>
+      </div>
+    </section>
+  </div>
 
   <div class="message" id="messageBox"></div>
+  <div class="view-help" id="viewHelp">モデル / 配置 / 情報 ボタンでパネル表示。ビューアーを隠さないため通常は閉じる。</div>
 
   <script>
     const GITHUB_OWNER = "ASKR-created";
@@ -566,14 +736,32 @@
     const fileText = document.getElementById("fileText");
     const typeText = document.getElementById("typeText");
     const statusText = document.getElementById("statusText");
-    const iosText = document.getElementById("iosText");
+    const placeText = document.getElementById("placeText");
     const messageBox = document.getElementById("messageBox");
+
+    const openModelBtn = document.getElementById("openModelBtn");
+    const openPlaceBtn = document.getElementById("openPlaceBtn");
+    const openInfoBtn = document.getElementById("openInfoBtn");
+
+    const modelPanel = document.getElementById("modelPanel");
+    const placementPanel = document.getElementById("placementPanel");
+    const infoPanel = document.getElementById("infoPanel");
+
+    const scaleText = document.getElementById("scaleText");
+    const yawText = document.getElementById("yawText");
+    const pitchText = document.getElementById("pitchText");
 
     const params = new URLSearchParams(location.search);
     const initialFile = params.get("file") ? decodeURIComponent(params.get("file")) : "";
 
     let allModels = [];
     let selectedFile = "";
+
+    let placementMode = "floor";
+    let arScaleMode = "auto";
+    let modelScale = 1.0;
+    let yawDeg = 0;
+    let pitchDeg = 0;
 
     function encodePath(path){
       return String(path).split("/").map(part => encodeURIComponent(part)).join("/");
@@ -588,10 +776,6 @@
     function getExt(path){
       const m = String(path).toLowerCase().match(/\.[^.\/?#]+$/);
       return m ? m[0] : "";
-    }
-
-    function getFileName(path){
-      return String(path).split("/").pop() || path;
     }
 
     function escapeHtml(str){
@@ -621,6 +805,60 @@
     function isIOS(){
       return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    }
+
+    function openOnly(panelName){
+      const panels = {
+        model: modelPanel,
+        place: placementPanel,
+        info: infoPanel
+      };
+
+      const buttons = {
+        model: openModelBtn,
+        place: openPlaceBtn,
+        info: openInfoBtn
+      };
+
+      for (const key of Object.keys(panels)){
+        const open = key === panelName && !panels[key].classList.contains("open");
+        panels[key].classList.toggle("open", open);
+        buttons[key].classList.toggle("active", open);
+      }
+    }
+
+    function closePanel(panel){
+      panel.classList.remove("open");
+      if (panel === modelPanel) openModelBtn.classList.remove("active");
+      if (panel === placementPanel) openPlaceBtn.classList.remove("active");
+      if (panel === infoPanel) openInfoBtn.classList.remove("active");
+    }
+
+    openModelBtn.addEventListener("click", () => openOnly("model"));
+    openPlaceBtn.addEventListener("click", () => openOnly("place"));
+    openInfoBtn.addEventListener("click", () => openOnly("info"));
+
+    document.querySelectorAll("[data-close]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        closePanel(document.getElementById(btn.getAttribute("data-close")));
+      });
+    });
+
+    function updatePlacementAttributes(){
+      viewer.setAttribute("ar-placement", placementMode);
+      viewer.setAttribute("ar-scale", arScaleMode);
+
+      const s = modelScale.toFixed(2);
+      viewer.setAttribute("scale", `${s} ${s} ${s}`);
+
+      viewer.setAttribute("orientation", `${pitchDeg}deg ${yawDeg}deg 0deg`);
+
+      scaleText.textContent = modelScale.toFixed(2);
+      yawText.textContent = String(Math.round(yawDeg));
+      pitchText.textContent = String(Math.round(pitchDeg));
+      placeText.textContent = `${placementMode} / ${arScaleMode} / scale ${modelScale.toFixed(2)} / yaw ${Math.round(yawDeg)}°`;
+
+      setStatus("PLACEMENT UPDATED");
     }
 
     async function fetchGitHubContents(path, ref){
@@ -738,6 +976,7 @@
       viewer.src = toAssetUrl(path);
 
       renderModelList();
+      updatePlacementAttributes();
       setStatus("LOADING");
       showMessage("モデルを読み込み中：" + path);
 
@@ -745,14 +984,12 @@
       newUrl.searchParams.set("file", path);
       history.replaceState(null, "", newUrl.toString());
 
-      if (isIOS()){
-        iosText.textContent = "iPhoneプレビュー確認中";
-      }
+      closePanel(modelPanel);
     }
 
     viewer.addEventListener("load", () => {
       setStatus("LOADED");
-      showMessage("モデルを読み込みました。プレビューで確認できます。");
+      showMessage("モデルを読み込みました。パネルを閉じるとビューアーが見やすくなります。");
     });
 
     viewer.addEventListener("error", () => {
@@ -800,19 +1037,108 @@
     reloadModelsBtn.addEventListener("click", loadModelList);
     modelSearch.addEventListener("input", renderModelList);
 
-    document.querySelectorAll(".toggle").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-target");
-        const panel = document.getElementById(id);
-        panel.classList.toggle("collapsed");
-        btn.textContent = panel.classList.contains("collapsed") ? "+" : "−";
-      });
+    document.getElementById("floorBtn").addEventListener("click", () => {
+      placementMode = "floor";
+      updatePlacementAttributes();
+      showMessage("AR配置面：床に設定しました。");
+    });
+
+    document.getElementById("wallBtn").addEventListener("click", () => {
+      placementMode = "wall";
+      updatePlacementAttributes();
+      showMessage("AR配置面：壁に設定しました。");
+    });
+
+    document.getElementById("autoScaleBtn").addEventListener("click", () => {
+      arScaleMode = "auto";
+      updatePlacementAttributes();
+      showMessage("ARスケール：自動に設定しました。");
+    });
+
+    document.getElementById("fixedScaleBtn").addEventListener("click", () => {
+      arScaleMode = "fixed";
+      updatePlacementAttributes();
+      showMessage("ARスケール：固定に設定しました。");
+    });
+
+    document.getElementById("scaleMinusBtn").addEventListener("click", () => {
+      modelScale = Math.max(0.10, modelScale - 0.10);
+      updatePlacementAttributes();
+    });
+
+    document.getElementById("scaleResetBtn").addEventListener("click", () => {
+      modelScale = 1.0;
+      updatePlacementAttributes();
+    });
+
+    document.getElementById("scalePlusBtn").addEventListener("click", () => {
+      modelScale = Math.min(5.0, modelScale + 0.10);
+      updatePlacementAttributes();
+    });
+
+    document.getElementById("yawMinusBtn").addEventListener("click", () => {
+      yawDeg -= 10;
+      updatePlacementAttributes();
+    });
+
+    document.getElementById("yawResetBtn").addEventListener("click", () => {
+      yawDeg = 0;
+      updatePlacementAttributes();
+    });
+
+    document.getElementById("yawPlusBtn").addEventListener("click", () => {
+      yawDeg += 10;
+      updatePlacementAttributes();
+    });
+
+    document.getElementById("pitchMinusBtn").addEventListener("click", () => {
+      pitchDeg = Math.max(-90, pitchDeg - 10);
+      updatePlacementAttributes();
+    });
+
+    document.getElementById("pitchResetBtn").addEventListener("click", () => {
+      pitchDeg = 0;
+      updatePlacementAttributes();
+    });
+
+    document.getElementById("pitchPlusBtn").addEventListener("click", () => {
+      pitchDeg = Math.min(90, pitchDeg + 10);
+      updatePlacementAttributes();
+    });
+
+    document.getElementById("viewCenterBtn").addEventListener("click", () => {
+      viewer.cameraOrbit = "0deg 75deg auto";
+      viewer.cameraTarget = "auto auto auto";
+      viewer.fieldOfView = "auto";
+      setStatus("PREVIEW CENTER");
+    });
+
+    document.getElementById("viewLowBtn").addEventListener("click", () => {
+      viewer.cameraOrbit = "0deg 82deg auto";
+      viewer.cameraTarget = "0m -0.2m 0m";
+      viewer.fieldOfView = "35deg";
+      setStatus("PREVIEW LOW");
+    });
+
+    document.getElementById("viewCloseBtn").addEventListener("click", () => {
+      viewer.cameraOrbit = "0deg 70deg 1.2m";
+      viewer.cameraTarget = "auto auto auto";
+      viewer.fieldOfView = "28deg";
+      setStatus("PREVIEW CLOSE");
+    });
+
+    document.getElementById("viewFarBtn").addEventListener("click", () => {
+      viewer.cameraOrbit = "0deg 65deg 3.5m";
+      viewer.cameraTarget = "auto auto auto";
+      viewer.fieldOfView = "35deg";
+      setStatus("PREVIEW FAR");
     });
 
     if (isIOS()){
-      iosText.textContent = "iPhone確認モード";
-      showMessage("iPhoneではWebXR 4点指定は確認しにくいため、このar.htmlでモデル選択とプレビューを確認してください。");
+      showMessage("iPhoneではAR起動後の正確な座標指定はQuick Look側の操作になります。この画面では配置面・サイズ・向きの事前設定を確認します。");
     }
+
+    updatePlacementAttributes();
 
     if (initialFile){
       manualPathInput.value = initialFile;
