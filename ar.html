@@ -497,6 +497,109 @@
       pointer-events:none;
     }
 
+
+
+    .stage-progress{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:6px;
+      margin-bottom:8px;
+    }
+
+    .stage-box{
+      border:1px solid rgba(145,166,201,.26);
+      background:rgba(2,8,18,.42);
+      padding:7px 5px;
+      text-align:center;
+      font-size:10px;
+      color:var(--sub);
+      line-height:1.35;
+    }
+
+    .stage-box .n{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:22px;
+      height:22px;
+      border-radius:50%;
+      border:1px solid rgba(145,166,201,.35);
+      margin-bottom:4px;
+      font-family:Consolas,"Courier New",monospace;
+    }
+
+    .stage-box.active{
+      border-color:rgba(166,255,45,.70);
+      background:rgba(166,255,45,.08);
+      color:var(--lime);
+      box-shadow:0 0 14px rgba(166,255,45,.14);
+    }
+
+    .stage-box.active .n{
+      border-color:rgba(166,255,45,.80);
+      color:var(--lime);
+      box-shadow:0 0 10px rgba(166,255,45,.15);
+    }
+
+    .stage-box.done{
+      border-color:rgba(34,248,255,.50);
+      background:rgba(34,248,255,.08);
+      color:var(--cyan);
+    }
+
+    .stage-box.done .n{
+      border-color:rgba(34,248,255,.72);
+      color:var(--cyan);
+    }
+
+    .stage-main{
+      border:1px solid rgba(34,248,255,.24);
+      background:rgba(2,8,18,.38);
+      padding:8px;
+      margin-bottom:8px;
+    }
+
+    .stage-main-title{
+      color:var(--text);
+      font-weight:bold;
+      margin-bottom:4px;
+      font-size:13px;
+    }
+
+    .stage-main-text{
+      color:var(--sub);
+      line-height:1.6;
+      font-size:12px;
+    }
+
+    .stage-tip{
+      margin-top:6px;
+      padding:7px;
+      border:1px solid rgba(255,230,109,.28);
+      background:rgba(24,20,6,.30);
+      color:var(--yellow);
+      font-size:11px;
+      line-height:1.55;
+    }
+
+    .stage-nav{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:8px;
+      margin:8px 0;
+    }
+
+    .stage-jump-row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:8px;
+    }
+
+    .guide-hidden{
+      display:none !important;
+    }
+
     #ARButton{
       border:1px solid rgba(166,255,45,.60) !important;
       background:linear-gradient(180deg, rgba(15,28,58,.95), rgba(3,8,18,.95)) !important;
@@ -621,39 +724,35 @@
           配置点：未指定。AR START後、置きたい場所をタップしてください。
         </div>
 
-        <div class="step-card">
-          <div class="step-num">1</div>
-          <div>
-            <div class="step-title">モデルを選ぶ</div>
-            <div class="step-text">「1 モデル」からGLB / GLTFを選択。URLにfile指定がある場合は自動で読み込み。</div>
+        <div class="stage-progress">
+          <div class="stage-box active" id="stageBox1"><div class="n">1</div><div>モデル選択</div></div>
+          <div class="stage-box" id="stageBox2"><div class="n">2</div><div>AR開始</div></div>
+          <div class="stage-box" id="stageBox3"><div class="n">3</div><div>配置点タップ</div></div>
+          <div class="stage-box" id="stageBox4"><div class="n">4</div><div>微調整</div></div>
+        </div>
+
+        <div class="stage-main">
+          <div class="stage-main-title" id="stageTitleText">STEP 1 / モデルを選ぶ</div>
+          <div class="stage-main-text" id="stageBodyText">
+            まず「1 モデル」を開いて、表示したいGLB / GLTFモデルを選択してください。URLにfile指定がある場合は自動で読み込みます。
+          </div>
+          <div class="stage-tip" id="stageTipText">
+            迷ったら左上の「1 モデル」を押してください。モデルを選んだあと「次へ」で進めます。
           </div>
         </div>
 
-        <div class="step-card">
-          <div class="step-num">2</div>
-          <div>
-            <div class="step-title">AR STARTを押す</div>
-            <div class="step-text">画面下のAR STARTボタンを押す。床や机を認識するまで、端末をゆっくり動かす。</div>
-          </div>
+        <div class="stage-nav">
+          <button class="btn" id="stagePrevBtn"><span>前へ</span></button>
+          <button class="btn lime" id="stageOpenBtn"><span>この段階を開く</span></button>
+          <button class="btn magenta" id="stageNextBtn"><span>次へ</span></button>
         </div>
 
-        <div class="step-card">
-          <div class="step-num">3</div>
-          <div>
-            <div class="step-title">置きたい箇所をタップ</div>
-            <div class="step-text">レティクルが出たら、最初に配置したい場所をタップ。そこを配置点としてモデルを出す。</div>
-          </div>
+        <div class="stage-jump-row">
+          <button class="btn yellow" id="markStageDoneBtn"><span>この段階を完了</span></button>
+          <button class="btn" id="resetStageBtn"><span>進行リセット</span></button>
         </div>
 
-        <div class="step-card">
-          <div class="step-num">4</div>
-          <div>
-            <div class="step-title">必要なら微調整</div>
-            <div class="step-text">「3 調整」で前後左右・高さ・回転・拡大縮小を変更。再度タップすると配置点を取り直せます。</div>
-          </div>
-        </div>
-
-        <div class="button-grid">
+        <div class="button-grid" style="margin-top:8px;">
           <button class="btn lime" id="startTapPlaceBtn"><span>配置点指定開始</span></button>
           <button class="btn yellow" id="clearPointBtn"><span>配置点リセット</span></button>
           <button class="btn" id="showModelAtPointBtn"><span>指定点に再配置</span></button>
@@ -661,7 +760,7 @@
         </div>
 
         <p class="hint warning">
-          iPhoneではWebXRのタップ配置が使えない場合があります。その場合はar.htmlで確認してください。
+          ガイドは「前へ / 次へ」で進められます。必要な操作パネルは「この段階を開く」で自動的に開けます。
         </p>
       </div>
     </section>
@@ -768,6 +867,22 @@
     const openControlBtn = document.getElementById("openControlBtn");
     const openStatusBtn = document.getElementById("openStatusBtn");
 
+    const stageTitleText = document.getElementById("stageTitleText");
+    const stageBodyText = document.getElementById("stageBodyText");
+    const stageTipText = document.getElementById("stageTipText");
+    const stagePrevBtn = document.getElementById("stagePrevBtn");
+    const stageNextBtn = document.getElementById("stageNextBtn");
+    const stageOpenBtn = document.getElementById("stageOpenBtn");
+    const markStageDoneBtn = document.getElementById("markStageDoneBtn");
+    const resetStageBtn = document.getElementById("resetStageBtn");
+
+    const stageBoxes = {
+      1: document.getElementById("stageBox1"),
+      2: document.getElementById("stageBox2"),
+      3: document.getElementById("stageBox3"),
+      4: document.getElementById("stageBox4")
+    };
+
     const params = new URLSearchParams(location.search);
     const initialFile = params.get("file") ? decodeURIComponent(params.get("file")) : "";
 
@@ -791,6 +906,35 @@
 
     let placementPoint = null;
     let tapPlacementMode = true;
+    let currentStage = 1;
+    let maxCompletedStage = 0;
+
+    const stageDefs = {
+      1: {
+        title: "STEP 1 / モデルを選ぶ",
+        body: "まず「1 モデル」を開いて、表示したいGLB / GLTFモデルを選択してください。URLにfile指定がある場合は自動で読み込みます。",
+        tip: "迷ったら左上の「1 モデル」を押してください。モデルを選んだあと「次へ」で進めます。",
+        panel: "model"
+      },
+      2: {
+        title: "STEP 2 / AR START を押す",
+        body: "画面下の AR START ボタンを押してください。床や机を認識するまで端末をゆっくり動かします。レティクルが見えたら配置準備完了です。",
+        tip: "ARボタンはThree.js側が自動表示します。AR開始後、次へ進んで配置点をタップします。",
+        panel: "guide"
+      },
+      3: {
+        title: "STEP 3 / 置きたい箇所をタップ",
+        body: "AR空間でモデルを置きたい場所を最初にタップしてください。タップした場所を配置点として記録し、その位置にモデルを表示します。",
+        tip: "レティクルが見えない場合は平面認識が足りません。端末を前後左右にゆっくり動かしてください。",
+        panel: "guide"
+      },
+      4: {
+        title: "STEP 4 / 微調整する",
+        body: "必要なら「3 調整」を開いて、前後左右・高さ・回転・拡大縮小を調整します。位置を大きく変えたい場合は再度タップで配置点を取り直せます。",
+        tip: "微調整は5cm単位です。モデルの向きやサイズもここで整えられます。",
+        panel: "control"
+      }
+    };
 
     const clock = new THREE.Clock();
     const tempVec = new THREE.Vector3();
@@ -836,6 +980,74 @@
       showMessage._timer = setTimeout(() => {
         messageBox.style.display = "none";
       }, 6500);
+    }
+
+
+    function setStage(stage, showMsg=false){
+      currentStage = Math.max(1, Math.min(4, stage));
+      const data = stageDefs[currentStage];
+
+      stageTitleText.textContent = data.title;
+      stageBodyText.textContent = data.body;
+      stageTipText.textContent = data.tip;
+
+      for (const n of [1,2,3,4]){
+        const box = stageBoxes[n];
+        box.classList.remove("active", "done");
+        if (n < currentStage){
+          box.classList.add("done");
+        } else if (n === currentStage){
+          box.classList.add("active");
+        }
+      }
+
+      stagePrevBtn.disabled = currentStage === 1;
+      stageNextBtn.disabled = currentStage === 4;
+
+      if (showMsg){
+        showMessage(data.title + " に移動しました。");
+      }
+    }
+
+    function completeCurrentStage(autoMove=true){
+      if (currentStage > maxCompletedStage){
+        maxCompletedStage = currentStage;
+      }
+
+      for (const n of [1,2,3,4]){
+        if (n <= maxCompletedStage){
+          stageBoxes[n].classList.add("done");
+        }
+      }
+
+      showMessage("STEP " + currentStage + " を完了にしました。");
+
+      if (autoMove && currentStage < 4){
+        setStage(currentStage + 1);
+      }
+    }
+
+    function resetStages(){
+      maxCompletedStage = 0;
+      setStage(1);
+      showMessage("進行をリセットしました。");
+    }
+
+    function openPanelForStage(stage){
+      const panel = stageDefs[stage]?.panel || "guide";
+      openOnly(panel);
+      if (stage === 2 || stage === 3){
+        openOnly("guide");
+      }
+      if (stage === 1){
+        showMessage("モデル選択パネルを開きました。");
+      } else if (stage === 2){
+        showMessage("AR STARTボタンを押して開始してください。");
+      } else if (stage === 3){
+        showMessage("AR開始後、置きたい場所をタップしてください。");
+      } else if (stage === 4){
+        showMessage("調整パネルを開きました。");
+      }
     }
 
     function updateReadout(){
@@ -998,6 +1210,9 @@
 
       closePanel(modelPanel);
       openOnly("guide");
+      maxCompletedStage = Math.max(maxCompletedStage, 1);
+      if (currentStage <= 1) setStage(2);
+      showMessage("モデルを選択しました。次はAR STARTで開始してください。");
     }
 
     function clearCurrentModel(){
@@ -1217,6 +1432,8 @@
 
       setStatus("配置点指定済み");
       setMode("配置済み");
+      maxCompletedStage = Math.max(maxCompletedStage, 3);
+      if (currentStage <= 3) setStage(4);
       showMessage("タップした箇所を配置点にしました。必要なら「3 調整」で微調整してください。");
     }
 
@@ -1324,6 +1541,7 @@
     function setScaleValue(v){
       userScale = Math.max(0.1, Math.min(5.0, v));
       updateReadout();
+    setStage(1);
       applyModelPlacement();
     }
 
@@ -1397,9 +1615,37 @@
     reloadModelsBtn.addEventListener("click", loadModelList);
     modelSearch.addEventListener("input", renderModelList);
 
+    stagePrevBtn.addEventListener("click", () => {
+      setStage(currentStage - 1, true);
+    });
+
+    stageNextBtn.addEventListener("click", () => {
+      setStage(currentStage + 1, true);
+    });
+
+    stageOpenBtn.addEventListener("click", () => {
+      openPanelForStage(currentStage);
+    });
+
+    markStageDoneBtn.addEventListener("click", () => {
+      completeCurrentStage(true);
+    });
+
+    resetStageBtn.addEventListener("click", () => {
+      resetStages();
+    });
+
+    Object.entries(stageBoxes).forEach(([k, el]) => {
+      el.addEventListener("click", () => {
+        setStage(Number(k), true);
+      });
+    });
+
     document.getElementById("startTapPlaceBtn").addEventListener("click", () => {
       tapPlacementMode = true;
       setMode("タップ配置待ち");
+      maxCompletedStage = Math.max(maxCompletedStage, 2);
+      setStage(3);
       showMessage("AR空間で置きたい箇所をタップしてください。");
     });
 
