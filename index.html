@@ -515,7 +515,7 @@
       <div class="brand">
         <div class="brand-line"></div>
         <div class="brand-title">SF 3D MODEL VIEWER</div>
-        <div class="brand-sub">NO PASSWORD / NO ADS / GitHub Pages Teaching Viewer</div>
+        <div class="brand-sub">NO PASSWORD / NO ADS / AR停止中 temporarily disabled</div>
       </div>
       <div class="digital">
         <div class="label">SYSTEM DATE</div>
@@ -567,8 +567,8 @@
         <div class="button-grid">
           <button class="btn" id="reloadBtn"><span>再読み込み</span></button>
           <button class="btn lime" id="resetViewBtn"><span>視点リセット</span></button>
-          <button class="btn magenta" id="openArBtn"><span>現在AR</span></button>
-          <button class="btn magenta" id="openWebxrBtn"><span>WebXR AR</span></button>
+          <button class="btn magenta" id="openArBtn"><span>ARビューアー</span></button>
+          <button class="btn" id="copyArUrlBtn"><span>AR URL表示</span></button>
           <button class="btn" id="toggleAnimBtn"><span>アニメ再生/停止</span></button>
           <button class="btn lime" id="fitBtn"><span>画面に合わせる</span></button>
         </div>
@@ -608,7 +608,7 @@
     const reloadBtn = document.getElementById("reloadBtn");
     const resetViewBtn = document.getElementById("resetViewBtn");
     const openArBtn = document.getElementById("openArBtn");
-    const openWebxrBtn = document.getElementById("openWebxrBtn");
+    const copyArUrlBtn = document.getElementById("copyArUrlBtn");
     const toggleAnimBtn = document.getElementById("toggleAnimBtn");
     const fitBtn = document.getElementById("fitBtn");
     const mobilePanelBtn = document.getElementById("mobilePanelBtn");
@@ -862,7 +862,7 @@
       const arReady = model.ext === ".glb" || model.ext === ".gltf";
       infoAr.textContent = arReady ? "対応しやすい形式" : "AR用GLB/GLTFを別途推奨";
       infoHint.textContent = arReady
-        ? "GLB / GLTFはAR表示に向いています。端末によってWebXR対応状況は異なります。"
+        ? "GLB / GLTFはAR表示に向いています。現在はARビューアーのみ使用します。"
         : "OBJ / FBXは3D表示用です。ARでは同名GLBを用意すると安定します。";
 
       await loadSelectedModel(model);
@@ -1052,8 +1052,7 @@
       }
 
       const file = encodeURIComponent(selectedModel.path);
-      const page = kind === "webxr" ? "webxr_ar.html" : "ar.html";
-      location.href = `${location.origin}/${page}?file=${file}`;
+      location.href = `${location.origin}/ar.html?file=${file}`;
     }
 
     function toggleAnimation(){
@@ -1089,7 +1088,14 @@
     resetViewBtn.addEventListener("click", resetView);
     fitBtn.addEventListener("click", fitCurrentObject);
     openArBtn.addEventListener("click", () => openAr("current"));
-    openWebxrBtn.addEventListener("click", () => openAr("webxr"));
+    copyArUrlBtn.addEventListener("click", () => {
+      if (!selectedModel){
+        alert("モデルを選択してください。");
+        return;
+      }
+      const url = `${location.origin}/ar.html?file=${encodeURIComponent(selectedModel.path)}`;
+      prompt("ARビューアー確認用URL", url);
+    });
     toggleAnimBtn.addEventListener("click", toggleAnimation);
 
     mobilePanelBtn.addEventListener("click", () => {
