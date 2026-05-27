@@ -556,6 +556,169 @@
       pointer-events:none;
     }
 
+
+    .point-panel{
+      left:8px;
+      bottom:74px;
+      width:410px;
+      max-width:calc(100vw - 16px);
+      max-height:calc(100vh - 140px);
+      overflow:auto;
+    }
+
+    .point-summary{
+      border:1px solid rgba(166,255,45,.30);
+      background:rgba(166,255,45,.05);
+      color:var(--lime);
+      padding:8px;
+      font-family:Consolas,"Courier New",monospace;
+      margin-bottom:8px;
+      box-shadow:inset 0 0 14px rgba(166,255,45,.05);
+    }
+
+    .point-layout{
+      position:relative;
+      border:1px solid rgba(34,248,255,.28);
+      background:
+        linear-gradient(90deg, rgba(34,248,255,.05) 1px, transparent 1px),
+        linear-gradient(rgba(34,248,255,.05) 1px, transparent 1px),
+        rgba(2,8,18,.50);
+      background-size:18px 18px;
+      min-height:210px;
+      margin-bottom:8px;
+      overflow:hidden;
+    }
+
+    .paper-guide{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      width:74%;
+      height:68%;
+      border:2px solid rgba(34,248,255,.72);
+      background:rgba(34,248,255,.045);
+      box-shadow:0 0 18px rgba(34,248,255,.18), inset 0 0 18px rgba(34,248,255,.06);
+    }
+
+    .paper-guide::before,
+    .paper-guide::after{
+      content:"";
+      position:absolute;
+      background:rgba(255,45,235,.45);
+      box-shadow:0 0 10px rgba(255,45,235,.35);
+    }
+
+    .paper-guide::before{
+      left:50%;
+      top:0;
+      bottom:0;
+      width:1px;
+    }
+
+    .paper-guide::after{
+      left:0;
+      right:0;
+      top:50%;
+      height:1px;
+    }
+
+    .point-dot{
+      position:absolute;
+      width:38px;
+      height:38px;
+      border-radius:50%;
+      border:1px solid rgba(166,255,45,.78);
+      background:rgba(166,255,45,.10);
+      color:var(--lime);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:bold;
+      font-size:16px;
+      font-family:Consolas,"Courier New",monospace;
+      transform:translate(-50%,-50%);
+      cursor:pointer;
+      box-shadow:0 0 16px rgba(166,255,45,.18);
+      z-index:2;
+    }
+
+    .point-dot:hover,
+    .point-dot.active{
+      border-color:var(--magenta);
+      color:white;
+      background:rgba(255,45,235,.18);
+      box-shadow:0 0 18px rgba(255,45,235,.28);
+    }
+
+    .point-dot.done{
+      border-color:var(--cyan);
+      color:var(--cyan);
+      background:rgba(34,248,255,.12);
+      box-shadow:0 0 16px rgba(34,248,255,.22);
+    }
+
+    .point-dot.p1{ left:13%; top:16%; }
+    .point-dot.p2{ left:87%; top:16%; }
+    .point-dot.p3{ left:87%; top:84%; }
+    .point-dot.p4{ left:13%; top:84%; }
+    .point-dot.pc{ left:50%; top:50%; }
+
+    .point-label{
+      position:absolute;
+      color:var(--sub);
+      font-size:10px;
+      transform:translate(-50%,-50%);
+      white-space:nowrap;
+      z-index:3;
+      pointer-events:none;
+      text-shadow:0 0 6px rgba(0,0,0,.9);
+    }
+
+    .point-label.l1{ left:13%; top:7%; }
+    .point-label.l2{ left:87%; top:7%; }
+    .point-label.l3{ left:87%; top:93%; }
+    .point-label.l4{ left:13%; top:93%; }
+    .point-label.lc{ left:50%; top:61%; color:var(--lime); }
+
+    .point-instruction-box{
+      border:1px solid rgba(255,230,109,.32);
+      background:rgba(24,20,6,.42);
+      color:var(--yellow);
+      padding:8px;
+      margin-bottom:8px;
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    .point-order-list{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:6px;
+      margin-bottom:8px;
+    }
+
+    .point-order-item{
+      border:1px solid rgba(145,166,201,.26);
+      background:rgba(2,8,18,.50);
+      padding:7px;
+      color:var(--sub);
+      font-size:11px;
+    }
+
+    .point-order-item.active{
+      border-color:rgba(166,255,45,.72);
+      color:var(--lime);
+      background:rgba(166,255,45,.08);
+      box-shadow:0 0 14px rgba(166,255,45,.14);
+    }
+
+    .point-order-item.done{
+      border-color:rgba(34,248,255,.58);
+      color:var(--cyan);
+      background:rgba(34,248,255,.08);
+    }
+
     @media (max-width:900px){
       .top-mini-hud{
         top:6px;
@@ -597,6 +760,22 @@
 
       .info-panel{
         bottom:74px;
+      }
+
+      .point-panel{
+        left:6px;
+        right:6px;
+        bottom:74px;
+        width:auto;
+        max-width:none;
+      }
+
+      .point-layout{
+        min-height:180px;
+      }
+
+      .point-order-list{
+        grid-template-columns:1fr 1fr;
       }
 
       .model-list{
@@ -664,6 +843,7 @@
       <button class="mini-btn" id="openModelBtn">1 モデル</button>
       <button class="mini-btn" id="openGuideBtn">2 ガイド</button>
       <button class="mini-btn" id="openSettingBtn">3 設定</button>
+      <button class="mini-btn" id="openPointBtn">4 ポイント</button>
       <button class="mini-btn" id="openInfoBtn">情報</button>
     </div>
   </div>
@@ -825,6 +1005,60 @@
       </div>
     </section>
 
+
+    <section class="panel point-panel" id="pointPanel">
+      <div class="panel-head">
+        <div class="panel-title">4 POINT GUIDE</div>
+        <button class="close-btn" data-close="pointPanel">×</button>
+      </div>
+      <div class="panel-body">
+        <div class="point-summary" id="pointSummaryText">
+          ポイント指示：中央配置
+        </div>
+
+        <div class="point-layout">
+          <div class="paper-guide"></div>
+
+          <button class="point-dot p1" data-point="p1">1</button>
+          <button class="point-dot p2" data-point="p2">2</button>
+          <button class="point-dot p3" data-point="p3">3</button>
+          <button class="point-dot p4" data-point="p4">4</button>
+          <button class="point-dot pc active" data-point="pc">C</button>
+
+          <div class="point-label l1">左上</div>
+          <div class="point-label l2">右上</div>
+          <div class="point-label l3">右下</div>
+          <div class="point-label l4">左下</div>
+          <div class="point-label lc">中央</div>
+        </div>
+
+        <div class="point-instruction-box" id="pointInstructionText">
+          紙や机の中央に合わせてAR起動後に配置してください。細かい位置はAR起動後、端末側の操作で動かします。
+        </div>
+
+        <div class="point-order-list">
+          <div class="point-order-item" id="pointOrderP1">① 左上マーク</div>
+          <div class="point-order-item" id="pointOrderP2">② 右上マーク</div>
+          <div class="point-order-item" id="pointOrderP3">③ 右下マーク</div>
+          <div class="point-order-item" id="pointOrderP4">④ 左下マーク</div>
+        </div>
+
+        <div class="button-grid">
+          <button class="btn lime" id="pointCenterBtn"><span>中央に合わせる</span></button>
+          <button class="btn" id="pointTopLeftBtn"><span>左上に合わせる</span></button>
+          <button class="btn" id="pointTopRightBtn"><span>右上に合わせる</span></button>
+          <button class="btn" id="pointBottomRightBtn"><span>右下に合わせる</span></button>
+          <button class="btn" id="pointBottomLeftBtn"><span>左下に合わせる</span></button>
+          <button class="btn magenta" id="pointFourBtn"><span>4点順番ガイド</span></button>
+        </div>
+
+        <p class="hint warning">
+          ar.htmlではマーク位置を自動取得できません。ここでは「どこに合わせるか」を分かりやすく指示します。実際に4点をタップして範囲を取る場合はWebXR版を使います。
+        </p>
+      </div>
+    </section>
+
+
     <section class="panel info-panel" id="infoPanel">
       <div class="panel-head">
         <div class="panel-title">MODEL INFO</div>
@@ -872,12 +1106,24 @@
     const openModelBtn = document.getElementById("openModelBtn");
     const openGuideBtn = document.getElementById("openGuideBtn");
     const openSettingBtn = document.getElementById("openSettingBtn");
+    const openPointBtn = document.getElementById("openPointBtn");
     const openInfoBtn = document.getElementById("openInfoBtn");
 
     const modelPanel = document.getElementById("modelPanel");
     const guidePanel = document.getElementById("guidePanel");
     const settingPanel = document.getElementById("settingPanel");
+    const pointPanel = document.getElementById("pointPanel");
     const infoPanel = document.getElementById("infoPanel");
+
+    const pointSummaryText = document.getElementById("pointSummaryText");
+    const pointInstructionText = document.getElementById("pointInstructionText");
+    const pointDots = Array.from(document.querySelectorAll(".point-dot"));
+    const pointOrderItems = {
+      p1: document.getElementById("pointOrderP1"),
+      p2: document.getElementById("pointOrderP2"),
+      p3: document.getElementById("pointOrderP3"),
+      p4: document.getElementById("pointOrderP4")
+    };
 
     const scaleText = document.getElementById("scaleText");
     const yawText = document.getElementById("yawText");
@@ -894,6 +1140,16 @@
     let modelScale = 1.0;
     let yawDeg = 0;
     let pitchDeg = 0;
+    let selectedPoint = "pc";
+    let pointSequenceMode = false;
+    let pointSequenceIndex = 0;
+    const pointNames = {
+      p1: "左上",
+      p2: "右上",
+      p3: "右下",
+      p4: "左下",
+      pc: "中央"
+    };
 
     function encodePath(path){
       return String(path).split("/").map(part => encodeURIComponent(part)).join("/");
@@ -944,6 +1200,7 @@
         model: modelPanel,
         guide: guidePanel,
         setting: settingPanel,
+        point: pointPanel,
         info: infoPanel
       };
 
@@ -951,6 +1208,7 @@
         model: openModelBtn,
         guide: openGuideBtn,
         setting: openSettingBtn,
+        point: openPointBtn,
         info: openInfoBtn
       };
 
@@ -966,12 +1224,14 @@
       if (panel === modelPanel) openModelBtn.classList.remove("active");
       if (panel === guidePanel) openGuideBtn.classList.remove("active");
       if (panel === settingPanel) openSettingBtn.classList.remove("active");
+      if (panel === pointPanel) openPointBtn.classList.remove("active");
       if (panel === infoPanel) openInfoBtn.classList.remove("active");
     }
 
     openModelBtn.addEventListener("click", () => openOnly("model"));
     openGuideBtn.addEventListener("click", () => openOnly("guide"));
     openSettingBtn.addEventListener("click", () => openOnly("setting"));
+    openPointBtn.addEventListener("click", () => openOnly("point"));
     openInfoBtn.addEventListener("click", () => openOnly("info"));
 
     document.querySelectorAll("[data-close]").forEach(btn => {
@@ -979,6 +1239,68 @@
         closePanel(document.getElementById(btn.getAttribute("data-close")));
       });
     });
+
+
+    function setPointGuide(pointKey, sequence=false){
+      selectedPoint = pointKey;
+      pointSequenceMode = sequence;
+
+      pointDots.forEach(dot => {
+        dot.classList.remove("active", "done");
+        if (dot.dataset.point === pointKey){
+          dot.classList.add("active");
+        }
+      });
+
+      Object.values(pointOrderItems).forEach(item => {
+        item.classList.remove("active", "done");
+      });
+
+      let summary = "";
+      let instruction = "";
+
+      if (sequence){
+        const order = ["p1", "p2", "p3", "p4"];
+        order.forEach((key, index) => {
+          if (index < pointSequenceIndex){
+            pointOrderItems[key].classList.add("done");
+          } else if (index === pointSequenceIndex){
+            pointOrderItems[key].classList.add("active");
+          }
+        });
+
+        const current = order[pointSequenceIndex] || "p1";
+        pointDots.forEach(dot => {
+          dot.classList.toggle("active", dot.dataset.point === current);
+          if (order.indexOf(dot.dataset.point) < pointSequenceIndex){
+            dot.classList.add("done");
+          }
+        });
+
+        summary = `4点順番ガイド：${pointSequenceIndex + 1}点目 ${pointNames[current]}`;
+        instruction = `紙の ${pointNames[current]} マークに合わせるつもりで確認してください。次に進む場合は「4点順番ガイド」をもう一度押します。`;
+      } else {
+        summary = `ポイント指示：${pointNames[pointKey]} に合わせる`;
+        if (pointKey === "pc"){
+          instruction = "紙や机の中央に合わせてAR起動後に配置してください。細かい位置はAR起動後、端末側の操作で動かします。";
+        } else {
+          instruction = `紙や机の ${pointNames[pointKey]} マーク付近に合わせてAR起動後に配置してください。AR起動後、端末側の移動操作で微調整します。`;
+        }
+      }
+
+      pointSummaryText.textContent = summary;
+      pointInstructionText.textContent = instruction;
+
+      showMessage(summary);
+    }
+
+    function nextPointSequence(){
+      pointSequenceMode = true;
+      const order = ["p1", "p2", "p3", "p4"];
+      const current = order[pointSequenceIndex] || "p1";
+      setPointGuide(current, true);
+      pointSequenceIndex = (pointSequenceIndex + 1) % 4;
+    }
 
     function updatePlacementAttributes(){
       viewer.setAttribute("ar-placement", placementMode);
@@ -1295,11 +1617,50 @@
       setStatus("PREVIEW FAR");
     });
 
+
+    document.getElementById("pointCenterBtn").addEventListener("click", () => {
+      pointSequenceMode = false;
+      setPointGuide("pc");
+    });
+
+    document.getElementById("pointTopLeftBtn").addEventListener("click", () => {
+      pointSequenceMode = false;
+      setPointGuide("p1");
+    });
+
+    document.getElementById("pointTopRightBtn").addEventListener("click", () => {
+      pointSequenceMode = false;
+      setPointGuide("p2");
+    });
+
+    document.getElementById("pointBottomRightBtn").addEventListener("click", () => {
+      pointSequenceMode = false;
+      setPointGuide("p3");
+    });
+
+    document.getElementById("pointBottomLeftBtn").addEventListener("click", () => {
+      pointSequenceMode = false;
+      setPointGuide("p4");
+    });
+
+    document.getElementById("pointFourBtn").addEventListener("click", () => {
+      nextPointSequence();
+    });
+
+    pointDots.forEach(dot => {
+      dot.addEventListener("click", () => {
+        pointSequenceMode = false;
+        pointSequenceIndex = 0;
+        setPointGuide(dot.dataset.point);
+      });
+    });
+
     if (isIOS()){
       showMessage("iPhoneではAR起動後の正確な座標指定はQuick Look側の操作になります。この画面では配置手順と事前設定を確認してください。");
     }
 
     updatePlacementAttributes();
+    setPointGuide("pc");
 
     if (initialFile){
       manualPathInput.value = initialFile;
