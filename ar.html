@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Model Select + Placement</title>
+  <title>SF AR Viewer - Clear Placement Guide</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 
@@ -11,8 +11,8 @@
     :root{
       --bg0:#02030a;
       --bg1:#061020;
-      --panel:rgba(8,16,32,.88);
-      --panel2:rgba(14,24,48,.94);
+      --panel:rgba(8,16,32,.90);
+      --panel2:rgba(14,24,48,.96);
       --cyan:#22f8ff;
       --blue:#377cff;
       --magenta:#ff2deb;
@@ -62,7 +62,7 @@
       pointer-events:none;
       background:linear-gradient(to bottom, rgba(255,255,255,.04), transparent 1px);
       background-size:100% 5px;
-      opacity:.25;
+      opacity:.24;
     }
 
     model-viewer{
@@ -94,7 +94,7 @@
       flex:1;
       min-width:0;
       border:1px solid rgba(34,248,255,.38);
-      background:linear-gradient(90deg, rgba(8,16,32,.72), rgba(10,22,44,.42));
+      background:linear-gradient(90deg, rgba(8,16,32,.74), rgba(10,22,44,.46));
       box-shadow:0 0 12px rgba(34,248,255,.12);
       backdrop-filter:blur(10px);
       -webkit-backdrop-filter:blur(10px);
@@ -170,9 +170,7 @@
       pointer-events:auto;
     }
 
-    .panel.open{
-      display:block;
-    }
+    .panel.open{ display:block; }
 
     .panel-head{
       display:flex;
@@ -218,15 +216,24 @@
     .model-panel{
       left:8px;
       top:66px;
-      width:360px;
+      width:370px;
       max-width:calc(100vw - 16px);
       max-height:calc(100vh - 140px);
     }
 
-    .placement-panel{
+    .guide-panel{
       right:8px;
       top:66px;
-      width:380px;
+      width:430px;
+      max-width:calc(100vw - 16px);
+      max-height:calc(100vh - 140px);
+      overflow:auto;
+    }
+
+    .setting-panel{
+      right:8px;
+      top:66px;
+      width:410px;
       max-width:calc(100vw - 16px);
       max-height:calc(100vh - 140px);
       overflow:auto;
@@ -235,7 +242,7 @@
     .info-panel{
       right:8px;
       bottom:74px;
-      width:360px;
+      width:370px;
       max-width:calc(100vw - 16px);
     }
 
@@ -318,6 +325,94 @@
       line-height:1.55;
     }
 
+    .guide-flow{
+      display:grid;
+      gap:8px;
+    }
+
+    .step-card{
+      border:1px solid rgba(34,248,255,.26);
+      background:rgba(2,8,18,.48);
+      padding:8px;
+      display:grid;
+      grid-template-columns:42px 1fr;
+      gap:8px;
+      align-items:start;
+    }
+
+    .step-num{
+      width:36px;
+      height:36px;
+      border:1px solid rgba(166,255,45,.62);
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--lime);
+      background:rgba(166,255,45,.07);
+      font-weight:bold;
+      font-family:Consolas,"Courier New",monospace;
+      box-shadow:0 0 14px rgba(166,255,45,.15);
+    }
+
+    .step-title{
+      color:var(--text);
+      font-weight:bold;
+      margin-bottom:3px;
+    }
+
+    .step-text{
+      color:var(--sub);
+      font-size:12px;
+      line-height:1.45;
+    }
+
+    .current-setting{
+      border:1px solid rgba(166,255,45,.30);
+      background:rgba(166,255,45,.05);
+      color:var(--lime);
+      padding:8px;
+      font-family:Consolas,"Courier New",monospace;
+      margin-bottom:8px;
+      box-shadow:inset 0 0 14px rgba(166,255,45,.05);
+    }
+
+    .setting-card{
+      border:1px solid rgba(34,248,255,.22);
+      background:rgba(2,8,18,.46);
+      padding:8px;
+      margin-bottom:8px;
+    }
+
+    .setting-title{
+      color:var(--cyan);
+      font-weight:bold;
+      margin-bottom:6px;
+    }
+
+    .setting-desc{
+      color:var(--sub);
+      font-size:11px;
+      line-height:1.45;
+      margin-top:5px;
+    }
+
+    .readout{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:6px;
+      margin:8px 0;
+    }
+
+    .readout div{
+      border:1px solid rgba(34,248,255,.24);
+      background:rgba(2,8,18,.58);
+      padding:6px;
+      text-align:center;
+      color:var(--cyan);
+      font-family:Consolas,"Courier New",monospace;
+    }
+
     .row{
       display:grid;
       grid-template-columns:92px 1fr;
@@ -388,9 +483,7 @@
     }
 
     .btn:hover::before,
-    .ar-button:hover::before{
-      transform:scaleX(1);
-    }
+    .ar-button:hover::before{ transform:scaleX(1); }
 
     .btn:hover,
     .ar-button:hover{
@@ -438,7 +531,7 @@
       width:min(720px, calc(100vw - 20px));
       display:none;
       border:1px solid rgba(255,230,109,.42);
-      background:rgba(24,20,6,.80);
+      background:rgba(24,20,6,.82);
       color:var(--yellow);
       padding:10px;
       font-size:13px;
@@ -463,35 +556,6 @@
       pointer-events:none;
     }
 
-    .setting-card{
-      border:1px solid rgba(34,248,255,.22);
-      background:rgba(2,8,18,.46);
-      padding:8px;
-      margin-bottom:8px;
-    }
-
-    .setting-title{
-      color:var(--cyan);
-      font-weight:bold;
-      margin-bottom:6px;
-    }
-
-    .readout{
-      display:grid;
-      grid-template-columns:1fr 1fr 1fr;
-      gap:6px;
-      margin:8px 0;
-    }
-
-    .readout div{
-      border:1px solid rgba(34,248,255,.24);
-      background:rgba(2,8,18,.58);
-      padding:6px;
-      text-align:center;
-      color:var(--cyan);
-      font-family:Consolas,"Courier New",monospace;
-    }
-
     @media (max-width:900px){
       .top-mini-hud{
         top:6px;
@@ -500,25 +564,23 @@
         align-items:flex-start;
       }
 
-      .brand-mini{
-        padding:6px 8px;
-      }
-
+      .brand-mini{ padding:6px 8px; }
       .brand-title{ font-size:12px; }
       .brand-sub{ display:none; }
 
       .hud-buttons{
-        max-width:52vw;
+        max-width:58vw;
       }
 
       .mini-btn{
         min-height:30px;
-        padding:0 8px;
-        font-size:11px;
+        padding:0 7px;
+        font-size:10px;
       }
 
       .model-panel,
-      .placement-panel,
+      .guide-panel,
+      .setting-panel,
       .info-panel{
         left:6px;
         right:6px;
@@ -527,7 +589,8 @@
       }
 
       .model-panel,
-      .placement-panel{
+      .guide-panel,
+      .setting-panel{
         top:58px;
         max-height:calc(100vh - 132px);
       }
@@ -595,11 +658,12 @@
   <div class="top-mini-hud">
     <div class="brand-mini">
       <div class="brand-title">SF AR VIEWER</div>
-      <div class="brand-sub">モデル選択・配置設定は必要な時だけ開く</div>
+      <div class="brand-sub">1モデル → 2配置ガイド → 3設定 → AR表示</div>
     </div>
     <div class="hud-buttons">
-      <button class="mini-btn" id="openModelBtn">モデル</button>
-      <button class="mini-btn" id="openPlaceBtn">配置</button>
+      <button class="mini-btn" id="openModelBtn">1 モデル</button>
+      <button class="mini-btn" id="openGuideBtn">2 ガイド</button>
+      <button class="mini-btn" id="openSettingBtn">3 設定</button>
       <button class="mini-btn" id="openInfoBtn">情報</button>
     </div>
   </div>
@@ -607,7 +671,7 @@
   <div class="panel-layer">
     <section class="panel model-panel" id="modelPanel">
       <div class="panel-head">
-        <div class="panel-title">MODEL SELECT</div>
+        <div class="panel-title">1 MODEL SELECT</div>
         <button class="close-btn" data-close="modelPanel">×</button>
       </div>
       <div class="panel-body">
@@ -621,52 +685,126 @@
           <button class="btn" id="reloadModelsBtn"><span>一覧再読込</span></button>
         </div>
         <div class="hint small">
-          一覧が出ない場合は <span class="cyan">models/ファイル名.glb</span> を入力して「パス読込」。
+          まずここでAR表示したいモデルを選びます。選ぶと中央のビューアーにプレビューされます。
         </div>
       </div>
     </section>
 
-    <section class="panel placement-panel" id="placementPanel">
+    <section class="panel guide-panel" id="guidePanel">
       <div class="panel-head">
-        <div class="panel-title">PLACEMENT SETTING</div>
-        <button class="close-btn" data-close="placementPanel">×</button>
+        <div class="panel-title">2 PLACEMENT GUIDE</div>
+        <button class="close-btn" data-close="guidePanel">×</button>
+      </div>
+      <div class="panel-body">
+        <div class="current-setting" id="currentSettingText">
+          現在設定：床 / 自動スケール / サイズ1.00 / 回転0°
+        </div>
+
+        <div class="guide-flow">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div>
+              <div class="step-title">モデルを選ぶ</div>
+              <div class="step-text">上の「1 モデル」からGLB / GLTFを選択。選択後、中央にプレビューが出る。</div>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div>
+              <div class="step-title">置く場所の種類を選ぶ</div>
+              <div class="step-text">
+                机・床に置くなら <span class="lime">床に配置</span>。壁面に貼るように使うなら <span class="magenta">壁に配置</span>。
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div>
+              <div class="step-title">大きさの扱いを選ぶ</div>
+              <div class="step-text">
+                迷ったら <span class="lime">自動スケール</span>。実寸っぽく固定したい場合だけ <span class="magenta">固定スケール</span>。
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <div>
+              <div class="step-title">サイズと向きを調整</div>
+              <div class="step-text">
+                モデルが大きすぎる・小さすぎる時は「3 設定」でサイズ変更。向きが違う時は左右回転。
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">5</div>
+            <div>
+              <div class="step-title">ARで表示を押す</div>
+              <div class="step-text">
+                下の <span class="lime">ARで表示</span> ボタンを押す。実際の配置場所は、AR起動後に端末側で床や壁を認識して決める。
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button class="btn lime" id="recommendFloorBtn"><span>おすすめ：床</span></button>
+          <button class="btn magenta" id="recommendWallBtn"><span>おすすめ：壁</span></button>
+        </div>
+
+        <p class="hint warning">
+          iPhoneのQuick LookやAndroidのScene Viewerへ移った後は、現実空間での細かい位置は端末側のAR操作で動かします。紙の四隅タップ指定はWebXR版の機能です。
+        </p>
+      </div>
+    </section>
+
+    <section class="panel setting-panel" id="settingPanel">
+      <div class="panel-head">
+        <div class="panel-title">3 PLACEMENT SETTING</div>
+        <button class="close-btn" data-close="settingPanel">×</button>
       </div>
       <div class="panel-body">
         <div class="setting-card">
-          <div class="setting-title">AR配置面</div>
+          <div class="setting-title">A. 配置面</div>
           <div class="button-row">
             <button class="btn lime" id="floorBtn"><span>床に配置</span></button>
             <button class="btn magenta" id="wallBtn"><span>壁に配置</span></button>
           </div>
-          <div class="hint small">ar-placement を floor / wall に切替。</div>
+          <div class="setting-desc">床・机の上に置くなら「床」。壁面に出したい時は「壁」。</div>
         </div>
 
         <div class="setting-card">
-          <div class="setting-title">ARスケール</div>
+          <div class="setting-title">B. スケール方式</div>
           <div class="button-row">
-            <button class="btn lime" id="autoScaleBtn"><span>自動</span></button>
-            <button class="btn magenta" id="fixedScaleBtn"><span>固定</span></button>
+            <button class="btn lime" id="autoScaleBtn"><span>自動スケール</span></button>
+            <button class="btn magenta" id="fixedScaleBtn"><span>固定スケール</span></button>
           </div>
-          <div class="hint small">ar-scale を auto / fixed に切替。</div>
+          <div class="setting-desc">迷ったら自動。固定はモデルの寸法を保ちたい時だけ。</div>
         </div>
 
         <div class="setting-card">
-          <div class="setting-title">サイズ・向き</div>
+          <div class="setting-title">C. サイズ・向き</div>
           <div class="readout">
             <div>S <span id="scaleText">1.00</span></div>
             <div>Y <span id="yawText">0</span>°</div>
             <div>P <span id="pitchText">0</span>°</div>
           </div>
+
           <div class="button-grid-3">
             <button class="btn" id="scaleMinusBtn"><span>縮小</span></button>
             <button class="btn" id="scaleResetBtn"><span>標準</span></button>
             <button class="btn" id="scalePlusBtn"><span>拡大</span></button>
           </div>
+
           <div class="button-grid-3">
             <button class="btn magenta" id="yawMinusBtn"><span>左回転</span></button>
             <button class="btn magenta" id="yawResetBtn"><span>向き0</span></button>
             <button class="btn magenta" id="yawPlusBtn"><span>右回転</span></button>
           </div>
+
           <div class="button-grid-3">
             <button class="btn yellow" id="pitchMinusBtn"><span>前傾</span></button>
             <button class="btn yellow" id="pitchResetBtn"><span>傾き0</span></button>
@@ -675,20 +813,14 @@
         </div>
 
         <div class="setting-card">
-          <div class="setting-title">プレビュー位置</div>
+          <div class="setting-title">D. プレビューの見え方</div>
           <div class="button-grid">
             <button class="btn" id="viewCenterBtn"><span>中央表示</span></button>
             <button class="btn" id="viewLowBtn"><span>低め表示</span></button>
             <button class="btn" id="viewCloseBtn"><span>近く表示</span></button>
             <button class="btn" id="viewFarBtn"><span>遠く表示</span></button>
           </div>
-          <div class="hint small">
-            これはプレビュー上の見え方調整です。現実空間での正確な位置指定は端末側のAR操作になります。
-          </div>
-        </div>
-
-        <div class="hint warning">
-          iPhoneのQuick LookやAndroidのScene Viewerへ移った後は、実際の置き場所は端末側で動かします。紙の4点指定はWebXR版で確認してください。
+          <div class="setting-desc">これは画面上のプレビュー調整。AR空間の最終位置はAR起動後に端末側で指定。</div>
         </div>
       </div>
     </section>
@@ -709,15 +841,12 @@
           <button class="btn" id="resetBtn"><span>視点リセット</span></button>
           <button class="btn magenta" id="rotateBtn"><span>回転 ON/OFF</span></button>
         </div>
-        <p class="hint warning">
-          iPhoneではWebXR 4点指定を確認しにくいため、このar.htmlではモデル選択・プレビュー・配置面/サイズ/向きの事前設定を確認します。
-        </p>
       </div>
     </section>
   </div>
 
   <div class="message" id="messageBox"></div>
-  <div class="view-help" id="viewHelp">モデル / 配置 / 情報 ボタンでパネル表示。ビューアーを隠さないため通常は閉じる。</div>
+  <div class="view-help" id="viewHelp">手順：1モデル → 2ガイド → 3設定 → ARで表示</div>
 
   <script>
     const GITHUB_OWNER = "ASKR-created";
@@ -738,13 +867,16 @@
     const statusText = document.getElementById("statusText");
     const placeText = document.getElementById("placeText");
     const messageBox = document.getElementById("messageBox");
+    const currentSettingText = document.getElementById("currentSettingText");
 
     const openModelBtn = document.getElementById("openModelBtn");
-    const openPlaceBtn = document.getElementById("openPlaceBtn");
+    const openGuideBtn = document.getElementById("openGuideBtn");
+    const openSettingBtn = document.getElementById("openSettingBtn");
     const openInfoBtn = document.getElementById("openInfoBtn");
 
     const modelPanel = document.getElementById("modelPanel");
-    const placementPanel = document.getElementById("placementPanel");
+    const guidePanel = document.getElementById("guidePanel");
+    const settingPanel = document.getElementById("settingPanel");
     const infoPanel = document.getElementById("infoPanel");
 
     const scaleText = document.getElementById("scaleText");
@@ -799,7 +931,7 @@
       clearTimeout(showMessage._timer);
       showMessage._timer = setTimeout(() => {
         messageBox.style.display = "none";
-      }, 6500);
+      }, 7000);
     }
 
     function isIOS(){
@@ -810,13 +942,15 @@
     function openOnly(panelName){
       const panels = {
         model: modelPanel,
-        place: placementPanel,
+        guide: guidePanel,
+        setting: settingPanel,
         info: infoPanel
       };
 
       const buttons = {
         model: openModelBtn,
-        place: openPlaceBtn,
+        guide: openGuideBtn,
+        setting: openSettingBtn,
         info: openInfoBtn
       };
 
@@ -830,12 +964,14 @@
     function closePanel(panel){
       panel.classList.remove("open");
       if (panel === modelPanel) openModelBtn.classList.remove("active");
-      if (panel === placementPanel) openPlaceBtn.classList.remove("active");
+      if (panel === guidePanel) openGuideBtn.classList.remove("active");
+      if (panel === settingPanel) openSettingBtn.classList.remove("active");
       if (panel === infoPanel) openInfoBtn.classList.remove("active");
     }
 
     openModelBtn.addEventListener("click", () => openOnly("model"));
-    openPlaceBtn.addEventListener("click", () => openOnly("place"));
+    openGuideBtn.addEventListener("click", () => openOnly("guide"));
+    openSettingBtn.addEventListener("click", () => openOnly("setting"));
     openInfoBtn.addEventListener("click", () => openOnly("info"));
 
     document.querySelectorAll("[data-close]").forEach(btn => {
@@ -857,6 +993,10 @@
       yawText.textContent = String(Math.round(yawDeg));
       pitchText.textContent = String(Math.round(pitchDeg));
       placeText.textContent = `${placementMode} / ${arScaleMode} / scale ${modelScale.toFixed(2)} / yaw ${Math.round(yawDeg)}°`;
+
+      const jpPlace = placementMode === "floor" ? "床" : "壁";
+      const jpScale = arScaleMode === "auto" ? "自動スケール" : "固定スケール";
+      currentSettingText.textContent = `現在設定：${jpPlace} / ${jpScale} / サイズ${modelScale.toFixed(2)} / 左右回転${Math.round(yawDeg)}° / 傾き${Math.round(pitchDeg)}°`;
 
       setStatus("PLACEMENT UPDATED");
     }
@@ -985,11 +1125,12 @@
       history.replaceState(null, "", newUrl.toString());
 
       closePanel(modelPanel);
+      openOnly("guide");
     }
 
     viewer.addEventListener("load", () => {
       setStatus("LOADED");
-      showMessage("モデルを読み込みました。パネルを閉じるとビューアーが見やすくなります。");
+      showMessage("モデルを読み込みました。次は「2 ガイド」または「3 設定」で配置方法を確認してください。");
     });
 
     viewer.addEventListener("error", () => {
@@ -1040,25 +1181,45 @@
     document.getElementById("floorBtn").addEventListener("click", () => {
       placementMode = "floor";
       updatePlacementAttributes();
-      showMessage("AR配置面：床に設定しました。");
+      showMessage("配置面：床。机・床の上に置く設定です。");
     });
 
     document.getElementById("wallBtn").addEventListener("click", () => {
       placementMode = "wall";
       updatePlacementAttributes();
-      showMessage("AR配置面：壁に設定しました。");
+      showMessage("配置面：壁。壁に貼るように出す設定です。");
     });
 
     document.getElementById("autoScaleBtn").addEventListener("click", () => {
       arScaleMode = "auto";
       updatePlacementAttributes();
-      showMessage("ARスケール：自動に設定しました。");
+      showMessage("スケール：自動。迷ったらこの設定です。");
     });
 
     document.getElementById("fixedScaleBtn").addEventListener("click", () => {
       arScaleMode = "fixed";
       updatePlacementAttributes();
-      showMessage("ARスケール：固定に設定しました。");
+      showMessage("スケール：固定。寸法感を保ちたい時に使います。");
+    });
+
+    document.getElementById("recommendFloorBtn").addEventListener("click", () => {
+      placementMode = "floor";
+      arScaleMode = "auto";
+      modelScale = 1.0;
+      yawDeg = 0;
+      pitchDeg = 0;
+      updatePlacementAttributes();
+      showMessage("おすすめ設定：床 / 自動スケール / 標準サイズ にしました。下のARで表示を押してください。");
+    });
+
+    document.getElementById("recommendWallBtn").addEventListener("click", () => {
+      placementMode = "wall";
+      arScaleMode = "fixed";
+      modelScale = 1.0;
+      yawDeg = 0;
+      pitchDeg = 0;
+      updatePlacementAttributes();
+      showMessage("おすすめ設定：壁 / 固定スケール / 標準サイズ にしました。下のARで表示を押してください。");
     });
 
     document.getElementById("scaleMinusBtn").addEventListener("click", () => {
@@ -1135,7 +1296,7 @@
     });
 
     if (isIOS()){
-      showMessage("iPhoneではAR起動後の正確な座標指定はQuick Look側の操作になります。この画面では配置面・サイズ・向きの事前設定を確認します。");
+      showMessage("iPhoneではAR起動後の正確な座標指定はQuick Look側の操作になります。この画面では配置手順と事前設定を確認してください。");
     }
 
     updatePlacementAttributes();
@@ -1143,6 +1304,8 @@
     if (initialFile){
       manualPathInput.value = initialFile;
       selectModel(initialFile);
+    } else {
+      openOnly("guide");
     }
 
     loadModelList();
