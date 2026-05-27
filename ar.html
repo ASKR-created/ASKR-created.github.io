@@ -432,6 +432,114 @@
       line-height:1.45;
     }
 
+
+    .model-panel{
+      position:absolute;
+      z-index:12;
+      left:10px;
+      top:96px;
+      width:430px;
+      max-width:calc(100vw - 20px);
+      max-height:46vh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .model-panel .panel-body{
+      flex:1;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      overflow:hidden;
+    }
+
+    .model-search{
+      width:100%;
+      min-height:34px;
+      border:1px solid rgba(34,248,255,.34);
+      background:rgba(1,5,14,.88);
+      color:var(--text);
+      padding:0 10px;
+      outline:none;
+    }
+
+    .model-search:focus{
+      border-color:var(--magenta);
+      box-shadow:0 0 14px rgba(255,45,235,.22);
+    }
+
+    .model-list{
+      flex:1;
+      min-height:120px;
+      overflow:auto;
+      padding-right:2px;
+    }
+
+    .model-item{
+      width:100%;
+      margin:0 0 7px 0;
+      padding:8px 9px;
+      border:1px solid rgba(55,124,255,.28);
+      background:linear-gradient(90deg, rgba(5,13,28,.92), rgba(12,23,48,.68));
+      color:var(--text);
+      text-align:left;
+      cursor:pointer;
+      font-size:12px;
+      line-height:1.35;
+    }
+
+    .model-item:hover{
+      border-color:var(--cyan);
+      box-shadow:0 0 14px rgba(34,248,255,.20);
+      transform:translateX(2px);
+    }
+
+    .model-item.active{
+      border-color:var(--magenta);
+      background:linear-gradient(90deg, rgba(255,45,235,.20), rgba(34,248,255,.10));
+      box-shadow:0 0 18px rgba(255,45,235,.18);
+    }
+
+    .model-name{
+      font-weight:bold;
+      word-break:break-all;
+    }
+
+    .model-path{
+      margin-top:3px;
+      color:var(--sub);
+      font-size:10px;
+      word-break:break-all;
+    }
+
+    .model-empty{
+      border:1px dashed rgba(145,166,201,.34);
+      color:var(--sub);
+      padding:10px;
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    .badge-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:5px;
+      margin-top:6px;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      min-height:18px;
+      border:1px solid rgba(166,255,45,.42);
+      color:var(--lime);
+      background:rgba(166,255,45,.06);
+      padding:2px 6px;
+      font-size:10px;
+      font-family:Consolas,"Courier New",monospace;
+    }
+
     @media (max-width:900px){
       .hud{
         top:8px;
@@ -470,6 +578,18 @@
         font-size:10px;
         padding:5px 4px;
         text-align:center;
+      }
+
+      .model-panel{
+        left:8px;
+        right:8px;
+        top:210px;
+        width:auto;
+        max-height:24vh;
+      }
+
+      .model-list{
+        min-height:64px;
       }
 
       .status-panel{
@@ -531,6 +651,23 @@
       <div class="point-chip" id="pointChip3">④ 左下</div>
     </div>
     <div class="point-mini-hint" id="pointMiniHint">紙の四隅に黒丸や十字マークを付け、画面上で見ながら順番にタップ。</div>
+  </section>
+
+
+  <section class="panel model-panel" id="modelPanel">
+    <div class="panel-head">
+      <div class="panel-title">MODEL SELECT</div>
+      <button class="toggle" data-target="modelPanel">−</button>
+    </div>
+    <div class="panel-body">
+      <input class="model-search" id="modelSearch" placeholder="AR用モデルを検索（GLB / GLTF）">
+      <div class="model-list" id="modelList">
+        <div class="model-empty">models/ からGLB / GLTFを読み込み中...</div>
+      </div>
+      <div class="hint small">
+        WebXR ARはGLB / GLTFのみ選択対象。OBJ / FBXは3Dビューア側で確認してください。
+      </div>
+    </div>
   </section>
 
   <section class="panel status-panel" id="statusPanel">
@@ -618,6 +755,9 @@
     const vText = document.getElementById("vText");
     const scaleText = document.getElementById("scaleText");
 
+    const modelList = document.getElementById("modelList");
+    const modelSearch = document.getElementById("modelSearch");
+
     const nextPointNumber = document.getElementById("nextPointNumber");
     const nextPointMain = document.getElementById("nextPointMain");
     const nextPointSub = document.getElementById("nextPointSub");
@@ -653,6 +793,16 @@
 
     const params = new URLSearchParams(location.search);
     const rawFile = params.get("file") ? decodeURIComponent(params.get("file")) : "";
+    let currentFile = rawFile;
+
+    const GITHUB_OWNER = "ASKR-created";
+    const GITHUB_REPO = "ASKR-created.github.io";
+    const GITHUB_REFS = ["main", "master"];
+    const MODELS_ROOT = "models";
+    const AR_MODEL_EXTENSIONS = [".glb", ".gltf"];
+
+    let allArModels = [];
+    let selectedModelPath = currentFile;
 
     let camera, scene, renderer;
     let controller;
@@ -810,11 +960,11 @@
     }
 
     function openFallback(){
-      if (!rawFile){
+      if (!currentFile){
         location.href = location.origin + "/ar.html";
         return;
       }
-      location.href = location.origin + "/ar.html?file=" + encodeURIComponent(rawFile);
+      location.href = location.origin + "/ar.html?file=" + encodeURIComponent(currentFile);
     }
 
     backBtn.addEventListener("click", () => {
@@ -822,21 +972,160 @@
     });
     fallbackBtn.addEventListener("click", openFallback);
 
-    async function checkSupport(){
-      if (!rawFile){
-        fileText.textContent = "fileパラメータがありません。";
-        setStatus("NO FILE");
-        setStep("index.htmlからGLB / GLTFモデルを選択してWebXR ARを開いてください。");
-        return false;
+
+    function getBaseName(path){
+      return String(path).split("/").pop() || path;
+    }
+
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, s => ({
+        "&":"&amp;",
+        "<":"&lt;",
+        ">":"&gt;",
+        '"':"&quot;",
+        "'":"&#39;"
+      }[s]));
+    }
+
+    async function fetchGitHubContents(path, ref){
+      const safePath = encodePath(path);
+      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${safePath}?ref=${encodeURIComponent(ref)}`;
+      const res = await fetch(url, {
+        headers: { "Accept": "application/vnd.github+json" }
+      });
+      if (!res.ok){
+        throw new Error(`GitHub API ${res.status}: ${path}`);
+      }
+      return await res.json();
+    }
+
+    async function scanArModelsRecursive(path, ref, bucket){
+      const items = await fetchGitHubContents(path, ref);
+      if (!Array.isArray(items)) return bucket;
+
+      for (const item of items){
+        if (item.type === "dir"){
+          await scanArModelsRecursive(item.path, ref, bucket);
+        } else if (item.type === "file"){
+          const ext = getExt(item.path);
+          if (AR_MODEL_EXTENSIONS.includes(ext)){
+            bucket.push({
+              name: item.name,
+              path: item.path,
+              ext,
+              size: item.size || 0,
+              html_url: item.html_url || "",
+              download_url: item.download_url || ""
+            });
+          }
+        }
       }
 
-      fileText.textContent = rawFile;
+      return bucket;
+    }
 
-      const ext = getExt(rawFile);
-      if (ext !== ".glb" && ext !== ".gltf"){
-        setStatus("GLB / GLTFのみ対応");
-        setStep("WebXR ARの手動配置はGLB / GLTFを推奨します。現在ARへ切り替えてください。");
-        return false;
+    async function loadArModelList(){
+      modelList.innerHTML = `<div class="model-empty">GitHub APIで models/ を走査中...</div>`;
+
+      let lastError = null;
+
+      for (const ref of GITHUB_REFS){
+        try{
+          const bucket = [];
+          await scanArModelsRecursive(MODELS_ROOT, ref, bucket);
+          allArModels = bucket.sort((a,b) => a.path.localeCompare(b.path, "ja"));
+          renderArModelList();
+
+          if (!currentFile && allArModels.length > 0){
+            setStatus("モデルを選択してください");
+            setStep("AR用モデル一覧からGLB / GLTFを選択してください。選択後、4点指定が使えます。");
+          }
+
+          return;
+        }catch(err){
+          lastError = err;
+          console.warn(err);
+        }
+      }
+
+      modelList.innerHTML = `
+        <div class="model-empty">
+          models/ を読み込めませんでした。<br>
+          GitHub Pages上で実行しているか、リポジトリ名・modelsフォルダを確認してください。<br>
+          ${lastError ? escapeHtml(String(lastError.message)) : ""}
+        </div>
+      `;
+    }
+
+    function renderArModelList(){
+      const q = modelSearch.value.trim().toLowerCase();
+      const filtered = allArModels.filter(m => {
+        if (!q) return true;
+        return m.name.toLowerCase().includes(q) || m.path.toLowerCase().includes(q);
+      });
+
+      if (filtered.length === 0){
+        modelList.innerHTML = `<div class="model-empty">GLB / GLTFモデルが見つかりません。</div>`;
+        return;
+      }
+
+      modelList.innerHTML = "";
+      for (const m of filtered){
+        const btn = document.createElement("button");
+        btn.className = "model-item" + (selectedModelPath === m.path ? " active" : "");
+        btn.innerHTML = `
+          <div class="model-name">${escapeHtml(m.name)}</div>
+          <div class="model-path">${escapeHtml(m.path)}</div>
+          <div class="badge-row">
+            <span class="badge">${escapeHtml(m.ext.toUpperCase().slice(1))}</span>
+            <span class="badge">AR</span>
+          </div>
+        `;
+        btn.addEventListener("click", async () => {
+          await selectArModel(m.path);
+        });
+        modelList.appendChild(btn);
+      }
+    }
+
+    async function selectArModel(path){
+      currentFile = path;
+      selectedModelPath = path;
+      fileText.textContent = currentFile;
+      renderArModelList();
+
+      try{
+        await loadModel(currentFile);
+        if (areaReady){
+          placeModelAtUV();
+        } else {
+          setStep("モデルを選択しました。AR開始後、「4点指定開始」で紙の四隅を指定してください。");
+        }
+      }catch(err){
+        console.error(err);
+        setStatus("モデル読み込み失敗");
+        setStep("GLBにテクスチャが埋め込まれているか、パスが正しいか確認してください。");
+      }
+    }
+
+    modelSearch.addEventListener("input", renderArModelList);
+
+
+    async function checkSupport(){
+      if (!currentFile){
+        fileText.textContent = "未選択";
+        setStatus("モデル未選択");
+        setStep("AR用モデル一覧からGLB / GLTFを選択してください。");
+      } else {
+        fileText.textContent = currentFile;
+
+        const ext = getExt(currentFile);
+        if (ext !== ".glb" && ext !== ".gltf"){
+          setStatus("GLB / GLTFのみ対応");
+          setStep("WebXR ARの手動配置はGLB / GLTFを選択してください。");
+          currentFile = "";
+          selectedModelPath = "";
+        }
       }
 
       if (!("xr" in navigator)){
@@ -853,8 +1142,10 @@
           return false;
         }
 
-        setStatus("WebXR AR対応");
-        setStep("AR STARTボタンを押して開始してください。");
+        if (currentFile){
+          setStatus("WebXR AR対応");
+          setStep("AR STARTボタンを押して開始してください。");
+        }
         return true;
       }catch(err){
         console.warn(err);
@@ -921,9 +1212,49 @@
       renderer.setAnimationLoop(render);
     }
 
-    async function loadModel(){
+    function clearCurrentModel(){
+      if (!model) return;
+
+      scene.remove(model);
+      model.traverse(child => {
+        if (child.geometry) child.geometry.dispose?.();
+        if (child.material){
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach(mat => {
+            for (const key in mat){
+              const v = mat[key];
+              if (v && v.isTexture) v.dispose?.();
+            }
+            mat.dispose?.();
+          });
+        }
+      });
+
+      model = null;
+      mixer = null;
+    }
+
+    async function loadModel(path = currentFile){
+      if (!path){
+        setStatus("モデル未選択");
+        setStep("先にAR用モデル一覧からGLB / GLTFを選択してください。");
+        return;
+      }
+
+      const ext = getExt(path);
+      if (ext !== ".glb" && ext !== ".gltf"){
+        setStatus("GLB / GLTFのみ対応");
+        setStep("WebXR ARではGLB / GLTFモデルを選択してください。");
+        return;
+      }
+
+      clearCurrentModel();
+
       const loader = new GLTFLoader();
-      const src = toAssetUrl(rawFile);
+      const src = toAssetUrl(path);
+      currentFile = path;
+      selectedModelPath = path;
+      fileText.textContent = currentFile;
       setStatus("モデル読み込み中...");
 
       const gltf = await loader.loadAsync(src);
@@ -961,6 +1292,7 @@
         gltf.animations.forEach(clip => mixer.clipAction(clip).play());
       }
 
+      renderArModelList();
       setStatus("モデル読み込み完了");
       setStep("AR開始後、「4点指定開始」を押して紙の四隅をタップしてください。");
     }
@@ -1388,10 +1720,11 @@
 
     const supported = await checkSupport();
     init();
+    await loadArModelList();
 
-    if (supported){
+    if (supported && currentFile){
       try{
-        await loadModel();
+        await loadModel(currentFile);
       }catch(err){
         console.error(err);
         setStatus("モデル読み込み失敗");
