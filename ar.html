@@ -3,23 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF WebXR AR - 4 Point Manual Area</title>
+  <title>SF AR Viewer - Model Select</title>
 
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 
   <style>
     :root{
       --bg0:#02030a;
       --bg1:#061020;
-      --panel:rgba(8,16,32,.76);
-      --panel2:rgba(14,24,48,.88);
+      --panel:rgba(8,16,32,.80);
+      --panel2:rgba(14,24,48,.92);
       --cyan:#22f8ff;
       --blue:#377cff;
       --magenta:#ff2deb;
@@ -28,7 +21,7 @@
       --danger:#ff477e;
       --text:#eafbff;
       --sub:#91a6c9;
-      --line:rgba(34,248,255,.36);
+      --line:rgba(34,248,255,.38);
       --shadow:0 0 18px rgba(34,248,255,.20), 0 0 36px rgba(255,45,235,.10);
     }
 
@@ -45,7 +38,6 @@
         linear-gradient(135deg, var(--bg0), var(--bg1) 55%, #050616);
       color:var(--text);
       font-family:"MS UI Gothic","Yu Gothic UI","Meiryo",sans-serif;
-      touch-action:none;
       user-select:none;
     }
 
@@ -73,12 +65,15 @@
       opacity:.34;
     }
 
-    #canvas{
+    model-viewer{
       position:absolute;
       inset:0;
       width:100%;
       height:100%;
-      display:block;
+      background:transparent;
+      --poster-color:transparent;
+      --progress-bar-color:#22f8ff;
+      --progress-bar-height:3px;
       z-index:1;
     }
 
@@ -94,7 +89,7 @@
     .brand{
       pointer-events:auto;
       border:1px solid rgba(34,248,255,.45);
-      background:linear-gradient(90deg, rgba(8,16,32,.86), rgba(10,22,44,.62));
+      background:linear-gradient(90deg, rgba(8,16,32,.88), rgba(10,22,44,.66));
       box-shadow:var(--shadow);
       backdrop-filter:blur(12px);
       -webkit-backdrop-filter:blur(12px);
@@ -138,6 +133,7 @@
       backdrop-filter:blur(12px);
       -webkit-backdrop-filter:blur(12px);
       color:var(--text);
+      pointer-events:auto;
     }
 
     .panel:hover{
@@ -150,7 +146,7 @@
       align-items:center;
       justify-content:space-between;
       gap:8px;
-      padding:9px 10px;
+      padding:8px 9px;
       border-bottom:1px solid rgba(34,248,255,.22);
       background:linear-gradient(90deg, rgba(34,248,255,.12), rgba(255,45,235,.08));
     }
@@ -164,7 +160,7 @@
     }
 
     .panel-body{
-      padding:10px;
+      padding:9px;
       font-size:12px;
       line-height:1.55;
       color:var(--sub);
@@ -182,39 +178,119 @@
 
     .collapsed .panel-body{ display:none; }
 
-    .status-panel{
+    .model-panel{
       left:10px;
-      bottom:12px;
-      width:430px;
+      top:92px;
+      width:360px;
+      max-width:calc(100vw - 20px);
+      max-height:calc(100vh - 115px);
+      display:flex;
+      flex-direction:column;
+    }
+
+    .model-panel .panel-body{
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+      gap:7px;
+    }
+
+    .info-panel{
+      right:10px;
+      top:92px;
+      width:360px;
       max-width:calc(100vw - 20px);
     }
 
-    .manual-panel{
+    .command-panel{
       right:10px;
       bottom:12px;
-      width:420px;
+      width:360px;
       max-width:calc(100vw - 20px);
+    }
+
+    .model-search,
+    .manual-path{
+      width:100%;
+      height:32px;
+      border:1px solid rgba(34,248,255,.34);
+      background:rgba(1,5,14,.88);
+      color:var(--text);
+      padding:0 9px;
+      outline:none;
+      font-size:12px;
+    }
+
+    .model-search:focus,
+    .manual-path:focus{
+      border-color:var(--magenta);
+      box-shadow:0 0 14px rgba(255,45,235,.22);
+    }
+
+    .model-list{
+      min-height:180px;
+      max-height:42vh;
+      overflow:auto;
+      border:1px solid rgba(34,248,255,.18);
+      background:rgba(2,8,18,.35);
+      padding:6px;
+    }
+
+    .model-item{
+      width:100%;
+      border:1px solid rgba(55,124,255,.30);
+      background:linear-gradient(90deg, rgba(5,13,28,.96), rgba(12,23,48,.72));
+      color:var(--text);
+      padding:8px 9px;
+      margin:0 0 6px 0;
+      text-align:left;
+      cursor:pointer;
+      font-size:12px;
+      line-height:1.35;
+    }
+
+    .model-item:hover{
+      border-color:var(--cyan);
+      box-shadow:0 0 14px rgba(34,248,255,.20);
+    }
+
+    .model-item.active{
+      border-color:var(--lime);
+      background:linear-gradient(90deg, rgba(166,255,45,.15), rgba(34,248,255,.09));
+      box-shadow:0 0 16px rgba(166,255,45,.14);
+    }
+
+    .model-name{
+      color:var(--text);
+      font-weight:bold;
+      word-break:break-all;
+    }
+
+    .model-path{
+      margin-top:3px;
+      color:var(--sub);
+      font-size:10px;
+      word-break:break-all;
+    }
+
+    .empty{
+      border:1px dashed rgba(145,166,201,.34);
+      color:var(--sub);
+      padding:10px;
+      font-size:12px;
+      line-height:1.55;
     }
 
     .row{
       display:grid;
-      grid-template-columns:92px 1fr;
+      grid-template-columns:86px 1fr;
       gap:8px;
-      margin:6px 0;
+      margin:7px 0;
+      font-size:12px;
     }
 
     .row .k{ color:var(--sub); }
     .row .v{ color:var(--text); word-break:break-all; }
-
-    .step-box{
-      margin-top:8px;
-      border:1px solid rgba(166,255,45,.34);
-      background:rgba(166,255,45,.05);
-      color:var(--lime);
-      padding:8px;
-      font-family:Consolas,"Courier New",monospace;
-      box-shadow:inset 0 0 14px rgba(166,255,45,.05);
-    }
 
     .hint{
       color:var(--sub);
@@ -227,6 +303,7 @@
     .lime{ color:var(--lime); }
     .cyan{ color:var(--cyan); }
     .magenta{ color:var(--magenta); }
+    .small{ font-size:11px; }
 
     .button-grid{
       display:grid;
@@ -234,21 +311,14 @@
       gap:8px;
     }
 
-    .button-grid-3{
-      display:grid;
-      grid-template-columns:1fr 1fr 1fr;
-      gap:8px;
-      margin-top:8px;
-    }
-
     .button-row{
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:8px;
-      margin-top:8px;
+      margin-top:7px;
     }
 
-    .btn{
+    .btn, .ar-button{
       position:relative;
       min-height:38px;
       border:1px solid rgba(34,248,255,.42);
@@ -258,10 +328,12 @@
       cursor:pointer;
       overflow:hidden;
       letter-spacing:.04em;
-      padding:0 8px;
+      padding:0 9px;
+      font-size:12px;
     }
 
-    .btn::before{
+    .btn::before,
+    .ar-button::before{
       content:"";
       position:absolute;
       inset:0;
@@ -271,15 +343,20 @@
       transition:transform .20s ease;
     }
 
-    .btn:hover::before{ transform:scaleX(1); }
+    .btn:hover::before,
+    .ar-button:hover::before{
+      transform:scaleX(1);
+    }
 
-    .btn:hover{
+    .btn:hover,
+    .ar-button:hover{
       border-color:var(--cyan);
       color:white;
       box-shadow:0 0 18px rgba(34,248,255,.22);
     }
 
-    .btn span{
+    .btn span,
+    .ar-button span{
       position:relative;
       z-index:1;
     }
@@ -290,254 +367,34 @@
     .btn.lime{ border-color:rgba(166,255,45,.42); }
     .btn.lime:hover{ border-color:var(--lime); box-shadow:0 0 18px rgba(166,255,45,.20); }
 
-    .btn.yellow{ border-color:rgba(255,230,109,.42); }
-    .btn.yellow:hover{ border-color:var(--yellow); box-shadow:0 0 18px rgba(255,230,109,.18); }
-
-    .btn.danger{ border-color:rgba(255,71,126,.50); color:#ffdce6; }
-    .btn.danger:hover{ border-color:var(--danger); box-shadow:0 0 18px rgba(255,71,126,.22); }
-
-    #ARButton{
-      border:1px solid rgba(166,255,45,.60) !important;
-      background:linear-gradient(180deg, rgba(15,28,58,.95), rgba(3,8,18,.95)) !important;
-      color:var(--lime) !important;
-      font-weight:bold !important;
-      box-shadow:0 0 18px rgba(166,255,45,.18) !important;
-    }
-
-    .small{
-      font-size:11px;
-    }
-
-    .range-readout{
-      display:grid;
-      grid-template-columns:1fr 1fr 1fr;
-      gap:6px;
-      margin:8px 0;
-    }
-
-    .readout{
-      border:1px solid rgba(34,248,255,.24);
-      background:rgba(2,8,18,.58);
-      padding:6px;
-      text-align:center;
-      color:var(--cyan);
-      font-family:Consolas,"Courier New",monospace;
-    }
-
-
-    .point-guide{
+    .ar-button{
       position:absolute;
-      z-index:13;
-      top:96px;
-      right:10px;
-      width:360px;
-      max-width:calc(100vw - 20px);
-      border:1px solid rgba(166,255,45,.42);
-      background:rgba(4,10,18,.78);
-      box-shadow:0 0 18px rgba(166,255,45,.16), 0 0 34px rgba(34,248,255,.10);
-      backdrop-filter:blur(12px);
-      -webkit-backdrop-filter:blur(12px);
-      padding:10px;
-      pointer-events:auto;
-    }
-
-    .point-guide-title{
+      left:50%;
+      bottom:24px;
+      transform:translateX(-50%);
+      z-index:15;
+      border-color:rgba(166,255,45,.60);
       color:var(--lime);
-      font-size:12px;
-      font-weight:bold;
-      letter-spacing:.14em;
-      text-shadow:0 0 8px rgba(166,255,45,.62);
-      border-bottom:1px solid rgba(166,255,45,.26);
-      padding-bottom:6px;
-      margin-bottom:8px;
+      min-width:180px;
+      box-shadow:0 0 18px rgba(166,255,45,.18);
     }
 
-    .next-point{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-height:52px;
-      border:1px solid rgba(34,248,255,.32);
-      background:linear-gradient(90deg, rgba(34,248,255,.10), rgba(255,45,235,.07));
-      padding:8px;
-    }
-
-    .next-point-number{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      flex:0 0 42px;
-      width:42px;
-      height:42px;
-      border:1px solid rgba(166,255,45,.72);
-      border-radius:50%;
-      color:var(--lime);
-      background:rgba(166,255,45,.08);
-      font-size:22px;
-      font-weight:bold;
-      font-family:Consolas,"Courier New",monospace;
-      box-shadow:0 0 16px rgba(166,255,45,.22);
-    }
-
-    .next-point-text{
-      min-width:0;
-    }
-
-    .next-point-main{
-      color:var(--text);
-      font-size:14px;
-      font-weight:bold;
-    }
-
-    .next-point-sub{
-      margin-top:3px;
-      color:var(--sub);
-      font-size:11px;
-      line-height:1.4;
-    }
-
-    .point-order{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:6px;
-      margin-top:8px;
-    }
-
-    .point-chip{
-      border:1px solid rgba(145,166,201,.28);
-      background:rgba(2,8,18,.62);
-      color:var(--sub);
-      padding:6px 7px;
-      font-size:11px;
-      min-height:30px;
-    }
-
-    .point-chip.active{
-      border-color:rgba(166,255,45,.70);
-      color:var(--lime);
-      background:rgba(166,255,45,.08);
-      box-shadow:0 0 14px rgba(166,255,45,.15);
-    }
-
-    .point-chip.done{
-      border-color:rgba(34,248,255,.56);
-      color:var(--cyan);
-      background:rgba(34,248,255,.07);
-    }
-
-    .point-mini-hint{
-      margin-top:8px;
+    .message{
+      position:absolute;
+      left:50%;
+      bottom:76px;
+      transform:translateX(-50%);
+      z-index:14;
+      width:min(680px, calc(100vw - 20px));
+      display:none;
+      border:1px solid rgba(255,230,109,.42);
+      background:rgba(24,20,6,.78);
       color:var(--yellow);
-      font-size:11px;
-      line-height:1.45;
-    }
-
-
-    .model-panel{
-      position:absolute;
-      z-index:12;
-      left:10px;
-      top:96px;
-      width:430px;
-      max-width:calc(100vw - 20px);
-      max-height:46vh;
-      display:flex;
-      flex-direction:column;
-    }
-
-    .model-panel .panel-body{
-      flex:1;
-      min-height:0;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      overflow:hidden;
-    }
-
-    .model-search{
-      width:100%;
-      min-height:34px;
-      border:1px solid rgba(34,248,255,.34);
-      background:rgba(1,5,14,.88);
-      color:var(--text);
-      padding:0 10px;
-      outline:none;
-    }
-
-    .model-search:focus{
-      border-color:var(--magenta);
-      box-shadow:0 0 14px rgba(255,45,235,.22);
-    }
-
-    .model-list{
-      flex:1;
-      min-height:120px;
-      overflow:auto;
-      padding-right:2px;
-    }
-
-    .model-item{
-      width:100%;
-      margin:0 0 7px 0;
-      padding:8px 9px;
-      border:1px solid rgba(55,124,255,.28);
-      background:linear-gradient(90deg, rgba(5,13,28,.92), rgba(12,23,48,.68));
-      color:var(--text);
-      text-align:left;
-      cursor:pointer;
-      font-size:12px;
-      line-height:1.35;
-    }
-
-    .model-item:hover{
-      border-color:var(--cyan);
-      box-shadow:0 0 14px rgba(34,248,255,.20);
-      transform:translateX(2px);
-    }
-
-    .model-item.active{
-      border-color:var(--magenta);
-      background:linear-gradient(90deg, rgba(255,45,235,.20), rgba(34,248,255,.10));
-      box-shadow:0 0 18px rgba(255,45,235,.18);
-    }
-
-    .model-name{
-      font-weight:bold;
-      word-break:break-all;
-    }
-
-    .model-path{
-      margin-top:3px;
-      color:var(--sub);
-      font-size:10px;
-      word-break:break-all;
-    }
-
-    .model-empty{
-      border:1px dashed rgba(145,166,201,.34);
-      color:var(--sub);
       padding:10px;
-      font-size:12px;
-      line-height:1.55;
-    }
-
-    .badge-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:5px;
-      margin-top:6px;
-    }
-
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      min-height:18px;
-      border:1px solid rgba(166,255,45,.42);
-      color:var(--lime);
-      background:rgba(166,255,45,.06);
-      padding:2px 6px;
-      font-size:10px;
-      font-family:Consolas,"Courier New",monospace;
+      font-size:13px;
+      line-height:1.5;
+      box-shadow:0 0 18px rgba(255,230,109,.12);
+      pointer-events:none;
     }
 
     @media (max-width:900px){
@@ -547,112 +404,93 @@
         right:8px;
       }
 
+      .brand{
+        max-width:none;
+      }
+
       .brand-title{ font-size:13px; }
       .brand-sub{ font-size:11px; }
-
-      .point-guide{
-        top:74px;
-        left:8px;
-        right:8px;
-        width:auto;
-        padding:8px;
-      }
-
-      .next-point{
-        min-height:44px;
-        padding:6px;
-      }
-
-      .next-point-number{
-        width:34px;
-        height:34px;
-        flex-basis:34px;
-        font-size:18px;
-      }
-
-      .point-order{
-        grid-template-columns:1fr 1fr 1fr 1fr;
-      }
-
-      .point-chip{
-        font-size:10px;
-        padding:5px 4px;
-        text-align:center;
-      }
 
       .model-panel{
         left:8px;
         right:8px;
-        top:210px;
+        top:82px;
         width:auto;
-        max-height:24vh;
+        max-width:none;
+        max-height:31vh;
       }
 
       .model-list{
-        min-height:64px;
+        min-height:80px;
+        max-height:15vh;
       }
 
-      .status-panel{
+      .info-panel{
         left:8px;
         right:8px;
-        bottom:278px;
+        top:calc(82px + 31vh + 8px);
         width:auto;
+        max-width:none;
       }
 
-      .manual-panel{
+      .command-panel{
         left:8px;
         right:8px;
         bottom:8px;
         width:auto;
+        max-width:none;
+      }
+
+      .ar-button{
+        bottom:112px;
+      }
+
+      .message{
+        bottom:160px;
+      }
+
+      .panel-body{
+        padding:7px;
       }
 
       .button-grid,
-      .button-grid-3,
       .button-row{
         gap:6px;
       }
 
       .btn{
-        min-height:34px;
+        min-height:33px;
         font-size:11px;
       }
 
-      .panel-body{
-        padding:8px;
+      .row{
+        grid-template-columns:70px 1fr;
       }
     }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
+  <model-viewer
+    id="viewer"
+    camera-controls
+    touch-action="pan-y"
+    auto-rotate
+    shadow-intensity="0.75"
+    exposure="1.1"
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    ar-scale="auto"
+  >
+    <button slot="ar-button" class="ar-button"><span>ARで表示</span></button>
+  </model-viewer>
 
   <div class="hud">
     <div class="brand">
       <div class="brand-line"></div>
-      <div class="brand-title">SF WebXR AR / 4 POINT MANUAL AREA</div>
-      <div class="brand-sub">紙の四隅マークを手動タップして範囲指定。範囲内にモデルを配置。</div>
+      <div class="brand-title">SF AR VIEWER / MODEL SELECT</div>
+      <div class="brand-sub">iPhone確認用：ARビューアー側でモデル選択。4点指定はWebXR側専用。</div>
     </div>
   </div>
-
-
-  <section class="point-guide" id="pointGuide">
-    <div class="point-guide-title">POINT GUIDE</div>
-    <div class="next-point">
-      <div class="next-point-number" id="nextPointNumber">--</div>
-      <div class="next-point-text">
-        <div class="next-point-main" id="nextPointMain">4点指定待機</div>
-        <div class="next-point-sub" id="nextPointSub">AR開始後、「4点指定開始」を押してください。</div>
-      </div>
-    </div>
-    <div class="point-order">
-      <div class="point-chip" id="pointChip0">① 左上</div>
-      <div class="point-chip" id="pointChip1">② 右上</div>
-      <div class="point-chip" id="pointChip2">③ 右下</div>
-      <div class="point-chip" id="pointChip3">④ 左下</div>
-    </div>
-    <div class="point-mini-hint" id="pointMiniHint">紙の四隅に黒丸や十字マークを付け、画面上で見ながら順番にタップ。</div>
-  </section>
-
 
   <section class="panel model-panel" id="modelPanel">
     <div class="panel-head">
@@ -660,177 +498,82 @@
       <button class="toggle" data-target="modelPanel">−</button>
     </div>
     <div class="panel-body">
-      <input class="model-search" id="modelSearch" placeholder="AR用モデルを検索（GLB / GLTF）">
+      <input class="model-search" id="modelSearch" placeholder="モデル名で検索">
       <div class="model-list" id="modelList">
-        <div class="model-empty">models/ からGLB / GLTFを読み込み中...</div>
+        <div class="empty">models/ から GLB / GLTF を読み込み中...</div>
+      </div>
+      <input class="manual-path" id="manualPathInput" placeholder="手入力例：models/test.glb">
+      <div class="button-row">
+        <button class="btn lime" id="loadPathBtn"><span>パス読込</span></button>
+        <button class="btn" id="reloadModelsBtn"><span>一覧再読込</span></button>
       </div>
       <div class="hint small">
-        WebXR ARはGLB / GLTFのみ選択対象。OBJ / FBXは3Dビューア側で確認してください。
+        一覧が出ない場合は <span class="cyan">models/ファイル名.glb</span> を入力して「パス読込」。
       </div>
     </div>
   </section>
 
-  <section class="panel status-panel" id="statusPanel">
+  <section class="panel info-panel" id="infoPanel">
     <div class="panel-head">
-      <div class="panel-title">WEBXR STATUS</div>
-      <button class="toggle" data-target="statusPanel">−</button>
+      <div class="panel-title">MODEL INFO</div>
+      <button class="toggle" data-target="infoPanel">−</button>
     </div>
     <div class="panel-body">
-      <div class="row"><div class="k">FILE</div><div class="v" id="fileText">---</div></div>
-      <div class="row"><div class="k">STATUS</div><div class="v" id="statusText">起動確認中...</div></div>
-      <div class="row"><div class="k">MODE</div><div class="v" id="modeText">待機</div></div>
-      <div class="step-box" id="stepText">AR START後、床や机を認識させてください。</div>
-      <div class="hint warning">
-        操作：紙を机や床に置く → AR開始 → 「4点指定開始」 → 左上、右上、右下、左下の順にタップ。
-      </div>
-      <div class="button-row">
-        <button class="btn" id="backBtn"><span>3Dへ戻る</span></button>
-        <button class="btn magenta" id="fallbackBtn"><span>現在ARで開く</span></button>
-      </div>
+      <div class="row"><div class="k">FILE</div><div class="v" id="fileText">未選択</div></div>
+      <div class="row"><div class="k">TYPE</div><div class="v" id="typeText">---</div></div>
+      <div class="row"><div class="k">STATUS</div><div class="v" id="statusText">READY</div></div>
+      <div class="row"><div class="k">iPhone</div><div class="v" id="iosText">プレビュー確認用</div></div>
+      <p class="hint warning">
+        iPhoneの実ARはQuick Look側に移るため、4点タップ範囲指定は使えません。4点指定はAndroid ChromeのWebXR版で確認してください。
+      </p>
     </div>
   </section>
 
-  <section class="panel manual-panel" id="manualPanel">
+  <section class="panel command-panel" id="commandPanel">
     <div class="panel-head">
-      <div class="panel-title">MANUAL MARK POINT</div>
-      <button class="toggle" data-target="manualPanel">−</button>
+      <div class="panel-title">COMMAND</div>
+      <button class="toggle" data-target="commandPanel">−</button>
     </div>
     <div class="panel-body">
       <div class="button-grid">
-        <button class="btn lime" id="startMarkBtn"><span>4点指定開始</span></button>
-        <button class="btn yellow" id="undoPointBtn"><span>1点戻る</span></button>
-        <button class="btn" id="centerBtn"><span>中央に配置</span></button>
-        <button class="btn danger" id="resetAreaBtn"><span>範囲リセット</span></button>
+        <button class="btn" id="backBtn"><span>3Dへ戻る</span></button>
+        <button class="btn magenta" id="webxrBtn"><span>WebXR 4点指定</span></button>
+        <button class="btn" id="resetBtn"><span>視点リセット</span></button>
+        <button class="btn magenta" id="rotateBtn"><span>回転 ON/OFF</span></button>
       </div>
-
-      <div class="range-readout">
-        <div class="readout">U <span id="uText">0.50</span></div>
-        <div class="readout">V <span id="vText">0.50</span></div>
-        <div class="readout">S <span id="scaleText">1.00</span></div>
-      </div>
-
-      <div class="button-grid-3">
-        <button class="btn" id="uMinusBtn"><span>横 −</span></button>
-        <button class="btn" id="uCenterBtn"><span>横 中央</span></button>
-        <button class="btn" id="uPlusBtn"><span>横 ＋</span></button>
-      </div>
-
-      <div class="button-grid-3">
-        <button class="btn" id="vMinusBtn"><span>縦 −</span></button>
-        <button class="btn" id="vCenterBtn"><span>縦 中央</span></button>
-        <button class="btn" id="vPlusBtn"><span>縦 ＋</span></button>
-      </div>
-
-      <div class="button-grid-3">
-        <button class="btn magenta" id="rotMinusBtn"><span>回転 −</span></button>
-        <button class="btn magenta" id="rotZeroBtn"><span>回転 0</span></button>
-        <button class="btn magenta" id="rotPlusBtn"><span>回転 ＋</span></button>
-      </div>
-
-      <div class="button-grid-3">
-        <button class="btn lime" id="scaleMinusBtn"><span>縮小</span></button>
-        <button class="btn lime" id="placeBtn"><span>再配置</span></button>
-        <button class="btn lime" id="scalePlusBtn"><span>拡大</span></button>
-      </div>
-
-      <div class="hint small">
-        U=紙の横方向、V=紙の縦方向。左上=0,0 / 右下=1,1。<br>
-        マークは自動認識ではなく、画面上で見ながら手動タップする方式。
-      </div>
+      <p class="hint">
+        iPhoneではこの画面でモデル選択とプレビュー確認を行います。WebXR 4点指定はAndroid Chrome / ARCoreで確認してください。
+      </p>
     </div>
   </section>
 
-  <script type="module">
-    import * as THREE from "three";
-    import { ARButton } from "three/addons/webxr/ARButton.js";
-    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+  <div class="message" id="messageBox"></div>
 
-    const canvas = document.getElementById("canvas");
-    const fileText = document.getElementById("fileText");
-    const statusText = document.getElementById("statusText");
-    const modeText = document.getElementById("modeText");
-    const stepText = document.getElementById("stepText");
-
-    const uText = document.getElementById("uText");
-    const vText = document.getElementById("vText");
-    const scaleText = document.getElementById("scaleText");
-
-    const modelList = document.getElementById("modelList");
-    const modelSearch = document.getElementById("modelSearch");
-
-    const nextPointNumber = document.getElementById("nextPointNumber");
-    const nextPointMain = document.getElementById("nextPointMain");
-    const nextPointSub = document.getElementById("nextPointSub");
-    const pointMiniHint = document.getElementById("pointMiniHint");
-    const pointChips = [
-      document.getElementById("pointChip0"),
-      document.getElementById("pointChip1"),
-      document.getElementById("pointChip2"),
-      document.getElementById("pointChip3")
-    ];
-
-    const backBtn = document.getElementById("backBtn");
-    const fallbackBtn = document.getElementById("fallbackBtn");
-    const startMarkBtn = document.getElementById("startMarkBtn");
-    const undoPointBtn = document.getElementById("undoPointBtn");
-    const resetAreaBtn = document.getElementById("resetAreaBtn");
-    const centerBtn = document.getElementById("centerBtn");
-    const placeBtn = document.getElementById("placeBtn");
-
-    const uMinusBtn = document.getElementById("uMinusBtn");
-    const uCenterBtn = document.getElementById("uCenterBtn");
-    const uPlusBtn = document.getElementById("uPlusBtn");
-    const vMinusBtn = document.getElementById("vMinusBtn");
-    const vCenterBtn = document.getElementById("vCenterBtn");
-    const vPlusBtn = document.getElementById("vPlusBtn");
-
-    const rotMinusBtn = document.getElementById("rotMinusBtn");
-    const rotZeroBtn = document.getElementById("rotZeroBtn");
-    const rotPlusBtn = document.getElementById("rotPlusBtn");
-
-    const scaleMinusBtn = document.getElementById("scaleMinusBtn");
-    const scalePlusBtn = document.getElementById("scalePlusBtn");
-
-    const params = new URLSearchParams(location.search);
-    const rawFile = params.get("file") ? decodeURIComponent(params.get("file")) : "";
-    let currentFile = rawFile;
-
+  <script>
     const GITHUB_OWNER = "ASKR-created";
     const GITHUB_REPO = "ASKR-created.github.io";
     const GITHUB_REFS = ["main", "master"];
     const MODELS_ROOT = "models";
-    const AR_MODEL_EXTENSIONS = [".glb", ".gltf"];
+    const MODEL_EXTENSIONS = [".glb", ".gltf"];
 
-    let allArModels = [];
-    let selectedModelPath = currentFile;
+    const viewer = document.getElementById("viewer");
+    const modelSearch = document.getElementById("modelSearch");
+    const modelList = document.getElementById("modelList");
+    const manualPathInput = document.getElementById("manualPathInput");
+    const loadPathBtn = document.getElementById("loadPathBtn");
+    const reloadModelsBtn = document.getElementById("reloadModelsBtn");
 
-    let camera, scene, renderer;
-    let controller;
-    let reticle;
-    let hitTestSource = null;
-    let hitTestSourceRequested = false;
+    const fileText = document.getElementById("fileText");
+    const typeText = document.getElementById("typeText");
+    const statusText = document.getElementById("statusText");
+    const iosText = document.getElementById("iosText");
+    const messageBox = document.getElementById("messageBox");
 
-    let model = null;
-    let mixer = null;
-    let modelBaseScale = 1.0;
-    let userScale = 1.0;
-    let userRotation = 0.0;
+    const params = new URLSearchParams(location.search);
+    const initialFile = params.get("file") ? decodeURIComponent(params.get("file")) : "";
 
-    let captureMode = false;
-    let areaReady = false;
-    let markPoints = [];
-    let pointMarkers = [];
-    let pointLabelSprites = [];
-    let areaLine = null;
-    let areaFill = null;
-    let placementMarker = null;
-
-    let uPos = 0.5;
-    let vPos = 0.5;
-
-    const clock = new THREE.Clock();
-
-    const pointLabels = ["左上", "右上", "右下", "左下"];
+    let allModels = [];
+    let selectedFile = "";
 
     function encodePath(path){
       return String(path).split("/").map(part => encodeURIComponent(part)).join("/");
@@ -847,133 +590,7 @@
       return m ? m[0] : "";
     }
 
-    function setStatus(text){
-      statusText.textContent = text;
-      console.log("[WEBXR]", text);
-    }
-
-    function setMode(text){
-      modeText.textContent = text;
-    }
-
-    function setStep(text){
-      stepText.textContent = text;
-    }
-
-    function updateReadout(){
-      uText.textContent = uPos.toFixed(2);
-      vText.textContent = vPos.toFixed(2);
-      scaleText.textContent = userScale.toFixed(2);
-    }
-
-
-    function updatePointGuide(){
-      const count = markPoints.length;
-
-      pointChips.forEach((chip, i) => {
-        chip.classList.remove("active", "done");
-        if (i < count){
-          chip.classList.add("done");
-        } else if (captureMode && i === count){
-          chip.classList.add("active");
-        }
-      });
-
-      if (areaReady){
-        nextPointNumber.textContent = "OK";
-        nextPointMain.textContent = "4点指定完了";
-        nextPointSub.textContent = "紙の範囲が確定しています。中央配置・横縦移動・回転・拡大縮小が使えます。";
-        pointMiniHint.textContent = "範囲を取り直す場合は「範囲リセット」→「4点指定開始」。";
-        return;
-      }
-
-      if (captureMode){
-        const n = count + 1;
-        const label = pointLabels[count] || "";
-        nextPointNumber.textContent = String(n);
-        nextPointMain.textContent = `${n}点目：${label}`;
-        nextPointSub.textContent = `紙の「${label}」マークを画面上で狙ってタップしてください。`;
-        pointMiniHint.textContent = "順番：①左上 → ②右上 → ③右下 → ④左下";
-        return;
-      }
-
-      nextPointNumber.textContent = "--";
-      nextPointMain.textContent = "4点指定待機";
-      nextPointSub.textContent = "AR開始後、「4点指定開始」を押してください。";
-      pointMiniHint.textContent = "紙の四隅に黒丸や十字マークを付け、画面上で見ながら順番にタップ。";
-    }
-
-    function makeTextSprite(text, colorHex){
-      const canvas2d = document.createElement("canvas");
-      canvas2d.width = 256;
-      canvas2d.height = 96;
-      const ctx = canvas2d.getContext("2d");
-
-      ctx.clearRect(0, 0, canvas2d.width, canvas2d.height);
-
-      ctx.fillStyle = "rgba(2,8,18,0.82)";
-      ctx.strokeStyle = colorHex;
-      ctx.lineWidth = 4;
-      roundRect(ctx, 10, 12, 236, 68, 14);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.font = "bold 34px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.shadowColor = colorHex;
-      ctx.shadowBlur = 10;
-      ctx.fillStyle = "#eafbff";
-      ctx.fillText(text, 128, 47);
-
-      const texture = new THREE.CanvasTexture(canvas2d);
-      texture.colorSpace = THREE.SRGBColorSpace;
-
-      const material = new THREE.SpriteMaterial({
-        map: texture,
-        transparent: true,
-        depthTest: false,
-        depthWrite: false
-      });
-
-      const sprite = new THREE.Sprite(material);
-      sprite.scale.set(0.22, 0.082, 1);
-      return sprite;
-    }
-
-    function roundRect(ctx, x, y, w, h, r){
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r);
-      ctx.quadraticCurveTo(x, y, x + r, y);
-      ctx.closePath();
-    }
-
-    function clamp01(v){
-      return Math.max(0, Math.min(1, v));
-    }
-
-    function openFallback(){
-      if (!currentFile){
-        location.href = location.origin + "/ar.html";
-        return;
-      }
-      location.href = location.origin + "/ar.html?file=" + encodeURIComponent(currentFile);
-    }
-
-    backBtn.addEventListener("click", () => {
-      location.href = location.origin + "/index.html";
-    });
-    fallbackBtn.addEventListener("click", openFallback);
-
-
-    function getBaseName(path){
+    function getFileName(path){
       return String(path).split("/").pop() || path;
     }
 
@@ -985,6 +602,25 @@
         '"':"&quot;",
         "'":"&#39;"
       }[s]));
+    }
+
+    function setStatus(text){
+      statusText.textContent = text;
+      console.log("[AR]", text);
+    }
+
+    function showMessage(text){
+      messageBox.textContent = text;
+      messageBox.style.display = "block";
+      clearTimeout(showMessage._timer);
+      showMessage._timer = setTimeout(() => {
+        messageBox.style.display = "none";
+      }, 6500);
+    }
+
+    function isIOS(){
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     }
 
     async function fetchGitHubContents(path, ref){
@@ -999,46 +635,50 @@
       return await res.json();
     }
 
-    async function scanArModelsRecursive(path, ref, bucket){
+    async function scanModelsRecursive(path, ref, bucket){
       const items = await fetchGitHubContents(path, ref);
       if (!Array.isArray(items)) return bucket;
 
       for (const item of items){
         if (item.type === "dir"){
-          await scanArModelsRecursive(item.path, ref, bucket);
+          await scanModelsRecursive(item.path, ref, bucket);
         } else if (item.type === "file"){
           const ext = getExt(item.path);
-          if (AR_MODEL_EXTENSIONS.includes(ext)){
+          if (MODEL_EXTENSIONS.includes(ext)){
             bucket.push({
               name: item.name,
               path: item.path,
               ext,
-              size: item.size || 0,
-              html_url: item.html_url || "",
-              download_url: item.download_url || ""
+              size: item.size || 0
             });
           }
         }
       }
-
       return bucket;
     }
 
-    async function loadArModelList(){
-      modelList.innerHTML = `<div class="model-empty">GitHub APIで models/ を走査中...</div>`;
+    async function loadModelList(){
+      modelList.innerHTML = `<div class="empty">GitHub APIで models/ を走査中...</div>`;
+      setStatus("MODEL LIST LOADING");
 
       let lastError = null;
 
       for (const ref of GITHUB_REFS){
         try{
           const bucket = [];
-          await scanArModelsRecursive(MODELS_ROOT, ref, bucket);
-          allArModels = bucket.sort((a,b) => a.path.localeCompare(b.path, "ja"));
-          renderArModelList();
+          await scanModelsRecursive(MODELS_ROOT, ref, bucket);
+          allModels = bucket.sort((a,b) => a.path.localeCompare(b.path, "ja"));
+          renderModelList();
 
-          if (!currentFile && allArModels.length > 0){
-            setStatus("モデルを選択してください");
-            setStep("AR用モデル一覧からGLB / GLTFを選択してください。選択後、4点指定が使えます。");
+          if (allModels.length === 0){
+            setStatus("NO GLB / GLTF");
+            showMessage("models/ 内にGLB / GLTFが見つかりません。手入力欄から直接パスを指定してください。");
+          } else {
+            setStatus(`MODEL LIST ${allModels.length}`);
+          }
+
+          if (initialFile){
+            selectModel(initialFile);
           }
 
           return;
@@ -1048,617 +688,117 @@
         }
       }
 
+      allModels = [];
       modelList.innerHTML = `
-        <div class="model-empty">
-          models/ を読み込めませんでした。<br>
-          GitHub Pages上で実行しているか、リポジトリ名・modelsフォルダを確認してください。<br>
-          ${lastError ? escapeHtml(String(lastError.message)) : ""}
+        <div class="empty">
+          モデル一覧を取得できませんでした。<br>
+          手入力欄に models/xxx.glb のように入力してください。<br>
+          ${lastError ? escapeHtml(lastError.message) : ""}
         </div>
       `;
+      setStatus("MODEL LIST ERROR");
     }
 
-    function renderArModelList(){
+    function renderModelList(){
       const q = modelSearch.value.trim().toLowerCase();
-      const filtered = allArModels.filter(m => {
+      const filtered = allModels.filter(m => {
         if (!q) return true;
         return m.name.toLowerCase().includes(q) || m.path.toLowerCase().includes(q);
       });
 
       if (filtered.length === 0){
-        modelList.innerHTML = `<div class="model-empty">GLB / GLTFモデルが見つかりません。</div>`;
+        modelList.innerHTML = `<div class="empty">GLB / GLTFモデルが見つかりません。</div>`;
         return;
       }
 
       modelList.innerHTML = "";
       for (const m of filtered){
         const btn = document.createElement("button");
-        btn.className = "model-item" + (selectedModelPath === m.path ? " active" : "");
+        btn.className = "model-item" + (selectedFile === m.path ? " active" : "");
         btn.innerHTML = `
           <div class="model-name">${escapeHtml(m.name)}</div>
           <div class="model-path">${escapeHtml(m.path)}</div>
-          <div class="badge-row">
-            <span class="badge">${escapeHtml(m.ext.toUpperCase().slice(1))}</span>
-            <span class="badge">AR</span>
-          </div>
         `;
-        btn.addEventListener("click", async () => {
-          await selectArModel(m.path);
-        });
+        btn.addEventListener("click", () => selectModel(m.path));
         modelList.appendChild(btn);
       }
     }
 
-    async function selectArModel(path){
-      currentFile = path;
-      selectedModelPath = path;
-      fileText.textContent = currentFile;
-      renderArModelList();
-
-      try{
-        await loadModel(currentFile);
-        if (areaReady){
-          placeModelAtUV();
-        } else {
-          setStep("モデルを選択しました。AR開始後、「4点指定開始」で紙の四隅を指定してください。");
-        }
-      }catch(err){
-        console.error(err);
-        setStatus("モデル読み込み失敗");
-        setStep("GLBにテクスチャが埋め込まれているか、パスが正しいか確認してください。");
-      }
-    }
-
-    modelSearch.addEventListener("input", renderArModelList);
-
-
-    async function checkSupport(){
-      if (!currentFile){
-        fileText.textContent = "未選択";
-        setStatus("モデル未選択");
-        setStep("AR用モデル一覧からGLB / GLTFを選択してください。");
-      } else {
-        fileText.textContent = currentFile;
-
-        const ext = getExt(currentFile);
-        if (ext !== ".glb" && ext !== ".gltf"){
-          setStatus("GLB / GLTFのみ対応");
-          setStep("WebXR ARの手動配置はGLB / GLTFを選択してください。");
-          currentFile = "";
-          selectedModelPath = "";
-        }
-      }
-
-      if (!("xr" in navigator)){
-        setStatus("WebXR非対応");
-        setStep("この端末またはブラウザはWebXRに非対応です。現在ARを使用してください。");
-        return false;
-      }
-
-      try{
-        const supported = await navigator.xr.isSessionSupported("immersive-ar");
-        if (!supported){
-          setStatus("immersive-ar非対応");
-          setStep("現在ARを使用してください。Android Chrome + ARCore対応端末が主対象です。");
-          return false;
-        }
-
-        if (currentFile){
-          setStatus("WebXR AR対応");
-          setStep("AR STARTボタンを押して開始してください。");
-        }
-        return true;
-      }catch(err){
-        console.warn(err);
-        setStatus("WebXR確認失敗");
-        setStep("現在ARを使用してください。");
-        return false;
-      }
-    }
-
-    function init(){
-      scene = new THREE.Scene();
-
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 60);
-
-      renderer = new THREE.WebGLRenderer({
-        canvas,
-        antialias: true,
-        alpha: true,
-        powerPreference: "high-performance"
-      });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.xr.enabled = true;
-
-      const hemi = new THREE.HemisphereLight(0xffffff, 0x202040, 1.5);
-      scene.add(hemi);
-
-      const light = new THREE.DirectionalLight(0xffffff, 1.8);
-      light.position.set(2, 5, 3);
-      scene.add(light);
-
-      const cyanLight = new THREE.PointLight(0x22f8ff, 0.8, 5);
-      cyanLight.position.set(0, 1.5, 0);
-      scene.add(cyanLight);
-
-      reticle = new THREE.Mesh(
-        new THREE.RingGeometry(0.09, 0.13, 32).rotateX(-Math.PI / 2),
-        new THREE.MeshBasicMaterial({ color: 0x22f8ff, transparent:true, opacity:0.95 })
-      );
-      reticle.matrixAutoUpdate = false;
-      reticle.visible = false;
-      scene.add(reticle);
-
-      placementMarker = new THREE.Mesh(
-        new THREE.RingGeometry(0.11, 0.15, 32).rotateX(-Math.PI / 2),
-        new THREE.MeshBasicMaterial({ color: 0xa6ff2d, transparent:true, opacity:0.95 })
-      );
-      placementMarker.visible = false;
-      scene.add(placementMarker);
-
-      controller = renderer.xr.getController(0);
-      controller.addEventListener("select", onSelect);
-      scene.add(controller);
-
-      const arButton = ARButton.createButton(renderer, {
-        requiredFeatures: ["hit-test"],
-        optionalFeatures: ["dom-overlay"],
-        domOverlay: { root: document.body }
-      });
-      document.body.appendChild(arButton);
-
-      window.addEventListener("resize", onWindowResize);
-      renderer.setAnimationLoop(render);
-    }
-
-    function clearCurrentModel(){
-      if (!model) return;
-
-      scene.remove(model);
-      model.traverse(child => {
-        if (child.geometry) child.geometry.dispose?.();
-        if (child.material){
-          const mats = Array.isArray(child.material) ? child.material : [child.material];
-          mats.forEach(mat => {
-            for (const key in mat){
-              const v = mat[key];
-              if (v && v.isTexture) v.dispose?.();
-            }
-            mat.dispose?.();
-          });
-        }
-      });
-
-      model = null;
-      mixer = null;
-    }
-
-    async function loadModel(path = currentFile){
-      if (!path){
-        setStatus("モデル未選択");
-        setStep("先にAR用モデル一覧からGLB / GLTFを選択してください。");
-        return;
-      }
-
+    function selectModel(path){
       const ext = getExt(path);
-      if (ext !== ".glb" && ext !== ".gltf"){
-        setStatus("GLB / GLTFのみ対応");
-        setStep("WebXR ARではGLB / GLTFモデルを選択してください。");
+      if (!MODEL_EXTENSIONS.includes(ext)){
+        alert("このARビューアーでは GLB / GLTF を選択してください。");
         return;
       }
 
-      clearCurrentModel();
+      selectedFile = path;
+      manualPathInput.value = path;
+      fileText.textContent = path;
+      typeText.textContent = ext.toUpperCase().slice(1);
+      viewer.src = toAssetUrl(path);
 
-      const loader = new GLTFLoader();
-      const src = toAssetUrl(path);
-      currentFile = path;
-      selectedModelPath = path;
-      fileText.textContent = currentFile;
-      setStatus("モデル読み込み中...");
+      renderModelList();
+      setStatus("LOADING");
+      showMessage("モデルを読み込み中：" + path);
 
-      const gltf = await loader.loadAsync(src);
-      model = gltf.scene || gltf.scenes[0];
+      const newUrl = new URL(location.href);
+      newUrl.searchParams.set("file", path);
+      history.replaceState(null, "", newUrl.toString());
 
-      model.traverse(child => {
-        if (child.isMesh){
-          child.castShadow = true;
-          child.receiveShadow = true;
-          if (child.material && child.material.map){
-            child.material.map.colorSpace = THREE.SRGBColorSpace;
-          }
-          if (child.material){
-            child.material.needsUpdate = true;
-          }
-        }
-      });
-
-      const box = new THREE.Box3().setFromObject(model);
-      const size = new THREE.Vector3();
-      const center = new THREE.Vector3();
-      box.getSize(size);
-      box.getCenter(center);
-      model.position.sub(center);
-
-      const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      modelBaseScale = 0.45 / maxDim;
-      model.scale.setScalar(modelBaseScale * userScale);
-
-      model.visible = false;
-      scene.add(model);
-
-      if (gltf.animations && gltf.animations.length){
-        mixer = new THREE.AnimationMixer(model);
-        gltf.animations.forEach(clip => mixer.clipAction(clip).play());
+      if (isIOS()){
+        iosText.textContent = "iPhoneプレビュー確認中";
       }
-
-      renderArModelList();
-      setStatus("モデル読み込み完了");
-      setStep("AR開始後、「4点指定開始」を押して紙の四隅をタップしてください。");
     }
 
-    function onSelect(){
-      if (!reticle.visible){
-        setStep("床または机の認識が不安定です。端末をゆっくり動かしてください。");
+    viewer.addEventListener("load", () => {
+      setStatus("LOADED");
+      showMessage("モデルを読み込みました。プレビューで確認できます。");
+    });
+
+    viewer.addEventListener("error", () => {
+      setStatus("LOAD ERROR");
+      showMessage("モデルの読み込みに失敗しました。パス、ファイル名、GLB/GLTFの配置を確認してください。");
+    });
+
+    viewer.addEventListener("ar-status", event => {
+      setStatus("AR " + event.detail.status);
+    });
+
+    document.getElementById("backBtn").addEventListener("click", () => {
+      location.href = location.origin + "/index.html";
+    });
+
+    document.getElementById("webxrBtn").addEventListener("click", () => {
+      if (!selectedFile){
+        alert("先にモデルを選択してください。");
         return;
       }
+      location.href = location.origin + "/webxr_ar.html?file=" + encodeURIComponent(selectedFile);
+    });
 
-      const pos = new THREE.Vector3();
-      pos.setFromMatrixPosition(reticle.matrix);
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      viewer.cameraOrbit = "0deg 75deg auto";
+      viewer.cameraTarget = "auto auto auto";
+      viewer.fieldOfView = "auto";
+      setStatus("VIEW RESET");
+    });
 
-      if (captureMode){
-        addMarkPoint(pos);
+    document.getElementById("rotateBtn").addEventListener("click", () => {
+      viewer.autoRotate = !viewer.autoRotate;
+      setStatus(viewer.autoRotate ? "AUTO ROTATE ON" : "AUTO ROTATE OFF");
+    });
+
+    loadPathBtn.addEventListener("click", () => {
+      const p = manualPathInput.value.trim();
+      if (!p){
+        alert("models/test.glb のように入力してください。");
         return;
       }
+      selectModel(p);
+    });
 
-      if (areaReady){
-        placeModelAtUV();
-        return;
-      }
-
-      if (model){
-        model.position.copy(pos);
-        model.visible = true;
-        setStatus("通常タップ配置");
-        setStep("4点指定前の通常配置です。紙範囲で制御する場合は「4点指定開始」を押してください。");
-      }
-    }
-
-    function startCapture(){
-      resetArea();
-      captureMode = true;
-      areaReady = false;
-      setMode("4点指定中");
-      setStatus("4点指定開始");
-      setStep("1点目：紙の「左上」マークをタップしてください。");
-      setReticleColor(0xa6ff2d);
-      updatePointGuide();
-    }
-
-    function addMarkPoint(pos){
-      if (markPoints.length >= 4) return;
-
-      const p = pos.clone();
-      markPoints.push(p);
-      addPointMarker(p, markPoints.length - 1);
-      updateAreaPreview();
-
-      if (markPoints.length < 4){
-        const nextLabel = pointLabels[markPoints.length];
-        setStatus(`${markPoints.length}/4 点指定済み`);
-        setStep(`${markPoints.length + 1}点目：紙の「${nextLabel}」マークをタップしてください。`);
-        updatePointGuide();
-      } else {
-        captureMode = false;
-        areaReady = true;
-        setMode("範囲指定完了");
-        setStatus("4点指定完了");
-        setStep("範囲が確定しました。中央にモデルを配置します。必要に応じて横・縦・回転・拡大縮小を調整してください。");
-        setReticleColor(0x22f8ff);
-        updateAreaPreview();
-        updatePointGuide();
-        placeModelAtUV();
-      }
-    }
-
-    function undoPoint(){
-      if (markPoints.length === 0){
-        setStep("戻す点がありません。");
-        return;
-      }
-
-      markPoints.pop();
-
-      const marker = pointMarkers.pop();
-      if (marker){
-        scene.remove(marker);
-        marker.geometry.dispose();
-        marker.material.dispose();
-      }
-
-      const labelSprite = pointLabelSprites.pop();
-      if (labelSprite){
-        scene.remove(labelSprite);
-        if (labelSprite.material && labelSprite.material.map){
-          labelSprite.material.map.dispose();
-        }
-        labelSprite.material.dispose();
-      }
-
-      areaReady = false;
-
-      if (markPoints.length < 4){
-        captureMode = true;
-        setMode("4点指定中");
-        const label = pointLabels[markPoints.length];
-        setStatus(`${markPoints.length}/4 点指定済み`);
-        setStep(`${markPoints.length + 1}点目：紙の「${label}」マークをタップしてください。`);
-        if (model) model.visible = false;
-      }
-
-      updateAreaPreview();
-      updatePointGuide();
-    }
-
-    function resetArea(){
-      captureMode = false;
-      areaReady = false;
-      markPoints = [];
-
-      pointMarkers.forEach(marker => {
-        scene.remove(marker);
-        marker.geometry.dispose();
-        marker.material.dispose();
-      });
-      pointMarkers = [];
-
-      pointLabelSprites.forEach(sprite => {
-        scene.remove(sprite);
-        if (sprite.material && sprite.material.map){
-          sprite.material.map.dispose();
-        }
-        sprite.material.dispose();
-      });
-      pointLabelSprites = [];
-
-      if (areaLine){
-        scene.remove(areaLine);
-        areaLine.geometry.dispose();
-        areaLine.material.dispose();
-        areaLine = null;
-      }
-
-      if (areaFill){
-        scene.remove(areaFill);
-        areaFill.geometry.dispose();
-        areaFill.material.dispose();
-        areaFill = null;
-      }
-
-      placementMarker.visible = false;
-
-      if (model){
-        model.visible = false;
-      }
-
-      uPos = 0.5;
-      vPos = 0.5;
-      updateReadout();
-      setReticleColor(0x22f8ff);
-      setMode("待機");
-      setStatus("範囲リセット");
-      setStep("「4点指定開始」を押して、左上→右上→右下→左下の順にタップしてください。");
-      updatePointGuide();
-    }
-
-    function addPointMarker(pos, index){
-      const colors = [0x22f8ff, 0xff2deb, 0xa6ff2d, 0xffe66d];
-
-      const sphere = new THREE.Mesh(
-        new THREE.SphereGeometry(0.025, 16, 12),
-        new THREE.MeshBasicMaterial({
-          color: colors[index % colors.length],
-          transparent: true,
-          opacity: 0.96
-        })
-      );
-      sphere.position.copy(pos);
-      scene.add(sphere);
-      pointMarkers.push(sphere);
-
-      const labelText = `${index + 1} ${pointLabels[index]}`;
-      const labelColor = ["#22f8ff", "#ff2deb", "#a6ff2d", "#ffe66d"][index % 4];
-      const label = makeTextSprite(labelText, labelColor);
-      label.position.copy(pos);
-      label.position.y += 0.055;
-      scene.add(label);
-      pointLabelSprites.push(label);
-    }
-
-    function updateAreaPreview(){
-      if (areaLine){
-        scene.remove(areaLine);
-        areaLine.geometry.dispose();
-        areaLine.material.dispose();
-        areaLine = null;
-      }
-
-      if (areaFill){
-        scene.remove(areaFill);
-        areaFill.geometry.dispose();
-        areaFill.material.dispose();
-        areaFill = null;
-      }
-
-      if (markPoints.length >= 2){
-        const pts = markPoints.slice();
-        if (markPoints.length === 4){
-          pts.push(markPoints[0]);
-        }
-
-        const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
-        const lineMat = new THREE.LineBasicMaterial({
-          color: 0x22f8ff,
-          transparent: true,
-          opacity: 0.95
-        });
-        areaLine = new THREE.Line(lineGeo, lineMat);
-        scene.add(areaLine);
-      }
-
-      if (markPoints.length === 4){
-        const p0 = markPoints[0];
-        const p1 = markPoints[1];
-        const p2 = markPoints[2];
-        const p3 = markPoints[3];
-
-        const verts = new Float32Array([
-          p0.x,p0.y,p0.z,
-          p1.x,p1.y,p1.z,
-          p2.x,p2.y,p2.z,
-          p0.x,p0.y,p0.z,
-          p2.x,p2.y,p2.z,
-          p3.x,p3.y,p3.z
-        ]);
-
-        const fillGeo = new THREE.BufferGeometry();
-        fillGeo.setAttribute("position", new THREE.BufferAttribute(verts, 3));
-        fillGeo.computeVertexNormals();
-
-        const fillMat = new THREE.MeshBasicMaterial({
-          color: 0x22f8ff,
-          transparent: true,
-          opacity: 0.12,
-          side: THREE.DoubleSide,
-          depthWrite: false
-        });
-
-        areaFill = new THREE.Mesh(fillGeo, fillMat);
-        scene.add(areaFill);
-      }
-    }
-
-    function setReticleColor(color){
-      if (reticle && reticle.material){
-        reticle.material.color.setHex(color);
-      }
-    }
-
-    function getAreaPosition(u, v){
-      if (markPoints.length !== 4) return null;
-
-      const p0 = markPoints[0]; // 左上
-      const p1 = markPoints[1]; // 右上
-      const p2 = markPoints[2]; // 右下
-      const p3 = markPoints[3]; // 左下
-
-      const top = new THREE.Vector3().lerpVectors(p0, p1, u);
-      const bottom = new THREE.Vector3().lerpVectors(p3, p2, u);
-      return new THREE.Vector3().lerpVectors(top, bottom, v);
-    }
-
-    function getAreaQuaternion(){
-      if (markPoints.length !== 4) return new THREE.Quaternion();
-
-      const p0 = markPoints[0];
-      const p1 = markPoints[1];
-      const p3 = markPoints[3];
-
-      const xAxis = new THREE.Vector3().subVectors(p1, p0).normalize();
-      const zAxis = new THREE.Vector3().subVectors(p3, p0).normalize();
-
-      if (xAxis.lengthSq() < 0.0001 || zAxis.lengthSq() < 0.0001){
-        return new THREE.Quaternion();
-      }
-
-      const yAxis = new THREE.Vector3().crossVectors(zAxis, xAxis).normalize();
-
-      // もし上下が反転して見える場合は、normalを反転する
-      if (yAxis.y < 0){
-        yAxis.multiplyScalar(-1);
-        zAxis.multiplyScalar(-1);
-      }
-
-      const basis = new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis);
-      const q = new THREE.Quaternion().setFromRotationMatrix(basis);
-
-      const rotOffset = new THREE.Quaternion().setFromAxisAngle(yAxis, userRotation);
-      q.multiply(rotOffset);
-
-      return q;
-    }
-
-    function placeModelAtUV(){
-      if (!areaReady || markPoints.length !== 4){
-        setStep("先に4点指定を完了してください。");
-        return;
-      }
-
-      if (!model){
-        setStep("モデルがまだ読み込まれていません。");
-        return;
-      }
-
-      const pos = getAreaPosition(uPos, vPos);
-      if (!pos){
-        setStep("配置位置を計算できません。");
-        return;
-      }
-
-      model.position.copy(pos);
-      model.quaternion.copy(getAreaQuaternion());
-      model.scale.setScalar(modelBaseScale * userScale);
-      model.visible = true;
-
-      placementMarker.position.copy(pos);
-      placementMarker.quaternion.copy(getAreaQuaternion());
-      placementMarker.visible = true;
-
-      setStatus("範囲内に配置");
-      setStep(`紙範囲内に配置しました。U=${uPos.toFixed(2)} / V=${vPos.toFixed(2)} / Scale=${userScale.toFixed(2)}`);
-    }
-
-    function setUV(u, v){
-      uPos = clamp01(u);
-      vPos = clamp01(v);
-      updateReadout();
-      if (areaReady) placeModelAtUV();
-    }
-
-    function setScaleValue(v){
-      userScale = Math.max(0.1, Math.min(5.0, v));
-      updateReadout();
-      if (model){
-        model.scale.setScalar(modelBaseScale * userScale);
-      }
-      if (areaReady) placeModelAtUV();
-    }
-
-    function setRotationValue(rad){
-      userRotation = rad;
-      if (areaReady) placeModelAtUV();
-    }
-
-    startMarkBtn.addEventListener("click", startCapture);
-    undoPointBtn.addEventListener("click", undoPoint);
-    resetAreaBtn.addEventListener("click", resetArea);
-    centerBtn.addEventListener("click", () => setUV(0.5, 0.5));
-    placeBtn.addEventListener("click", placeModelAtUV);
-
-    uMinusBtn.addEventListener("click", () => setUV(uPos - 0.05, vPos));
-    uCenterBtn.addEventListener("click", () => setUV(0.5, vPos));
-    uPlusBtn.addEventListener("click", () => setUV(uPos + 0.05, vPos));
-
-    vMinusBtn.addEventListener("click", () => setUV(uPos, vPos - 0.05));
-    vCenterBtn.addEventListener("click", () => setUV(uPos, 0.5));
-    vPlusBtn.addEventListener("click", () => setUV(uPos, vPos + 0.05));
-
-    rotMinusBtn.addEventListener("click", () => setRotationValue(userRotation - THREE.MathUtils.degToRad(10)));
-    rotZeroBtn.addEventListener("click", () => setRotationValue(0));
-    rotPlusBtn.addEventListener("click", () => setRotationValue(userRotation + THREE.MathUtils.degToRad(10)));
-
-    scaleMinusBtn.addEventListener("click", () => setScaleValue(userScale - 0.1));
-    scalePlusBtn.addEventListener("click", () => setScaleValue(userScale + 0.1));
+    reloadModelsBtn.addEventListener("click", loadModelList);
+    modelSearch.addEventListener("input", renderModelList);
 
     document.querySelectorAll(".toggle").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -1669,68 +809,17 @@
       });
     });
 
-    function onWindowResize(){
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+    if (isIOS()){
+      iosText.textContent = "iPhone確認モード";
+      showMessage("iPhoneではWebXR 4点指定は確認しにくいため、このar.htmlでモデル選択とプレビューを確認してください。");
     }
 
-    function render(timestamp, frame){
-      const delta = clock.getDelta();
-      if (mixer) mixer.update(delta);
-
-      if (frame){
-        const referenceSpace = renderer.xr.getReferenceSpace();
-        const session = renderer.xr.getSession();
-
-        if (!hitTestSourceRequested){
-          session.requestReferenceSpace("viewer").then(referenceSpaceViewer => {
-            session.requestHitTestSource({ space: referenceSpaceViewer }).then(source => {
-              hitTestSource = source;
-            });
-          });
-
-          session.addEventListener("end", () => {
-            hitTestSourceRequested = false;
-            hitTestSource = null;
-            reticle.visible = false;
-            setStatus("ARセッション終了");
-          });
-
-          hitTestSourceRequested = true;
-        }
-
-        if (hitTestSource){
-          const hitTestResults = frame.getHitTestResults(hitTestSource);
-          if (hitTestResults.length){
-            const hit = hitTestResults[0];
-            reticle.visible = true;
-            reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
-          } else {
-            reticle.visible = false;
-          }
-        }
-      }
-
-      renderer.render(scene, camera);
+    if (initialFile){
+      manualPathInput.value = initialFile;
+      selectModel(initialFile);
     }
 
-    updateReadout();
-    updatePointGuide();
-
-    const supported = await checkSupport();
-    init();
-    await loadArModelList();
-
-    if (supported && currentFile){
-      try{
-        await loadModel(currentFile);
-      }catch(err){
-        console.error(err);
-        setStatus("モデル読み込み失敗");
-        setStep("GLBにテクスチャが埋め込まれているか、パスが正しいか確認してください。");
-      }
-    }
+    loadModelList();
   </script>
 </body>
 </html>
