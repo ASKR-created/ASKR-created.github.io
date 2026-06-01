@@ -447,6 +447,79 @@
       box-shadow:var(--shadow);
     }
 
+
+    #planPanel{
+      right:10px;
+      top:286px;
+      width:330px;
+      max-width:calc(100vw - 20px);
+      max-height:calc(100vh - 430px);
+      overflow:auto;
+    }
+
+    .file-input{
+      width:100%;
+      min-height:34px;
+      border:1px solid rgba(34,248,255,.34);
+      background:rgba(1,5,14,.88);
+      color:var(--text);
+      padding:6px;
+      outline:none;
+      font-size:11px;
+    }
+
+    .mini-input-row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:7px;
+      margin-top:7px;
+    }
+
+    .mini-input-row.three{
+      grid-template-columns:1fr 1fr 1fr;
+    }
+
+    .mini-field{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      min-width:0;
+    }
+
+    .mini-field label{
+      color:var(--sub);
+      font-size:10px;
+      letter-spacing:.05em;
+    }
+
+    .mini-field input{
+      width:100%;
+      height:28px;
+      border:1px solid rgba(34,248,255,.30);
+      background:rgba(1,5,14,.88);
+      color:var(--text);
+      padding:0 7px;
+      outline:none;
+      font-size:11px;
+    }
+
+    .mini-field input:focus{
+      border-color:var(--magenta);
+      box-shadow:0 0 12px rgba(255,45,235,.18);
+    }
+
+    .plan-readout{
+      margin-top:7px;
+      border:1px solid rgba(166,255,45,.25);
+      background:rgba(166,255,45,.045);
+      color:var(--lime);
+      padding:7px;
+      font-size:11px;
+      line-height:1.45;
+      font-family:Consolas,"Courier New",monospace;
+      word-break:break-all;
+    }
+
     .empty{
       border:1px dashed rgba(145,166,201,.34);
       color:var(--sub);
@@ -469,6 +542,7 @@
 
       #modelPanel,
       #infoPanel,
+      #planPanel,
       #commandPanel{
         left:8px;
         right:8px;
@@ -484,8 +558,15 @@
 
       #infoPanel{
         top:auto;
-        bottom:188px;
+        bottom:300px;
         display:none;
+      }
+
+      #planPanel{
+        top:auto;
+        bottom:112px;
+        display:none;
+        max-height:180px;
       }
 
       #commandPanel{
@@ -493,7 +574,8 @@
       }
 
       body.mobile-open #modelPanel,
-      body.mobile-open #infoPanel{
+      body.mobile-open #infoPanel,
+      body.mobile-open #planPanel{
         display:flex;
       }
 
@@ -515,7 +597,7 @@
       <div class="brand">
         <div class="brand-line"></div>
         <div class="brand-title">SF 3D MODEL VIEWER</div>
-        <div class="brand-sub">NO PASSWORD / NO ADS / AR停止中 temporarily disabled</div>
+        <div class="brand-sub">NO PASSWORD / NO ADS / PDF PLAN FLOOR</div>
       </div>
       <div class="digital">
         <div class="label">SYSTEM DATE</div>
@@ -558,6 +640,64 @@
       </div>
     </section>
 
+
+    <section class="panel" id="planPanel">
+      <div class="panel-head">
+        <div class="panel-title">PDF PLAN FLOOR</div>
+        <button class="toggle" data-target="planPanel">−</button>
+      </div>
+      <div class="panel-body">
+        <input class="file-input" id="planFileInput" type="file" accept=".pdf,image/png,image/jpeg,image/webp">
+
+        <div class="mini-input-row">
+          <div class="mini-field">
+            <label>PDF/画像パス</label>
+            <input id="planPathInput" placeholder="plans/zumen.pdf">
+          </div>
+          <div class="mini-field">
+            <label>PDFページ</label>
+            <input id="planPageInput" type="number" min="1" step="1" value="1">
+          </div>
+        </div>
+
+        <div class="button-grid" style="margin-top:8px;">
+          <button class="btn lime" id="loadPlanPathBtn"><span>図面読込</span></button>
+          <button class="btn" id="clearPlanBtn"><span>図面クリア</span></button>
+          <button class="btn" id="togglePlanBtn"><span>表示/非表示</span></button>
+          <button class="btn magenta" id="rotatePlanBtn"><span>90°回転</span></button>
+        </div>
+
+        <div class="mini-input-row three">
+          <div class="mini-field">
+            <label>幅 X</label>
+            <input id="planWidthInput" type="number" step="0.1" value="10">
+          </div>
+          <div class="mini-field">
+            <label>奥行 Z</label>
+            <input id="planDepthInput" type="number" step="0.1" value="7">
+          </div>
+          <div class="mini-field">
+            <label>透明度</label>
+            <input id="planOpacityInput" type="number" min="0.1" max="1" step="0.05" value="0.85">
+          </div>
+        </div>
+
+        <div class="button-grid" style="margin-top:8px;">
+          <button class="btn lime" id="applyPlanSizeBtn"><span>サイズ反映</span></button>
+          <button class="btn" id="fitPlanToModelBtn"><span>モデル基準</span></button>
+        </div>
+
+        <div class="plan-readout" id="planStatusText">
+          図面未読込。PDFまたはPNG/JPGを選択してください。
+        </div>
+
+        <p class="hint warning">
+          PDFは1ページを画像化して地面テクスチャにします。AR側の現実の床は置き換えできないため、3Dビューアー用の図面床です。
+        </p>
+      </div>
+    </section>
+
+
     <section class="panel" id="commandPanel">
       <div class="panel-head">
         <div class="panel-title">COMMAND</div>
@@ -572,7 +712,7 @@
           <button class="btn" id="toggleAnimBtn"><span>アニメ再生/停止</span></button>
           <button class="btn lime" id="fitBtn"><span>画面に合わせる</span></button>
         </div>
-        <p class="hint">マウス：回転 / ホイール：拡大縮小 / 右ドラッグ：移動</p>
+        <p class="hint">PDF図面は右側の PDF PLAN FLOOR から読込。地面としてモデル下に表示できます。</p>
       </div>
     </section>
 
@@ -586,6 +726,10 @@
     import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
     import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
     import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
+    import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
     const GITHUB_OWNER = "ASKR-created";
     const GITHUB_REPO = "ASKR-created.github.io";
@@ -612,6 +756,20 @@
     const toggleAnimBtn = document.getElementById("toggleAnimBtn");
     const fitBtn = document.getElementById("fitBtn");
     const mobilePanelBtn = document.getElementById("mobilePanelBtn");
+
+    const planFileInput = document.getElementById("planFileInput");
+    const planPathInput = document.getElementById("planPathInput");
+    const planPageInput = document.getElementById("planPageInput");
+    const loadPlanPathBtn = document.getElementById("loadPlanPathBtn");
+    const clearPlanBtn = document.getElementById("clearPlanBtn");
+    const togglePlanBtn = document.getElementById("togglePlanBtn");
+    const rotatePlanBtn = document.getElementById("rotatePlanBtn");
+    const planWidthInput = document.getElementById("planWidthInput");
+    const planDepthInput = document.getElementById("planDepthInput");
+    const planOpacityInput = document.getElementById("planOpacityInput");
+    const applyPlanSizeBtn = document.getElementById("applyPlanSizeBtn");
+    const fitPlanToModelBtn = document.getElementById("fitPlanToModelBtn");
+    const planStatusText = document.getElementById("planStatusText");
 
     let allModels = [];
     let fileMap = new Map();
@@ -666,6 +824,16 @@
     grid.material.transparent = true;
     grid.material.opacity = 0.28;
     scene.add(grid);
+
+    const planGroup = new THREE.Group();
+    planGroup.name = "PDF_PLAN_FLOOR_GROUP";
+    scene.add(planGroup);
+
+    let planPlane = null;
+    let planBorder = null;
+    let planTexture = null;
+    let planRotationQuarter = 0;
+    let planVisible = true;
 
     const axesGroup = new THREE.Group();
     scene.add(axesGroup);
@@ -1028,6 +1196,272 @@
       axesGroup.scale.setScalar(Math.max(maxDim / 5, 1));
     }
 
+
+    function setPlanStatus(text){
+      planStatusText.textContent = text;
+      setStatus(text);
+    }
+
+    function readPlanSettings(){
+      const width = Math.max(0.1, parseFloat(planWidthInput.value) || 10);
+      const depth = Math.max(0.1, parseFloat(planDepthInput.value) || 7);
+      const opacity = Math.max(0.1, Math.min(1, parseFloat(planOpacityInput.value) || 0.85));
+      return { width, depth, opacity };
+    }
+
+    function clearPlanFloor(){
+      if (planPlane){
+        planGroup.remove(planPlane);
+        planPlane.geometry.dispose();
+        if (planPlane.material) planPlane.material.dispose();
+        planPlane = null;
+      }
+
+      if (planBorder){
+        planGroup.remove(planBorder);
+        planBorder.geometry.dispose();
+        if (planBorder.material) planBorder.material.dispose();
+        planBorder = null;
+      }
+
+      if (planTexture){
+        planTexture.dispose();
+        planTexture = null;
+      }
+
+      planRotationQuarter = 0;
+      setPlanStatus("図面床をクリアしました。");
+    }
+
+    function createPlanBorder(width, depth){
+      if (planBorder){
+        planGroup.remove(planBorder);
+        planBorder.geometry.dispose();
+        planBorder.material.dispose();
+        planBorder = null;
+      }
+
+      const y = 0.004;
+      const pts = [
+        new THREE.Vector3(-width / 2, y, -depth / 2),
+        new THREE.Vector3( width / 2, y, -depth / 2),
+        new THREE.Vector3( width / 2, y,  depth / 2),
+        new THREE.Vector3(-width / 2, y,  depth / 2),
+        new THREE.Vector3(-width / 2, y, -depth / 2),
+      ];
+
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const mat = new THREE.LineBasicMaterial({
+        color: 0xa6ff2d,
+        transparent: true,
+        opacity: 0.85
+      });
+
+      planBorder = new THREE.Line(geo, mat);
+      planBorder.name = "PDF_PLAN_FLOOR_BORDER";
+      planGroup.add(planBorder);
+    }
+
+    function applyCanvasAsPlanFloor(sourceCanvas, label){
+      const { width, depth, opacity } = readPlanSettings();
+
+      if (planPlane){
+        planGroup.remove(planPlane);
+        planPlane.geometry.dispose();
+        if (planPlane.material) planPlane.material.dispose();
+        planPlane = null;
+      }
+
+      if (planTexture){
+        planTexture.dispose();
+        planTexture = null;
+      }
+
+      planTexture = new THREE.CanvasTexture(sourceCanvas);
+      planTexture.colorSpace = THREE.SRGBColorSpace;
+      planTexture.wrapS = THREE.ClampToEdgeWrapping;
+      planTexture.wrapT = THREE.ClampToEdgeWrapping;
+      planTexture.minFilter = THREE.LinearMipmapLinearFilter;
+      planTexture.magFilter = THREE.LinearFilter;
+      planTexture.generateMipmaps = true;
+      planTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+      const geo = new THREE.PlaneGeometry(width, depth);
+      const mat = new THREE.MeshBasicMaterial({
+        map: planTexture,
+        transparent: true,
+        opacity,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+
+      planPlane = new THREE.Mesh(geo, mat);
+      planPlane.name = "PDF_PLAN_FLOOR";
+      planPlane.rotation.x = -Math.PI / 2;
+      planPlane.rotation.z = planRotationQuarter * Math.PI / 2;
+      planPlane.position.y = 0.001;
+      planPlane.visible = planVisible;
+      planGroup.add(planPlane);
+
+      createPlanBorder(width, depth);
+      if (planBorder) planBorder.visible = planVisible;
+
+      grid.visible = false;
+
+      setPlanStatus(`図面床を読込：${label} / ${width} x ${depth}`);
+    }
+
+    async function renderPdfToCanvas(pdfSource, pageNumber, label){
+      setPlanStatus("PDF図面を画像化中...");
+
+      const task = pdfjsLib.getDocument(pdfSource);
+      const pdf = await task.promise;
+      const safePage = Math.max(1, Math.min(pageNumber || 1, pdf.numPages));
+      const page = await pdf.getPage(safePage);
+
+      const baseViewport = page.getViewport({ scale: 1 });
+      const maxSide = 2048;
+      const scale = Math.min(2.2, maxSide / Math.max(baseViewport.width, baseViewport.height));
+      const viewport = page.getViewport({ scale });
+
+      const canvas2d = document.createElement("canvas");
+      canvas2d.width = Math.max(1, Math.floor(viewport.width));
+      canvas2d.height = Math.max(1, Math.floor(viewport.height));
+
+      const ctx = canvas2d.getContext("2d", { alpha: false });
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas2d.width, canvas2d.height);
+
+      await page.render({
+        canvasContext: ctx,
+        viewport
+      }).promise;
+
+      applyCanvasAsPlanFloor(canvas2d, `${label} / page ${safePage}`);
+    }
+
+    async function renderImageToCanvas(src, label){
+      setPlanStatus("画像図面を読込中...");
+
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = src;
+      await img.decode();
+
+      const maxSide = 2048;
+      const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.max(1, Math.floor(img.naturalWidth * scale));
+      const h = Math.max(1, Math.floor(img.naturalHeight * scale));
+
+      const canvas2d = document.createElement("canvas");
+      canvas2d.width = w;
+      canvas2d.height = h;
+
+      const ctx = canvas2d.getContext("2d", { alpha: false });
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+
+      applyCanvasAsPlanFloor(canvas2d, label);
+    }
+
+    async function loadPlanFromFile(file){
+      if (!file) return;
+
+      const ext = getExt(file.name);
+      const pageNumber = Math.max(1, parseInt(planPageInput.value || "1", 10));
+
+      try{
+        if (ext === ".pdf"){
+          const data = new Uint8Array(await file.arrayBuffer());
+          await renderPdfToCanvas({ data }, pageNumber, file.name);
+        } else if (file.type.startsWith("image/")){
+          const url = URL.createObjectURL(file);
+          try{
+            await renderImageToCanvas(url, file.name);
+          } finally {
+            URL.revokeObjectURL(url);
+          }
+        } else {
+          alert("PDFまたはPNG/JPG/WebPを選択してください。");
+        }
+      }catch(err){
+        console.error(err);
+        alert("図面の読み込みに失敗しました。\\n\\n" + err.message);
+        setPlanStatus("図面読み込み失敗");
+      }
+    }
+
+    async function loadPlanFromPath(){
+      const raw = planPathInput.value.trim();
+      if (!raw){
+        alert("plans/zumen.pdf のように入力してください。");
+        return;
+      }
+
+      const url = toAssetUrl(raw);
+      const ext = getExt(raw);
+      const pageNumber = Math.max(1, parseInt(planPageInput.value || "1", 10));
+
+      try{
+        if (ext === ".pdf"){
+          await renderPdfToCanvas(url, pageNumber, raw);
+        } else if ([".png", ".jpg", ".jpeg", ".webp"].includes(ext)){
+          await renderImageToCanvas(url, raw);
+        } else {
+          alert("PDFまたはPNG/JPG/WebPのパスを指定してください。");
+        }
+      }catch(err){
+        console.error(err);
+        alert("図面の読み込みに失敗しました。\\n\\n" + raw + "\\n\\n" + err.message);
+        setPlanStatus("図面読み込み失敗");
+      }
+    }
+
+    function applyPlanSize(){
+      if (!planPlane){
+        setPlanStatus("図面床が未読込です。先にPDF/画像を読み込んでください。");
+        return;
+      }
+
+      const { width, depth, opacity } = readPlanSettings();
+
+      planPlane.geometry.dispose();
+      planPlane.geometry = new THREE.PlaneGeometry(width, depth);
+      planPlane.material.opacity = opacity;
+      planPlane.rotation.z = planRotationQuarter * Math.PI / 2;
+
+      createPlanBorder(width, depth);
+      if (planBorder) planBorder.visible = planVisible;
+
+      setPlanStatus(`図面床サイズ反映：${width} x ${depth} / opacity ${opacity}`);
+    }
+
+    function togglePlanVisible(){
+      planVisible = !planVisible;
+      if (planPlane) planPlane.visible = planVisible;
+      if (planBorder) planBorder.visible = planVisible;
+      setPlanStatus(planVisible ? "図面床を表示しました。" : "図面床を非表示にしました。");
+    }
+
+    function rotatePlanFloor(){
+      if (!planPlane){
+        setPlanStatus("図面床が未読込です。");
+        return;
+      }
+
+      planRotationQuarter = (planRotationQuarter + 1) % 4;
+      planPlane.rotation.z = planRotationQuarter * Math.PI / 2;
+      setPlanStatus(`図面床を${planRotationQuarter * 90}°回転しました。`);
+    }
+
+    function fitPlanToModel(){
+      const base = currentSize && currentSize > 0 ? currentSize : 5;
+      planWidthInput.value = (base * 2.0).toFixed(1);
+      planDepthInput.value = (base * 1.4).toFixed(1);
+      applyPlanSize();
+    }
+
     function resetView(){
       if (!currentObject){
         camera.position.set(3, 2, 4);
@@ -1097,6 +1531,17 @@
       prompt("ARビューアー確認用URL", url);
     });
     toggleAnimBtn.addEventListener("click", toggleAnimation);
+
+    planFileInput.addEventListener("change", () => {
+      const file = planFileInput.files && planFileInput.files[0];
+      loadPlanFromFile(file);
+    });
+    loadPlanPathBtn.addEventListener("click", loadPlanFromPath);
+    clearPlanBtn.addEventListener("click", clearPlanFloor);
+    togglePlanBtn.addEventListener("click", togglePlanVisible);
+    rotatePlanBtn.addEventListener("click", rotatePlanFloor);
+    applyPlanSizeBtn.addEventListener("click", applyPlanSize);
+    fitPlanToModelBtn.addEventListener("click", fitPlanToModel);
 
     mobilePanelBtn.addEventListener("click", () => {
       document.body.classList.toggle("mobile-open");
