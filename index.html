@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - PDF Wall Box Edge Snap</title>
+  <title>SF 3D Viewer - PDF Position Adjust v8</title>
 
   <script type="importmap">
   {
@@ -246,7 +246,7 @@
     <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / PDF WALL BOX EDGE SNAP</div>
+        <div class="brand-title">SF 3D VIEWER / PDF POSITION ADJUST v8</div>
         <div class="brand-sub">側面PDFの下端を地面PDFの外周上端へ接続。側面はA4横向き基準。</div>
       </div>
       <div class="digital">
@@ -282,7 +282,7 @@
 
     <section class="drawer right wide" id="planDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MULTI PDF PLAN v7</div>
+        <div class="drawer-title">MULTI PDF PLAN v8</div>
         <button class="close" data-close="planDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -332,6 +332,31 @@
           <button class="btn" id="planPctMinus1Btn"><span>-1%</span></button>
           <button class="btn" id="planPctPlus1Btn"><span>+1%</span></button>
         </div>
+
+        <div class="readout" id="planOffsetReadout">位置調整 X:0 / Y:0 / Z:0</div>
+        <div class="mini-input-row" style="grid-template-columns:1fr 1fr 1fr;">
+          <div class="mini-field"><label>位置調整 X</label><input id="planOffsetXInput" type="number" step="0.001" value="0"></div>
+          <div class="mini-field"><label>位置調整 Y</label><input id="planOffsetYInput" type="number" step="0.001" value="0"></div>
+          <div class="mini-field"><label>位置調整 Z</label><input id="planOffsetZInput" type="number" step="0.001" value="0"></div>
+        </div>
+        <div class="mini-input-row" style="grid-template-columns:1fr 1fr 1fr;">
+          <div class="mini-field"><label>移動量</label><input id="planOffsetStepInput" type="number" min="0.001" step="0.001" value="0.05"></div>
+          <button class="btn lime" id="applyOffsetBtn"><span>位置を反映</span></button>
+          <button class="btn" id="resetOffsetBtn"><span>位置リセット</span></button>
+        </div>
+        <div class="button-grid four">
+          <button class="btn" id="nudgeXMinusBtn"><span>X-</span></button>
+          <button class="btn" id="nudgeXPlusBtn"><span>X+</span></button>
+          <button class="btn" id="nudgeZMinusBtn"><span>Z-</span></button>
+          <button class="btn" id="nudgeZPlusBtn"><span>Z+</span></button>
+        </div>
+        <div class="button-grid four">
+          <button class="btn" id="nudgeYMinusBtn"><span>Y-</span></button>
+          <button class="btn" id="nudgeYPlusBtn"><span>Y+</span></button>
+          <button class="btn" id="snapOffsetZeroBtn"><span>XYZ=0</span></button>
+          <button class="btn magenta" id="focusActiveLayerBtn"><span>選択PDFへ視点</span></button>
+        </div>
+
         <div class="button-grid">
           <button class="btn lime" id="setLayerFloorBtn"><span>地面へ変更</span></button>
           <button class="btn magenta" id="setLayerSideBtn"><span>側面へ変更</span></button>
@@ -370,7 +395,7 @@
       <button class="btn magenta" id="closePanelsBtn"><span>パネル収納</span></button>
     </div>
 
-    <div class="viewer-only-note">側面PDFの下端を地面PDF外周端へ接続。側面はA4横向き基準。</div>
+    <div class="viewer-only-note">側面PDFは地面端へ吸着。必要に応じて位置調整X/Y/Zで微調整できます。</div>
     <div class="statusbar" id="statusText">SYSTEM READY</div>
   </div>
 
@@ -447,6 +472,21 @@
     const planPctPlus10Btn = document.getElementById("planPctPlus10Btn");
     const planPctMinus1Btn = document.getElementById("planPctMinus1Btn");
     const planPctPlus1Btn = document.getElementById("planPctPlus1Btn");
+    const planOffsetReadout = document.getElementById("planOffsetReadout");
+    const planOffsetXInput = document.getElementById("planOffsetXInput");
+    const planOffsetYInput = document.getElementById("planOffsetYInput");
+    const planOffsetZInput = document.getElementById("planOffsetZInput");
+    const planOffsetStepInput = document.getElementById("planOffsetStepInput");
+    const applyOffsetBtn = document.getElementById("applyOffsetBtn");
+    const resetOffsetBtn = document.getElementById("resetOffsetBtn");
+    const nudgeXMinusBtn = document.getElementById("nudgeXMinusBtn");
+    const nudgeXPlusBtn = document.getElementById("nudgeXPlusBtn");
+    const nudgeZMinusBtn = document.getElementById("nudgeZMinusBtn");
+    const nudgeZPlusBtn = document.getElementById("nudgeZPlusBtn");
+    const nudgeYMinusBtn = document.getElementById("nudgeYMinusBtn");
+    const nudgeYPlusBtn = document.getElementById("nudgeYPlusBtn");
+    const snapOffsetZeroBtn = document.getElementById("snapOffsetZeroBtn");
+    const focusActiveLayerBtn = document.getElementById("focusActiveLayerBtn");
 
     const setLayerFloorBtn = document.getElementById("setLayerFloorBtn");
     const setLayerSideBtn = document.getElementById("setLayerSideBtn");
@@ -923,6 +963,7 @@
         btn.innerHTML = `
           <div class="item-name">${escapeHtml(layer.label)}</div>
           <div class="item-path">${layer.placement === "floor" ? "地面" : "側面A4横"}${layer.placement === "side" ? "・" + (layer.sideEdge === "bottom" ? "下端" : "上端") : ""} / ${layer.percent}% / ${layer.visible ? "表示" : "非表示"}</div>
+          <div class="item-path">POS X:${formatOffsetValue(layer.offsetX)} Y:${formatOffsetValue(layer.offsetY)} Z:${formatOffsetValue(layer.offsetZ)}</div>
           <div class="badge-row">
             <span class="badge ${layer.placement === "floor" ? "lime" : "magenta"}">${layer.placement === "floor" ? "GROUND" : "SIDE"}</span>
             <span class="badge">#${layer.id}</span>
@@ -945,11 +986,111 @@
         planPercentInput.value = String(layer.percent);
         planPercentView.textContent = String(layer.percent);
         planOpacityInput.value = String(layer.opacity);
+        syncActiveLayerOffsetInputs(layer);
         setPlanStatus(`選択PDF：${layer.label} / ${layer.placement === "floor" ? "地面" : "側面"}`);
+      } else {
+        syncActiveLayerOffsetInputs(null);
       }
 
       renderPlanLayerList();
       updateInfo();
+    }
+
+    function formatOffsetValue(value){
+      const n = Number(value) || 0;
+      if (Math.abs(n) < 0.0000005) return "0";
+      return n.toFixed(3).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+    }
+
+    function updateOffsetReadout(layer){
+      if (!planOffsetReadout) return;
+      if (!layer){
+        planOffsetReadout.textContent = "位置調整 X:0 / Y:0 / Z:0";
+        return;
+      }
+      planOffsetReadout.textContent = `位置調整 X:${formatOffsetValue(layer.offsetX)} / Y:${formatOffsetValue(layer.offsetY)} / Z:${formatOffsetValue(layer.offsetZ)}`;
+    }
+
+    function syncActiveLayerOffsetInputs(layer){
+      const target = layer || null;
+      planOffsetXInput.value = formatOffsetValue(target?.offsetX || 0);
+      planOffsetYInput.value = formatOffsetValue(target?.offsetY || 0);
+      planOffsetZInput.value = formatOffsetValue(target?.offsetZ || 0);
+      updateOffsetReadout(target);
+    }
+
+    function getOffsetStep(){
+      return Math.max(0.001, parseFloat(planOffsetStepInput.value) || 0.05);
+    }
+
+    function applyActiveLayerOffsetValues(){
+      const layer = getActiveLayer();
+      if (!layer){
+        setPlanStatus("位置調整値を設定しました。次に追加するPDFには反映されません。先にPDFレイヤーを選択してください。");
+        return;
+      }
+
+      layer.offsetX = parseFloat(planOffsetXInput.value) || 0;
+      layer.offsetY = parseFloat(planOffsetYInput.value) || 0;
+      layer.offsetZ = parseFloat(planOffsetZInput.value) || 0;
+      for (const target of planLayers) applyLayerStyle(target);
+      syncActiveLayerOffsetInputs(layer);
+      renderPlanLayerList();
+      setPlanStatus(`位置調整を反映しました。 X:${formatOffsetValue(layer.offsetX)} / Y:${formatOffsetValue(layer.offsetY)} / Z:${formatOffsetValue(layer.offsetZ)}`);
+    }
+
+    function nudgeActiveLayer(axis, delta){
+      const layer = getActiveLayer();
+      if (!layer){
+        alert("先にPDFレイヤーを選択してください。");
+        return;
+      }
+
+      if (axis === "x") layer.offsetX = (layer.offsetX || 0) + delta;
+      if (axis === "y") layer.offsetY = (layer.offsetY || 0) + delta;
+      if (axis === "z") layer.offsetZ = (layer.offsetZ || 0) + delta;
+
+      for (const target of planLayers) applyLayerStyle(target);
+      syncActiveLayerOffsetInputs(layer);
+      renderPlanLayerList();
+      setPlanStatus(`位置調整 ${axis.toUpperCase()} ${delta >= 0 ? "+" : ""}${formatOffsetValue(delta)}`);
+    }
+
+    function resetActiveLayerOffset(){
+      const layer = getActiveLayer();
+      if (!layer){
+        alert("先にPDFレイヤーを選択してください。");
+        return;
+      }
+
+      layer.offsetX = 0;
+      layer.offsetY = 0;
+      layer.offsetZ = 0;
+      for (const target of planLayers) applyLayerStyle(target);
+      syncActiveLayerOffsetInputs(layer);
+      renderPlanLayerList();
+      setPlanStatus("位置調整をリセットしました。");
+    }
+
+    function focusActiveLayer(){
+      const layer = getActiveLayer();
+      if (!layer || !layer.group){
+        alert("先にPDFレイヤーを選択してください。");
+        return;
+      }
+
+      layer.group.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(layer.group);
+      const center = new THREE.Vector3();
+      const size = new THREE.Vector3();
+      box.getCenter(center);
+      box.getSize(size);
+      const radius = Math.max(size.x, size.y, size.z, 0.5);
+
+      controls.target.copy(center);
+      camera.position.set(center.x + radius * 1.6, center.y + radius * 1.2, center.z + radius * 1.8);
+      controls.update();
+      setPlanStatus(`選択PDFへ視点移動：${layer.label}`);
     }
 
     function makeCanvasTexture(canvas2d){
@@ -1077,7 +1218,7 @@
       if (layer.placement === "floor"){
         // 地面図面はY=0の少し下へ配置。
         // モデルはY=0に置くため、PDF面がモデルを覆いにくくなる。
-        layer.group.position.set(0, -0.006 * layer.id, 0);
+        layer.group.position.set(layer.offsetX || 0, (-0.006 * layer.id) + (layer.offsetY || 0), layer.offsetZ || 0);
         layer.group.rotation.set(-Math.PI / 2, 0, layer.rotationQuarter * Math.PI / 2);
         layer.mesh.rotation.set(0, 0, 0);
         layer.border.rotation.set(0, 0, 0);
@@ -1088,7 +1229,9 @@
 
         layer.group.quaternion.identity();
         layer.group.position.copy(edge.midpoint);
-        layer.group.position.y = height / 2;
+        layer.group.position.x += layer.offsetX || 0;
+        layer.group.position.y = (height / 2) + (layer.offsetY || 0);
+        layer.group.position.z += layer.offsetZ || 0;
 
         // 側面はデフォルトA4横向き。90°回転を押した場合だけPDF面を回転。
         // 通常は0のままなので、下端が地面端に合いやすい。
@@ -1101,7 +1244,7 @@
 
       layer.width = width;
       layer.height = height;
-      layer.bottomY = layer.placement === "side" ? 0 : -0.006 * layer.id;
+      layer.bottomY = layer.placement === "side" ? (layer.offsetY || 0) : ((-0.006 * layer.id) + (layer.offsetY || 0));
     }
 
     function addCanvasAsLayer(canvas2d, label, placement){
@@ -1148,6 +1291,9 @@
         rotationQuarter: 0,
         sideEdge: placement === "side" ? "top" : "top",
         visible: true,
+        offsetX: 0,
+        offsetY: 0,
+        offsetZ: 0,
         texture,
         material,
         mesh,
@@ -1163,7 +1309,7 @@
       setActiveLayer(id);
       resetView();
 
-      setPlanStatus(`PDFを${placement === "floor" ? "地面Y=0下" : "側面A4横・地面外周端へ接続"}に追加：${label}`);
+      setPlanStatus(`PDFを${placement === "floor" ? "地面Y=0下" : "側面A4横・地面外周端へ接続"}に追加：${label} / 位置調整で微調整可能`);
     }
 
     
@@ -1424,7 +1570,11 @@
       disposeLayer(layer);
       planLayers = planLayers.filter(l => l.id !== layer.id);
       activeLayerId = planLayers.length ? planLayers[planLayers.length - 1].id : null;
-      if (activeLayerId) setActiveLayer(activeLayerId);
+      if (activeLayerId) {
+        setActiveLayer(activeLayerId);
+      } else {
+        syncActiveLayerOffsetInputs(null);
+      }
       for (const target of planLayers) applyLayerStyle(target);
       renderPlanLayerList();
       resetView();
@@ -1547,6 +1697,19 @@
 
     planPercentInput.addEventListener("change", () => updateActiveLayerPercent(parseFloat(planPercentInput.value) || 100));
     planOpacityInput.addEventListener("change", updateActiveLayerOpacity);
+    planOffsetXInput.addEventListener("change", applyActiveLayerOffsetValues);
+    planOffsetYInput.addEventListener("change", applyActiveLayerOffsetValues);
+    planOffsetZInput.addEventListener("change", applyActiveLayerOffsetValues);
+    applyOffsetBtn.addEventListener("click", applyActiveLayerOffsetValues);
+    resetOffsetBtn.addEventListener("click", resetActiveLayerOffset);
+    nudgeXMinusBtn.addEventListener("click", () => nudgeActiveLayer("x", -getOffsetStep()));
+    nudgeXPlusBtn.addEventListener("click", () => nudgeActiveLayer("x", getOffsetStep()));
+    nudgeZMinusBtn.addEventListener("click", () => nudgeActiveLayer("z", -getOffsetStep()));
+    nudgeZPlusBtn.addEventListener("click", () => nudgeActiveLayer("z", getOffsetStep()));
+    nudgeYMinusBtn.addEventListener("click", () => nudgeActiveLayer("y", -getOffsetStep()));
+    nudgeYPlusBtn.addEventListener("click", () => nudgeActiveLayer("y", getOffsetStep()));
+    snapOffsetZeroBtn.addEventListener("click", resetActiveLayerOffset);
+    focusActiveLayerBtn.addEventListener("click", focusActiveLayer);
 
     setLayerFloorBtn.addEventListener("click", () => setActiveLayerPlacement("floor"));
     setLayerSideBtn.addEventListener("click", () => setActiveLayerPlacement("side"));
@@ -1564,6 +1727,7 @@
     loadModelList();
     loadPlanList();
     renderPlanLayerList();
+    syncActiveLayerOffsetInputs(null);
 
     if (initialFile){
       modelPathInput.value = initialFile;
