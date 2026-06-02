@@ -585,7 +585,7 @@
       <div class="brand">
         <div class="brand-line"></div>
         <div class="brand-title">SF 3D VIEWER / PDF PLAN FLOOR</div>
-        <div class="brand-sub">PDFアップロード用フォルダから図面を選択して地面に配置</div>
+        <div class="brand-sub">plans/ フォルダを直接参照して図面を選択・配置</div>
       </div>
       <div class="digital">
         <div class="label">SYSTEM DATE</div>
@@ -616,7 +616,7 @@
 
     <section class="panel" id="planPanel">
       <div class="panel-head">
-        <div class="panel-title">PDF PLAN FOLDER</div>
+        <div class="panel-title">PDF PLAN FOLDER v2</div>
         <button class="toggle" data-target="planPanel">−</button>
       </div>
       <div class="panel-body">
@@ -647,6 +647,8 @@
         <div class="button-grid" style="margin-top:8px;">
           <button class="btn lime" id="loadPlanPathBtn"><span>パス読込</span></button>
           <button class="btn" id="reloadPlansBtn"><span>図面一覧再読込</span></button>
+          <button class="btn magenta" id="loadHeimenBtn"><span>平面図.pdf読込</span></button>
+          <button class="btn" id="showPlanApiBtn"><span>参照URL表示</span></button>
         </div>
 
         <div style="margin-top:8px;">
@@ -678,7 +680,7 @@
         </div>
 
         <div class="plan-readout" id="planStatusText">
-          plans/ にPDFをアップロードすると、ここに一覧表示されます。
+          plans/平面図.pdf を直接参照できます。一覧が出ない場合は「平面図.pdf読込」を押してください。
         </div>
 
         <p class="hint warning">
@@ -740,6 +742,20 @@
     const MODEL_ROOTS = ["models", "モデル"];
     const PLAN_ROOTS = ["plans", "図面", "PDF", "pdf"];
 
+    // GitHub APIの一覧取得が失敗した時用の直接参照候補。
+    // 今回のように plans/平面図.pdf をアップロードした場合でも拾えるようにする。
+    const PLAN_FALLBACK_FILES = [
+      "plans/平面図.pdf",
+      "plans/配置図.pdf",
+      "plans/zumen.pdf",
+      "plans/plan.pdf",
+      "plans/floor.pdf",
+      "plans/平面図.png",
+      "plans/配置図.png",
+      "plans/zumen.png",
+      "plans/plan.png"
+    ];
+
     const MODEL_EXTENSIONS = [".obj", ".fbx", ".glb", ".gltf"];
     const PLAN_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
 
@@ -769,6 +785,8 @@
     const planPageInput = document.getElementById("planPageInput");
     const loadPlanPathBtn = document.getElementById("loadPlanPathBtn");
     const reloadPlansBtn = document.getElementById("reloadPlansBtn");
+    const loadHeimenBtn = document.getElementById("loadHeimenBtn");
+    const showPlanApiBtn = document.getElementById("showPlanApiBtn");
     const clearPlanBtn = document.getElementById("clearPlanBtn");
     const togglePlanBtn = document.getElementById("togglePlanBtn");
     const rotatePlanBtn = document.getElementById("rotatePlanBtn");
@@ -926,7 +944,7 @@
 
     async function fetchGitHubContents(path, ref){
       const safePath = encodePath(path);
-      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${safePath}?ref=${encodeURIComponent(ref)}`;
+      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${safePath}?ref=${encodeURIComponent(ref)}&_=${Date.now()}`;
       const res = await fetch(url, {
         headers: { "Accept": "application/vnd.github+json" }
       });
@@ -1015,6 +1033,41 @@
       }
     }
 
+
+    async function findFallbackPlans(){
+      const found = [];
+
+      for (const path of PLAN_FALLBACK_FILES){
+        try{
+          const res = await fetch(toAssetUrl(path) + "?check=" + Date.now(), {
+            method: "HEAD",
+            cache: "no-store"
+          });
+
+          if (res.ok){
+            const ext = getExt(path);
+            found.push({
+              name: getBaseName(path),
+              path,
+              ext,
+              size: 0,
+              html_url: "",
+              download_url: ""
+            });
+          }
+        }catch(err){
+          console.warn("fallback plan check skipped:", path, err.message);
+        }
+      }
+
+      const map = new Map();
+      for (const item of found){
+        map.set(item.path.toLowerCase(), item);
+      }
+
+      return Array.from(map.values()).sort((a,b) => a.path.localeCompare(b.path, "ja"));
+    }
+
     async function loadPlanList(){
       setPlanStatus("SCANNING plans folder ...");
       planList.innerHTML = `<div class="empty">plans/、図面/、PDF/ を走査中...</div>`;
@@ -1027,14 +1080,24 @@
       if (allPlans.length > 0){
         setPlanStatus(`図面一覧 ${allPlans.length}件 / ${result.ref}`);
       } else {
-        planList.innerHTML = `
-          <div class="empty">
-            PDF図面が見つかりません。<br>
-            推奨：リポジトリ直下に plans/ フォルダを作り、PDFをアップロードしてください。<br>
-            例：plans/zumen.pdf
-          </div>
-        `;
-        setPlanStatus("plans/ にPDFをアップロードしてください。");
+        setPlanStatus("GitHub API一覧が空です。直接参照を確認中...");
+        allPlans = await findFallbackPlans();
+        renderPlanList();
+
+        if (allPlans.length > 0){
+          setPlanStatus(`直接参照で図面を検出：${allPlans.length}件`);
+        } else {
+          planList.innerHTML = `
+            <div class="empty">
+              PDF図面が見つかりません。<br>
+              現在探している場所：plans/、図面/、PDF/、pdf/<br>
+              例：plans/平面図.pdf<br><br>
+              GitHubにアップロード直後は反映に少し時間がかかることがあります。<br>
+              「図面一覧再読込」を押すか、手入力パスに plans/平面図.pdf を入れて「パス読込」を押してください。
+            </div>
+          `;
+          setPlanStatus("plans/ を参照できません。手入力で plans/平面図.pdf を試してください。");
+        }
       }
     }
 
@@ -1625,6 +1688,15 @@
     });
     loadPlanPathBtn.addEventListener("click", () => loadPlanFromPath());
     reloadPlansBtn.addEventListener("click", loadPlanList);
+    loadHeimenBtn.addEventListener("click", () => {
+      planPathInput.value = "plans/平面図.pdf";
+      loadPlanFromPath("plans/平面図.pdf");
+    });
+    showPlanApiBtn.addEventListener("click", () => {
+      const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/plans?ref=main`;
+      const fileUrl = `${location.origin}/plans/平面図.pdf`;
+      prompt("plansフォルダ参照URL / 直接PDF URL", apiUrl + "\n" + fileUrl);
+    });
     clearPlanBtn.addEventListener("click", clearPlanFloor);
     togglePlanBtn.addEventListener("click", togglePlanVisible);
     rotatePlanBtn.addEventListener("click", rotatePlanFloor);
