@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - PDF Plan Percent Scale</title>
+  <title>SF 3D Viewer - PDF Percent Scale Tray</title>
 
   <script type="importmap">
   {
@@ -166,21 +166,22 @@
       text-shadow:0 0 8px rgba(166,255,45,.55);
     }
 
-    .bottom-dock{
+    .panel-tray{
       position:absolute;
       z-index:12;
       left:50%;
       bottom:10px;
       transform:translateX(-50%);
-      width:min(980px, calc(100vw - 20px));
+      width:min(920px, calc(100vw - 20px));
+      min-height:50px;
       border:1px solid rgba(34,248,255,.34);
-      background:rgba(4,10,20,.70);
+      background:rgba(4,10,20,.78);
       box-shadow:var(--shadow);
       backdrop-filter:blur(12px);
       -webkit-backdrop-filter:blur(12px);
-      padding:8px;
+      padding:7px;
       display:grid;
-      grid-template-columns:repeat(8, 1fr);
+      grid-template-columns:1.2fr 1.2fr 1fr 1fr 1fr 1fr;
       gap:7px;
       pointer-events:auto;
     }
@@ -242,7 +243,7 @@
       position:absolute;
       z-index:13;
       top:76px;
-      bottom:74px;
+      bottom:70px;
       width:380px;
       max-width:calc(100vw - 20px);
       display:none;
@@ -476,6 +477,69 @@
       line-height:1.5;
     }
 
+
+    .tray-label{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid rgba(166,255,45,.26);
+      background:rgba(166,255,45,.045);
+      color:var(--lime);
+      font-size:10px;
+      font-family:Consolas,"Courier New",monospace;
+      letter-spacing:.08em;
+      text-shadow:0 0 6px rgba(166,255,45,.38);
+      padding:0 6px;
+      min-height:36px;
+    }
+
+    .drawer.open + .drawer-shadow-fix{
+      display:block;
+    }
+
+    .percent-display{
+      margin-top:8px;
+      border:1px solid rgba(166,255,45,.30);
+      background:rgba(166,255,45,.055);
+      color:var(--lime);
+      padding:10px;
+      text-align:center;
+      font-family:Consolas,"Courier New",monospace;
+      box-shadow:inset 0 0 14px rgba(166,255,45,.05);
+    }
+
+    .percent-display .big{
+      font-size:28px;
+      font-weight:bold;
+      letter-spacing:.06em;
+      text-shadow:0 0 9px rgba(166,255,45,.42);
+    }
+
+    .percent-display .sub{
+      margin-top:4px;
+      color:var(--sub);
+      font-size:11px;
+      line-height:1.45;
+      font-family:"MS UI Gothic","Yu Gothic UI","Meiryo",sans-serif;
+    }
+
+    .viewer-only-note{
+      position:absolute;
+      right:10px;
+      bottom:64px;
+      z-index:9;
+      max-width:min(460px, calc(100vw - 20px));
+      border:1px solid rgba(34,248,255,.20);
+      background:rgba(2,8,18,.45);
+      color:var(--sub);
+      padding:6px 8px;
+      font-size:10px;
+      pointer-events:none;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
     .empty{
       border:1px dashed rgba(145,166,201,.34);
       color:var(--sub);
@@ -498,7 +562,7 @@
     .statusbar{
       position:absolute;
       left:10px;
-      bottom:72px;
+      bottom:64px;
       z-index:9;
       max-width:calc(100vw - 20px);
       border:1px solid rgba(166,255,45,.28);
@@ -537,7 +601,7 @@
         font-size:10px;
       }
 
-      .bottom-dock{
+      .panel-tray{
         bottom:6px;
         width:calc(100vw - 12px);
         grid-template-columns:repeat(4, 1fr);
@@ -581,8 +645,8 @@
     <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / PDF PLAN SCALE %</div>
-        <div class="brand-sub">ビューアー優先レイアウト。PDF図面は比率固定で％スケール調整。</div>
+        <div class="brand-title">SF 3D VIEWER / PDF SCALE % + PANEL TRAY</div>
+        <div class="brand-sub">PDF図面は比率固定。下部収納バーから必要なパネルだけ開く。</div>
       </div>
       <div class="digital">
         <div class="label">SYSTEM DATE</div>
@@ -611,7 +675,7 @@
 
     <section class="drawer right wide" id="planDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">PDF PLAN FOLDER v4</div>
+        <div class="drawer-title">PDF PLAN FOLDER v5</div>
         <button class="close" data-close="planDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -651,14 +715,18 @@
           <input class="file-input" id="planFileInput" type="file" accept=".pdf,image/png,image/jpeg,image/webp">
         </div>
 
-        <div class="mini-input-row three">
-          <div class="mini-field">
-            <label>基準幅 X = 100%</label>
-            <input id="planBaseWidthInput" type="number" step="0.1" value="10">
+        <div class="percent-display">
+          <div class="big"><span id="planPercentView">100</span>%</div>
+          <div class="sub">
+            PDF比率固定 / 幅・奥行は自動計算<br>
+            図面の大きさは％だけで調整
           </div>
+        </div>
+
+        <div class="mini-input-row">
           <div class="mini-field">
             <label>大きさ %</label>
-            <input id="planPercentInput" type="number" min="1" step="1" value="100">
+            <input id="planPercentInput" type="number" min="1" max="1000" step="1" value="100">
           </div>
           <div class="mini-field">
             <label>透明度</label>
@@ -667,9 +735,9 @@
         </div>
 
         <div class="button-grid four">
+          <button class="btn" id="planPct25Btn"><span>25%</span></button>
           <button class="btn" id="planPct50Btn"><span>50%</span></button>
           <button class="btn" id="planPct100Btn"><span>100%</span></button>
-          <button class="btn" id="planPct150Btn"><span>150%</span></button>
           <button class="btn" id="planPct200Btn"><span>200%</span></button>
         </div>
 
@@ -681,8 +749,8 @@
         </div>
 
         <div class="button-grid">
-          <button class="btn lime" id="applyPlanSizeBtn"><span>サイズ反映</span></button>
-          <button class="btn" id="fitPlanToModelBtn"><span>モデル基準</span></button>
+          <button class="btn lime" id="applyPlanSizeBtn"><span>%反映</span></button>
+          <button class="btn" id="fitPlanToModelBtn"><span>モデルに合わせる</span></button>
           <button class="btn" id="togglePlanBtn"><span>表示/非表示</span></button>
           <button class="btn magenta" id="rotatePlanBtn"><span>90°回転</span></button>
           <button class="btn" id="centerPlanBtn"><span>中央に戻す</span></button>
@@ -690,11 +758,11 @@
         </div>
 
         <div class="readout" id="planStatusText">
-          plans/平面図.pdf を直接参照できます。大きさは%で調整し、PDFの縦横比は崩しません。
+          plans/平面図.pdf を直接参照できます。幅・奥行入力なし。%だけで比率固定調整します。
         </div>
 
         <div class="help">
-          重要：この版ではPDFの比率を固定します。奥行ZはPDFの縦横比から自動計算されるため、図面が横伸び・縦伸びしません。
+          重要：幅・奥行は入力しません。PDFの縦横比を保ったまま、%だけで全体サイズを変更します。
         </div>
       </div>
     </section>
@@ -712,17 +780,16 @@
       </div>
     </section>
 
-    <div class="bottom-dock">
-      <button class="btn lime" id="modelBtn"><span>モデル</span></button>
-      <button class="btn lime" id="planBtn"><span>PDF図面</span></button>
-      <button class="btn" id="infoBtn"><span>情報</span></button>
+    <div class="panel-tray">
+      <div class="tray-label">PANEL STORAGE</div>
+      <button class="btn lime" id="modelBtn"><span>モデル収納</span></button>
+      <button class="btn lime" id="planBtn"><span>PDF図面収納</span></button>
+      <button class="btn" id="infoBtn"><span>情報収納</span></button>
       <button class="btn" id="resetViewBtn"><span>視点リセット</span></button>
-      <button class="btn" id="fitBtn"><span>全体表示</span></button>
-      <button class="btn" id="toggleGridBtn"><span>グリッド</span></button>
-      <button class="btn magenta" id="openArBtn"><span>AR</span></button>
-      <button class="btn magenta" id="closePanelsBtn"><span>閉じる</span></button>
+      <button class="btn magenta" id="closePanelsBtn"><span>パネル収納</span></button>
     </div>
 
+    <div class="viewer-only-note">パネルは下部の PANEL STORAGE に収納。必要な時だけ開く。</div>
     <div class="statusbar" id="statusText">SYSTEM READY</div>
   </div>
 
@@ -780,9 +847,6 @@
     const planBtn = document.getElementById("planBtn");
     const infoBtn = document.getElementById("infoBtn");
     const resetViewBtn = document.getElementById("resetViewBtn");
-    const fitBtn = document.getElementById("fitBtn");
-    const toggleGridBtn = document.getElementById("toggleGridBtn");
-    const openArBtn = document.getElementById("openArBtn");
     const closePanelsBtn = document.getElementById("closePanelsBtn");
 
     const planFileInput = document.getElementById("planFileInput");
@@ -796,9 +860,10 @@
     const togglePlanBtn = document.getElementById("togglePlanBtn");
     const rotatePlanBtn = document.getElementById("rotatePlanBtn");
     const centerPlanBtn = document.getElementById("centerPlanBtn");
-    const planBaseWidthInput = document.getElementById("planBaseWidthInput");
     const planPercentInput = document.getElementById("planPercentInput");
+    const planPercentView = document.getElementById("planPercentView");
     const planOpacityInput = document.getElementById("planOpacityInput");
+    const planPct25Btn = document.getElementById("planPct25Btn");
     const planPct50Btn = document.getElementById("planPct50Btn");
     const planPct100Btn = document.getElementById("planPct100Btn");
     const planPct150Btn = document.getElementById("planPct150Btn");
@@ -877,6 +942,7 @@
     let planRotationQuarter = 0;
     let planVisible = true;
     let planImageAspect = 10 / 7;
+    let planBaseWidth = 10;
 
     const axesGroup = new THREE.Group();
     scene.add(axesGroup);
@@ -957,13 +1023,16 @@
     }
 
     function openDrawer(drawer){
+      const willOpen = !drawer.classList.contains("open");
       [modelDrawer, planDrawer, infoDrawer].forEach(d => {
-        d.classList.toggle("open", d === drawer && !d.classList.contains("open"));
+        d.classList.toggle("open", d === drawer && willOpen);
       });
+      setStatus(willOpen ? "PANEL OPENED FROM STORAGE BAR" : "PANEL STORED IN STORAGE BAR");
     }
 
     function closeDrawers(){
       [modelDrawer, planDrawer, infoDrawer].forEach(d => d.classList.remove("open"));
+      setStatus("PANELS STORED IN BOTTOM STORAGE BAR");
     }
 
     async function fetchGitHubContents(path, ref){
@@ -1316,14 +1385,16 @@
     }
 
     function readPlanSettings(){
-      const baseWidth = Math.max(0.1, parseFloat(planBaseWidthInput.value) || 10);
-      const percent = Math.max(1, parseFloat(planPercentInput.value) || 100);
+      const percent = Math.max(1, Math.min(1000, parseFloat(planPercentInput.value) || 100));
       const opacity = Math.max(0.1, Math.min(1, parseFloat(planOpacityInput.value) || 0.85));
 
-      const width = baseWidth * (percent / 100);
+      const width = planBaseWidth * (percent / 100);
       const depth = width / Math.max(0.001, planImageAspect);
 
-      return { baseWidth, percent, opacity, width, depth };
+      planPercentInput.value = String(Math.round(percent));
+      planPercentView.textContent = String(Math.round(percent));
+
+      return { baseWidth: planBaseWidth, percent, opacity, width, depth };
     }
 
     function clearPlanFloor(){
@@ -1433,8 +1504,8 @@
       grid.visible = false;
 
       infoPlan.textContent = label;
-      infoPlanSize.textContent = `${percent}% / X ${width.toFixed(2)} / Z ${depth.toFixed(2)} / aspect ${planImageAspect.toFixed(3)}`;
-      setPlanStatus(`図面床を配置：${label} / ${percent}% / X ${width.toFixed(2)} / Z ${depth.toFixed(2)}`);
+      infoPlanSize.textContent = `${percent}% / 比率固定 / aspect ${planImageAspect.toFixed(3)}`;
+      setPlanStatus(`図面床を配置：${label} / ${percent}% / 比率固定`);
     }
 
     async function renderPdfToCanvas(pdfSource, pageNumber, label){
@@ -1562,14 +1633,19 @@
       createPlanBorder(width, depth);
       if (planBorder) planBorder.visible = planVisible;
 
-      infoPlanSize.textContent = `${percent}% / X ${width.toFixed(2)} / Z ${depth.toFixed(2)} / aspect ${planImageAspect.toFixed(3)}`;
-      setPlanStatus(`図面床サイズ反映：${percent}% / X ${width.toFixed(2)} / Z ${depth.toFixed(2)}`);
+      infoPlanSize.textContent = `${percent}% / 比率固定 / aspect ${planImageAspect.toFixed(3)}`;
+      setPlanStatus(`図面床サイズ反映：${percent}% / 比率固定`);
     }
 
     function setPlanPercent(percent){
       const p = Math.max(1, Math.min(1000, percent));
       planPercentInput.value = String(Math.round(p));
-      applyPlanSize();
+      planPercentView.textContent = String(Math.round(p));
+      if (planPlane){
+        applyPlanSize();
+      } else {
+        setPlanStatus(`PDF大きさ：${Math.round(p)}% / 図面読込後に反映されます。`);
+      }
     }
 
     function togglePlanVisible(){
@@ -1597,9 +1673,14 @@
 
     function fitPlanToModel(){
       const base = currentSize && currentSize > 0 ? currentSize : 5;
-      planBaseWidthInput.value = (base * 2.0).toFixed(2);
+      planBaseWidth = Math.max(0.1, base * 2.0);
       planPercentInput.value = "100";
-      applyPlanSize();
+      planPercentView.textContent = "100";
+      if (planPlane){
+        applyPlanSize();
+      } else {
+        setPlanStatus("モデル基準サイズを設定しました。図面読込後に100%で反映します。");
+      }
     }
 
     function resetView(){
@@ -1674,18 +1755,15 @@
     modelBtn.addEventListener("click", () => openDrawer(modelDrawer));
     planBtn.addEventListener("click", () => openDrawer(planDrawer));
     infoBtn.addEventListener("click", () => openDrawer(infoDrawer));
-    closePanelsBtn.addEventListener("click", closeDrawers);
+    closePanelsBtn.addEventListener("click", () => {
+      closeDrawers();
+      setStatus("PANELS STORED IN BOTTOM STORAGE BAR");
+    });
 
     searchInput.addEventListener("input", renderModelList);
     planSearchInput.addEventListener("input", renderPlanList);
 
     resetViewBtn.addEventListener("click", resetView);
-    fitBtn.addEventListener("click", resetView);
-    toggleGridBtn.addEventListener("click", () => {
-      grid.visible = !grid.visible;
-      setStatus(grid.visible ? "GRID ON" : "GRID OFF");
-    });
-    openArBtn.addEventListener("click", openAr);
 
     planFileInput.addEventListener("change", () => {
       const file = planFileInput.files && planFileInput.files[0];
@@ -1709,6 +1787,7 @@
     applyPlanSizeBtn.addEventListener("click", applyPlanSize);
     fitPlanToModelBtn.addEventListener("click", fitPlanToModel);
 
+    planPct25Btn.addEventListener("click", () => setPlanPercent(25));
     planPct50Btn.addEventListener("click", () => setPlanPercent(50));
     planPct100Btn.addEventListener("click", () => setPlanPercent(100));
     planPct150Btn.addEventListener("click", () => setPlanPercent(150));
@@ -1718,8 +1797,7 @@
     planPctMinus1Btn.addEventListener("click", () => setPlanPercent((parseFloat(planPercentInput.value) || 100) - 1));
     planPctPlus1Btn.addEventListener("click", () => setPlanPercent((parseFloat(planPercentInput.value) || 100) + 1));
 
-    planBaseWidthInput.addEventListener("change", applyPlanSize);
-    planPercentInput.addEventListener("change", applyPlanSize);
+    planPercentInput.addEventListener("change", () => setPlanPercent(parseFloat(planPercentInput.value) || 100));
     planOpacityInput.addEventListener("change", applyPlanSize);
 
     window.addEventListener("resize", resize);
