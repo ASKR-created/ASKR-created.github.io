@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Ground Snap PDF Wall Fixed</title>
+  <title>SF 3D Viewer - PDF Wall Exact Edge Snap</title>
 
   <script type="importmap">
   {
@@ -246,8 +246,8 @@
     <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / GROUND SNAP + PDF WALL</div>
-        <div class="brand-sub">モデルを地面Y=0へ吸着。PDF地面は下、側面は高さY方向へ配置。</div>
+        <div class="brand-title">SF 3D VIEWER / PDF WALL EXACT SNAP</div>
+        <div class="brand-sub">側面PDFの下端を地面PDFの上側端へ実座標で接続。側面はA4横向き基準。</div>
       </div>
       <div class="digital">
         <div class="label">SYSTEM DATE</div>
@@ -282,7 +282,7 @@
 
     <section class="drawer right wide" id="planDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MULTI PDF PLAN v4</div>
+        <div class="drawer-title">MULTI PDF PLAN v6</div>
         <button class="close" data-close="planDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -335,13 +335,15 @@
         <div class="button-grid">
           <button class="btn lime" id="setLayerFloorBtn"><span>地面へ変更</span></button>
           <button class="btn magenta" id="setLayerSideBtn"><span>側面へ変更</span></button>
+          <button class="btn lime" id="snapSideTopBtn"><span>側面を上端へ</span></button>
+          <button class="btn" id="snapSideBottomBtn"><span>側面を下端へ</span></button>
           <button class="btn" id="toggleLayerBtn"><span>表示/非表示</span></button>
           <button class="btn magenta" id="rotateLayerBtn"><span>90°回転</span></button>
           <button class="btn" id="removeLayerBtn"><span>選択削除</span></button>
           <button class="btn magenta" id="clearLayersBtn"><span>全PDF削除</span></button>
         </div>
         <div class="layer-list" id="planLayerList"><div class="empty">PDFレイヤー未配置。地面または側面に追加してください。</div></div>
-        <div class="readout" id="planStatusText">PDFを複数配置できます。地面はY=0の下、側面は高さY方向に立てて配置します。</div>
+        <div class="readout" id="planStatusText">側面PDFは地面PDFの上側端に実座標で吸着します。側面追加時はA4横向きになるよう自動調整します。</div>
       </div>
     </section>
 
@@ -368,7 +370,7 @@
       <button class="btn magenta" id="closePanelsBtn"><span>パネル収納</span></button>
     </div>
 
-    <div class="viewer-only-note">モデル最下部を地面Y=0へ吸着。PDF地面はモデルの下、側面は高さY方向へ立てます。</div>
+    <div class="viewer-only-note">側面PDFの下端を地面PDF端へ接続。側面はA4横向き基準。</div>
     <div class="statusbar" id="statusText">SYSTEM READY</div>
   </div>
 
@@ -448,6 +450,8 @@
 
     const setLayerFloorBtn = document.getElementById("setLayerFloorBtn");
     const setLayerSideBtn = document.getElementById("setLayerSideBtn");
+    const snapSideTopBtn = document.getElementById("snapSideTopBtn");
+    const snapSideBottomBtn = document.getElementById("snapSideBottomBtn");
     const toggleLayerBtn = document.getElementById("toggleLayerBtn");
     const rotateLayerBtn = document.getElementById("rotateLayerBtn");
     const removeLayerBtn = document.getElementById("removeLayerBtn");
@@ -916,7 +920,7 @@
         btn.className = "item" + (activeLayerId === layer.id ? " active" : "");
         btn.innerHTML = `
           <div class="item-name">${escapeHtml(layer.label)}</div>
-          <div class="item-path">${layer.placement === "floor" ? "地面" : "側面"} / ${layer.percent}% / ${layer.visible ? "表示" : "非表示"}</div>
+          <div class="item-path">${layer.placement === "floor" ? "地面" : "側面"}${layer.placement === "side" ? "・" + (layer.sideEdge === "bottom" ? "下端" : "上端") : ""} / ${layer.percent}% / ${layer.visible ? "表示" : "非表示"}</div>
           <div class="badge-row">
             <span class="badge ${layer.placement === "floor" ? "lime" : "magenta"}">${layer.placement === "floor" ? "GROUND" : "SIDE"}</span>
             <span class="badge">#${layer.id}</span>
@@ -966,6 +970,87 @@
       layer.border.geometry = new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height));
     }
 
+    
+    function getReferenceFloorLayer(){
+      if (activeLayerId){
+        const active = getActiveLayer();
+        if (active && active.placement === "floor") return active;
+      }
+
+      const visibleFloor = planLayers.find(layer => layer.placement === "floor" && layer.visible);
+      if (visibleFloor) return visibleFloor;
+
+      return planLayers.find(layer => layer.placement === "floor") || null;
+    }
+
+    function getFloorEdgeWorld(edge){
+      const floorLayer = getReferenceFloorLayer();
+
+      if (!floorLayer || !floorLayer.group){
+        return {
+          midpoint: new THREE.Vector3(0, 0, -Math.max(currentSize * 1.35, 2.5)),
+          tangent: new THREE.Vector3(1, 0, 0)
+        };
+      }
+
+      // 地面PDFのローカル上端/下端を、実際のワールド座標に変換して使う。
+      // これで地面PDFのサイズ変更・90°回転後も、側面PDFの下端が端に追従する。
+      floorLayer.group.updateMatrixWorld(true);
+
+      const localY = edge === "bottom" ? -floorLayer.height / 2 : floorLayer.height / 2;
+      const p0 = new THREE.Vector3(-floorLayer.width / 2, localY, 0);
+      const p1 = new THREE.Vector3( floorLayer.width / 2, localY, 0);
+      const w0 = p0.clone().applyMatrix4(floorLayer.group.matrixWorld);
+      const w1 = p1.clone().applyMatrix4(floorLayer.group.matrixWorld);
+
+      const midpoint = w0.clone().add(w1).multiplyScalar(0.5);
+      midpoint.y = 0;
+
+      const tangent = w1.clone().sub(w0);
+      tangent.y = 0;
+      if (tangent.lengthSq() < 0.000001){
+        tangent.set(1, 0, 0);
+      } else {
+        tangent.normalize();
+      }
+
+      return { midpoint, tangent };
+    }
+
+    function makeWallQuaternionFromEdge(tangent){
+      const xAxis = tangent.clone().normalize();
+      const yAxis = new THREE.Vector3(0, 1, 0);
+      let zAxis = new THREE.Vector3().crossVectors(xAxis, yAxis);
+
+      if (zAxis.lengthSq() < 0.000001){
+        zAxis.set(0, 0, 1);
+      } else {
+        zAxis.normalize();
+      }
+
+      const matrix = new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis);
+      return new THREE.Quaternion().setFromRotationMatrix(matrix);
+    }
+
+    function setActiveSideEdge(edge){
+      const layer = getActiveLayer();
+      if (!layer){
+        alert("先にPDFレイヤーを選択してください。");
+        return;
+      }
+
+      layer.placement = "side";
+      layer.sideEdge = edge;
+      for (const target of planLayers) applyLayerStyle(target);
+      renderPlanLayerList();
+      resetView();
+
+      setPlanStatus(edge === "top"
+        ? "側面PDFの下端を地面PDFの上側端へ接続しました。"
+        : "側面PDFの下端を地面PDFの下側端へ接続しました。"
+      );
+    }
+
     function applyLayerStyle(layer){
       if (!layer || !layer.group) return;
 
@@ -983,12 +1068,21 @@
         // モデルはY=0に置くため、PDF面がモデルを覆いにくくなる。
         layer.group.position.set(0, -0.006 * layer.id, 0);
         layer.group.rotation.set(-Math.PI / 2, 0, layer.rotationQuarter * Math.PI / 2);
+        layer.mesh.rotation.set(0, 0, 0);
+        layer.border.rotation.set(0, 0, 0);
       } else {
-        // 側面図面は「高さ方向=Y」に立てる。
-        // PlaneGeometryの縦方向がYになるため、中心をheight/2に置くと下端が地面Y=0に合う。
-        const sideZ = -Math.max(currentSize * 1.35, baseWidth * 0.45);
-        layer.group.position.set(0, height / 2, sideZ);
-        layer.group.rotation.set(0, 0, layer.rotationQuarter * Math.PI / 2);
+        // 側面図面は「地面PDFの実際の端」に接続する。
+        // groupは壁面の向きだけ担当。PDFの90°回転はmesh側で行い、下端Y=0を保つ。
+        const sideVerticalSize = Math.abs(layer.rotationQuarter || 0) % 2 === 0 ? height : width;
+        const edge = getFloorEdgeWorld(layer.sideEdge || "top");
+        const wallQuat = makeWallQuaternionFromEdge(edge.tangent);
+
+        layer.group.quaternion.copy(wallQuat);
+        layer.group.position.copy(edge.midpoint);
+        layer.group.position.y = sideVerticalSize / 2;
+
+        layer.mesh.rotation.set(0, 0, layer.rotationQuarter * Math.PI / 2);
+        layer.border.rotation.set(0, 0, layer.rotationQuarter * Math.PI / 2);
       }
 
       layer.border.material.color.set(layer.id === activeLayerId ? 0xff2deb : (layer.placement === "floor" ? 0xa6ff2d : 0x22f8ff));
@@ -1000,6 +1094,10 @@
     }
 
     function addCanvasAsLayer(canvas2d, label, placement){
+      if (placement === "side"){
+        canvas2d = makeSideCanvasLandscape(canvas2d);
+      }
+
       const texture = makeCanvasTexture(canvas2d);
       const material = new THREE.MeshBasicMaterial({
         map:texture,
@@ -1037,6 +1135,7 @@
         percent: Math.max(1, Math.min(1000, parseFloat(planPercentInput.value) || 100)),
         opacity: material.opacity,
         rotationQuarter: 0,
+        sideEdge: placement === "side" ? "top" : "top",
         visible: true,
         texture,
         material,
@@ -1053,7 +1152,32 @@
       setActiveLayer(id);
       resetView();
 
-      setPlanStatus(`PDFを${placement === "floor" ? "地面Y=0下" : "側面Y高さ方向"}に追加：${label}`);
+      setPlanStatus(`PDFを${placement === "floor" ? "地面Y=0下" : "側面・A4横向き・地面端接続"}に追加：${label}`);
+    }
+
+    
+    function rotateCanvas90Clockwise(sourceCanvas){
+      const out = document.createElement("canvas");
+      out.width = sourceCanvas.height;
+      out.height = sourceCanvas.width;
+
+      const ctx = out.getContext("2d", {alpha:false});
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.translate(out.width, 0);
+      ctx.rotate(Math.PI / 2);
+      ctx.drawImage(sourceCanvas, 0, 0);
+
+      return out;
+    }
+
+    function makeSideCanvasLandscape(canvas2d){
+      // 側面PDFはデフォルトA4横向き。
+      // PDFが縦長で読まれた場合は、画像自体を90°回転して横向き化する。
+      if (canvas2d.height > canvas2d.width){
+        return rotateCanvas90Clockwise(canvas2d);
+      }
+      return canvas2d;
     }
 
     async function renderPdfToCanvas(pdfSource, pageNumber){
@@ -1178,7 +1302,7 @@
       }
 
       layer.percent = Math.round(p);
-      applyLayerStyle(layer);
+      for (const target of planLayers) applyLayerStyle(target);
       renderPlanLayerList();
       resetView();
       setPlanStatus(`選択PDFの大きさ：${layer.percent}%`);
@@ -1207,7 +1331,8 @@
       }
 
       layer.placement = placement;
-      applyLayerStyle(layer);
+      if (placement === "side" && !layer.sideEdge) layer.sideEdge = "top";
+      for (const target of planLayers) applyLayerStyle(target);
       renderPlanLayerList();
       resetView();
       setPlanStatus(`選択PDFを${placement === "floor" ? "地面" : "側面"}へ変更しました。`);
@@ -1234,7 +1359,7 @@
       }
 
       layer.rotationQuarter = (layer.rotationQuarter + 1) % 4;
-      applyLayerStyle(layer);
+      for (const target of planLayers) applyLayerStyle(target);
       renderPlanLayerList();
       setPlanStatus(`選択PDFを${layer.rotationQuarter * 90}°回転しました。`);
     }
@@ -1260,6 +1385,7 @@
       planLayers = planLayers.filter(l => l.id !== layer.id);
       activeLayerId = planLayers.length ? planLayers[planLayers.length - 1].id : null;
       if (activeLayerId) setActiveLayer(activeLayerId);
+      for (const target of planLayers) applyLayerStyle(target);
       renderPlanLayerList();
       resetView();
       setPlanStatus("選択PDFを削除しました。");
@@ -1384,6 +1510,8 @@
 
     setLayerFloorBtn.addEventListener("click", () => setActiveLayerPlacement("floor"));
     setLayerSideBtn.addEventListener("click", () => setActiveLayerPlacement("side"));
+    snapSideTopBtn.addEventListener("click", () => setActiveSideEdge("top"));
+    snapSideBottomBtn.addEventListener("click", () => setActiveSideEdge("bottom"));
     toggleLayerBtn.addEventListener("click", toggleActiveLayer);
     rotateLayerBtn.addEventListener("click", rotateActiveLayer);
     removeLayerBtn.addEventListener("click", removeActiveLayer);
