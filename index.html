@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - PDF Plan Floor</title>
+  <title>SF 3D Viewer - PDF Plan Percent Scale</title>
 
   <script type="importmap">
   {
@@ -18,8 +18,8 @@
     :root{
       --bg0:#02030a;
       --bg1:#061020;
-      --panel:rgba(8,16,32,.78);
-      --panel2:rgba(14,24,48,.88);
+      --panel:rgba(8,16,32,.88);
+      --panel2:rgba(14,24,48,.94);
       --cyan:#22f8ff;
       --blue:#377cff;
       --magenta:#ff2deb;
@@ -29,7 +29,7 @@
       --text:#eafbff;
       --sub:#91a6c9;
       --line:rgba(34,248,255,.34);
-      --shadow:0 0 18px rgba(34,248,255,.20), 0 0 36px rgba(255,45,235,.10);
+      --shadow:0 0 18px rgba(34,248,255,.18), 0 0 34px rgba(255,45,235,.10);
     }
 
     *{ box-sizing:border-box; }
@@ -40,11 +40,12 @@
       margin:0;
       overflow:hidden;
       background:
-        radial-gradient(circle at 20% 20%, rgba(34,248,255,.10), transparent 28%),
-        radial-gradient(circle at 80% 70%, rgba(255,45,235,.11), transparent 32%),
+        radial-gradient(circle at 20% 20%, rgba(34,248,255,.09), transparent 28%),
+        radial-gradient(circle at 80% 70%, rgba(255,45,235,.10), transparent 32%),
         linear-gradient(135deg, var(--bg0), var(--bg1) 55%, #050616);
       color:var(--text);
       font-family:"MS UI Gothic","Yu Gothic UI","Meiryo",sans-serif;
+      user-select:none;
     }
 
     body::before{
@@ -54,8 +55,8 @@
       z-index:1;
       pointer-events:none;
       background:
-        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(34,248,255,.025) 1px, transparent 1px);
+        linear-gradient(rgba(255,255,255,.023) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34,248,255,.023) 1px, transparent 1px);
       background-size:4px 4px, 18px 18px;
       mix-blend-mode:screen;
     }
@@ -66,9 +67,9 @@
       inset:0;
       z-index:2;
       pointer-events:none;
-      background:linear-gradient(to bottom, rgba(255,255,255,.04), transparent 1px);
+      background:linear-gradient(to bottom, rgba(255,255,255,.038), transparent 1px);
       background-size:100% 5px;
-      opacity:.34;
+      opacity:.28;
     }
 
     #app{
@@ -87,15 +88,15 @@
       display:block;
     }
 
-    .hud-top{
+    .top-bar{
       position:absolute;
       z-index:10;
       top:10px;
       left:10px;
       right:10px;
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
+      height:56px;
+      display:grid;
+      grid-template-columns:1fr auto;
       gap:10px;
       pointer-events:none;
     }
@@ -103,37 +104,36 @@
     .brand{
       pointer-events:auto;
       min-width:0;
-      flex:1;
       border:1px solid rgba(34,248,255,.42);
-      background:linear-gradient(90deg, rgba(8,16,32,.78), rgba(10,22,44,.50));
+      background:linear-gradient(90deg, rgba(8,16,32,.70), rgba(10,22,44,.45));
       box-shadow:var(--shadow);
       backdrop-filter:blur(12px);
       -webkit-backdrop-filter:blur(12px);
       clip-path:polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
-      padding:10px 14px;
+      padding:9px 14px;
     }
 
     .brand-line{
       height:2px;
-      margin-bottom:7px;
+      margin-bottom:6px;
       background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--lime));
-      box-shadow:0 0 12px rgba(34,248,255,.65);
+      box-shadow:0 0 12px rgba(34,248,255,.60);
     }
 
     .brand-title{
-      font-size:16px;
+      font-size:15px;
       font-weight:bold;
       letter-spacing:.12em;
-      text-shadow:0 0 9px rgba(34,248,255,.7);
+      text-shadow:0 0 8px rgba(34,248,255,.70);
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
 
     .brand-sub{
-      margin-top:4px;
+      margin-top:3px;
       color:var(--sub);
-      font-size:12px;
+      font-size:11px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
@@ -142,11 +142,11 @@
     .digital{
       pointer-events:auto;
       border:1px solid rgba(166,255,45,.36);
-      background:rgba(2,8,18,.72);
-      box-shadow:0 0 16px rgba(166,255,45,.14);
+      background:rgba(2,8,18,.68);
+      box-shadow:0 0 15px rgba(166,255,45,.13);
       backdrop-filter:blur(12px);
       -webkit-backdrop-filter:blur(12px);
-      min-width:176px;
+      width:210px;
       padding:8px 10px;
       text-align:right;
     }
@@ -166,22 +166,107 @@
       text-shadow:0 0 8px rgba(166,255,45,.55);
     }
 
-    .panel{
+    .bottom-dock{
       position:absolute;
-      z-index:11;
-      border:1px solid var(--line);
-      background:var(--panel);
+      z-index:12;
+      left:50%;
+      bottom:10px;
+      transform:translateX(-50%);
+      width:min(980px, calc(100vw - 20px));
+      border:1px solid rgba(34,248,255,.34);
+      background:rgba(4,10,20,.70);
       box-shadow:var(--shadow);
       backdrop-filter:blur(12px);
       -webkit-backdrop-filter:blur(12px);
-      color:var(--text);
+      padding:8px;
+      display:grid;
+      grid-template-columns:repeat(8, 1fr);
+      gap:7px;
       pointer-events:auto;
-      display:flex;
-      flex-direction:column;
-      min-height:0;
     }
 
-    .panel-head{
+    .btn{
+      position:relative;
+      min-height:36px;
+      border:1px solid rgba(34,248,255,.42);
+      background:linear-gradient(180deg, rgba(15,28,58,.92), rgba(3,8,18,.92));
+      color:var(--text);
+      font-weight:bold;
+      cursor:pointer;
+      overflow:hidden;
+      letter-spacing:.04em;
+      font-size:12px;
+      padding:0 8px;
+    }
+
+    .btn::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:radial-gradient(circle at center, rgba(34,248,255,.32), transparent 62%);
+      transform:scaleX(0);
+      transform-origin:center;
+      transition:transform .22s ease;
+    }
+
+    .btn:hover::before{ transform:scaleX(1); }
+
+    .btn:hover{
+      border-color:var(--cyan);
+      color:white;
+      box-shadow:0 0 18px rgba(34,248,255,.22);
+    }
+
+    .btn span{
+      position:relative;
+      z-index:1;
+    }
+
+    .btn.magenta{ border-color:rgba(255,45,235,.42); }
+    .btn.magenta:hover{ border-color:var(--magenta); box-shadow:0 0 18px rgba(255,45,235,.24); }
+
+    .btn.lime{ border-color:rgba(166,255,45,.42); }
+    .btn.lime:hover{ border-color:var(--lime); box-shadow:0 0 18px rgba(166,255,45,.20); }
+
+    .btn.yellow{ border-color:rgba(255,230,109,.42); }
+    .btn.yellow:hover{ border-color:var(--yellow); box-shadow:0 0 18px rgba(255,230,109,.18); }
+
+    .btn.active{
+      border-color:var(--lime);
+      color:var(--lime);
+      box-shadow:0 0 16px rgba(166,255,45,.20);
+      background:linear-gradient(180deg, rgba(28,58,15,.72), rgba(3,12,8,.90));
+    }
+
+    .drawer{
+      position:absolute;
+      z-index:13;
+      top:76px;
+      bottom:74px;
+      width:380px;
+      max-width:calc(100vw - 20px);
+      display:none;
+      flex-direction:column;
+      min-height:0;
+      border:1px solid var(--line);
+      background:var(--panel);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(13px);
+      -webkit-backdrop-filter:blur(13px);
+      color:var(--text);
+      pointer-events:auto;
+    }
+
+    .drawer.open{ display:flex; }
+
+    .drawer.left{ left:10px; }
+    .drawer.right{ right:10px; }
+
+    .drawer.wide{
+      width:460px;
+    }
+
+    .drawer-head{
       display:flex;
       align-items:center;
       justify-content:space-between;
@@ -189,66 +274,32 @@
       padding:9px 10px;
       border-bottom:1px solid rgba(34,248,255,.20);
       background:linear-gradient(90deg, rgba(34,248,255,.10), rgba(255,45,235,.07));
+      flex:0 0 auto;
     }
 
-    .panel-title{
+    .drawer-title{
       color:var(--cyan);
       font-size:12px;
       font-weight:bold;
       letter-spacing:.12em;
-      text-shadow:0 0 8px rgba(34,248,255,.6);
+      text-shadow:0 0 8px rgba(34,248,255,.60);
     }
 
-    .toggle{
-      min-width:32px;
-      height:24px;
-      border:1px solid rgba(34,248,255,.45);
-      background:rgba(2,8,18,.72);
-      color:var(--cyan);
+    .close{
+      min-width:34px;
+      height:26px;
+      border:1px solid rgba(255,71,126,.52);
+      background:rgba(20,4,10,.74);
+      color:#ffdce6;
       cursor:pointer;
       font-weight:bold;
     }
 
-    .panel.collapsed .panel-body{
-      display:none;
-    }
-
-    .panel-body{
+    .drawer-body{
       padding:10px;
       overflow:auto;
       min-height:0;
-    }
-
-    #modelPanel{
-      left:10px;
-      top:92px;
-      width:360px;
-      max-width:calc(100vw - 20px);
-      bottom:96px;
-    }
-
-    #planPanel{
-      right:10px;
-      top:92px;
-      width:380px;
-      max-width:calc(100vw - 20px);
-      bottom:210px;
-    }
-
-    #infoPanel{
-      right:10px;
-      bottom:96px;
-      width:380px;
-      max-width:calc(100vw - 20px);
-      max-height:110px;
-    }
-
-    #commandPanel{
-      left:10px;
-      bottom:12px;
-      width:740px;
-      max-width:calc(100vw - 420px);
-      min-height:72px;
+      flex:1 1 auto;
     }
 
     .search,
@@ -276,7 +327,7 @@
       background:rgba(2,8,18,.34);
       padding:6px;
       overflow:auto;
-      max-height:42vh;
+      max-height:38vh;
       min-height:120px;
     }
 
@@ -348,80 +399,19 @@
       background:rgba(166,255,45,.07);
     }
 
-    .row{
-      display:grid;
-      grid-template-columns:92px 1fr;
-      gap:8px;
-      margin:7px 0;
-      font-size:12px;
-    }
-
-    .row .k{ color:var(--sub); }
-    .row .v{ color:var(--text); word-break:break-all; }
-
-    .hint{
-      color:var(--sub);
-      font-size:12px;
-      line-height:1.55;
-    }
-
-    .warning{
-      color:var(--yellow);
-    }
-
     .button-grid{
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:8px;
+      margin-top:8px;
     }
 
     .button-grid.three{
       grid-template-columns:1fr 1fr 1fr;
     }
 
-    .button-grid.wide{
-      grid-template-columns:repeat(4, 1fr);
-    }
-
-    .btn{
-      position:relative;
-      min-height:36px;
-      border:1px solid rgba(34,248,255,.42);
-      background:linear-gradient(180deg, rgba(15,28,58,.92), rgba(3,8,18,.92));
-      color:var(--text);
-      font-weight:bold;
-      cursor:pointer;
-      overflow:hidden;
-      letter-spacing:.04em;
-    }
-
-    .btn::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:radial-gradient(circle at center, rgba(34,248,255,.32), transparent 62%);
-      transform:scaleX(0);
-      transform-origin:center;
-      transition:transform .22s ease;
-    }
-
-    .btn:hover::before{ transform:scaleX(1); }
-
-    .btn:hover{
-      border-color:var(--cyan);
-      color:white;
-      box-shadow:0 0 18px rgba(34,248,255,.22);
-    }
-
-    .btn.magenta{ border-color:rgba(255,45,235,.42); }
-    .btn.magenta:hover{ border-color:var(--magenta); box-shadow:0 0 18px rgba(255,45,235,.24); }
-
-    .btn.lime{ border-color:rgba(166,255,45,.42); }
-    .btn.lime:hover{ border-color:var(--lime); box-shadow:0 0 18px rgba(166,255,45,.20); }
-
-    .btn span{
-      position:relative;
-      z-index:1;
+    .button-grid.four{
+      grid-template-columns:1fr 1fr 1fr 1fr;
     }
 
     .mini-input-row{
@@ -450,13 +440,13 @@
 
     .mini-field input{
       width:100%;
-      height:28px;
+      height:30px;
       border:1px solid rgba(34,248,255,.30);
       background:rgba(1,5,14,.88);
       color:var(--text);
       padding:0 7px;
       outline:none;
-      font-size:11px;
+      font-size:12px;
     }
 
     .mini-field input:focus{
@@ -464,7 +454,7 @@
       box-shadow:0 0 12px rgba(255,45,235,.18);
     }
 
-    .plan-readout{
+    .readout{
       margin-top:8px;
       border:1px solid rgba(166,255,45,.25);
       background:rgba(166,255,45,.045);
@@ -476,22 +466,14 @@
       word-break:break-all;
     }
 
-
-    .size-help{
+    .help{
       margin-top:8px;
-      border:1px solid rgba(255,230,109,.25);
-      background:rgba(24,20,6,.34);
+      border:1px solid rgba(255,230,109,.24);
+      background:rgba(24,20,6,.30);
       color:var(--yellow);
       padding:7px;
       font-size:11px;
-      line-height:1.45;
-    }
-
-    .btn.active{
-      border-color:var(--lime);
-      color:var(--lime);
-      box-shadow:0 0 16px rgba(166,255,45,.20);
-      background:linear-gradient(180deg, rgba(28,58,15,.72), rgba(3,12,8,.90));
+      line-height:1.5;
     }
 
     .empty{
@@ -502,95 +484,92 @@
       line-height:1.55;
     }
 
+    .row{
+      display:grid;
+      grid-template-columns:92px 1fr;
+      gap:8px;
+      margin:7px 0;
+      font-size:12px;
+    }
+
+    .row .k{ color:var(--sub); }
+    .row .v{ color:var(--text); word-break:break-all; }
+
     .statusbar{
       position:absolute;
       left:10px;
-      bottom:12px;
+      bottom:72px;
       z-index:9;
-      max-width:calc(100vw - 370px);
-      border:1px solid rgba(166,255,45,.32);
-      background:rgba(2,8,16,.70);
+      max-width:calc(100vw - 20px);
+      border:1px solid rgba(166,255,45,.28);
+      background:rgba(2,8,16,.58);
       color:var(--lime);
-      padding:8px 10px;
-      font-size:12px;
+      padding:6px 9px;
+      font-size:11px;
       font-family:Consolas,"Courier New",monospace;
-      box-shadow:0 0 14px rgba(166,255,45,.12);
+      box-shadow:0 0 12px rgba(166,255,45,.10);
       pointer-events:none;
-    }
-
-    .mobile-panel-button{
-      display:none;
-      position:absolute;
-      left:10px;
-      top:92px;
-      z-index:20;
-      min-height:38px;
-      padding:0 12px;
-      border:1px solid rgba(34,248,255,.48);
-      background:rgba(5,12,28,.88);
-      color:var(--cyan);
-      font-weight:bold;
-      box-shadow:var(--shadow);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     @media (max-width: 900px){
-      .hud-top{
-        top:8px;
-        left:8px;
-        right:8px;
+      .top-bar{
+        top:6px;
+        left:6px;
+        right:6px;
+        height:48px;
+        grid-template-columns:1fr;
       }
+
       .digital{ display:none; }
-      .brand-title{ font-size:13px; }
-      .brand-sub{ font-size:11px; }
 
-      .mobile-panel-button{ display:block; }
-
-      #modelPanel,
-      #planPanel,
-      #infoPanel,
-      #commandPanel{
-        left:8px;
-        right:8px;
-        width:auto;
-        max-width:none;
-        display:none;
+      .brand{
+        padding:7px 10px;
       }
 
-      #modelPanel{
-        top:138px;
-        bottom:calc(50vh + 8px);
+      .brand-title{
+        font-size:12px;
       }
 
-      #planPanel{
-        top:auto;
-        bottom:190px;
-        max-height:calc(50vh - 22px);
+      .brand-sub{
+        font-size:10px;
       }
 
-      #infoPanel{
-        top:auto;
-        bottom:82px;
-        max-height:102px;
+      .bottom-dock{
+        bottom:6px;
+        width:calc(100vw - 12px);
+        grid-template-columns:repeat(4, 1fr);
+        padding:6px;
+        gap:5px;
       }
 
-      #commandPanel{
-        bottom:8px;
+      .btn{
+        min-height:32px;
+        font-size:10px;
+      }
+
+      .drawer{
+        top:60px;
+        bottom:86px;
+        left:6px !important;
+        right:6px !important;
+        width:auto !important;
         max-width:none;
       }
 
-      body.mobile-open #modelPanel,
-      body.mobile-open #planPanel,
-      body.mobile-open #infoPanel,
-      body.mobile-open #commandPanel{
-        display:flex;
+      .list{
+        max-height:30vh;
+      }
+
+      .button-grid.four,
+      .button-grid.three{
+        grid-template-columns:1fr 1fr;
       }
 
       .statusbar{
         display:none;
-      }
-
-      .button-grid.wide{
-        grid-template-columns:1fr 1fr;
       }
     }
   </style>
@@ -599,11 +578,11 @@
   <div id="app">
     <canvas id="viewer"></canvas>
 
-    <div class="hud-top">
+    <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / PDF PLAN FLOOR</div>
-        <div class="brand-sub">plans/ 図面選択 + PDF床の大きさをボタンで調整</div>
+        <div class="brand-title">SF 3D VIEWER / PDF PLAN SCALE %</div>
+        <div class="brand-sub">ビューアー優先レイアウト。PDF図面は比率固定で％スケール調整。</div>
       </div>
       <div class="digital">
         <div class="label">SYSTEM DATE</div>
@@ -611,14 +590,12 @@
       </div>
     </div>
 
-    <button class="mobile-panel-button" id="mobilePanelBtn">PANEL</button>
-
-    <section class="panel" id="modelPanel">
-      <div class="panel-head">
-        <div class="panel-title">MODEL LIST</div>
-        <button class="toggle" data-target="modelPanel">−</button>
+    <section class="drawer left" id="modelDrawer">
+      <div class="drawer-head">
+        <div class="drawer-title">MODEL LIST</div>
+        <button class="close" data-close="modelDrawer">×</button>
       </div>
-      <div class="panel-body">
+      <div class="drawer-body">
         <input class="search" id="searchInput" placeholder="モデル名で検索">
         <div class="badge-row">
           <span class="badge">OBJ</span>
@@ -632,12 +609,12 @@
       </div>
     </section>
 
-    <section class="panel" id="planPanel">
-      <div class="panel-head">
-        <div class="panel-title">PDF PLAN FOLDER v3</div>
-        <button class="toggle" data-target="planPanel">−</button>
+    <section class="drawer right wide" id="planDrawer">
+      <div class="drawer-head">
+        <div class="drawer-title">PDF PLAN FOLDER v4</div>
+        <button class="close" data-close="planDrawer">×</button>
       </div>
-      <div class="panel-body">
+      <div class="drawer-body">
         <input class="search" id="planSearchInput" placeholder="PDF図面名で検索">
 
         <div class="badge-row">
@@ -645,6 +622,7 @@
           <span class="badge">PDF</span>
           <span class="badge">PNG</span>
           <span class="badge">JPG</span>
+          <span class="badge magenta">比率固定</span>
         </div>
 
         <div class="list" id="planList">
@@ -654,7 +632,7 @@
         <div class="mini-input-row">
           <div class="mini-field">
             <label>手入力パス</label>
-            <input id="planPathInput" placeholder="plans/zumen.pdf">
+            <input id="planPathInput" placeholder="plans/平面図.pdf">
           </div>
           <div class="mini-field">
             <label>PDFページ</label>
@@ -662,9 +640,9 @@
           </div>
         </div>
 
-        <div class="button-grid" style="margin-top:8px;">
+        <div class="button-grid">
           <button class="btn lime" id="loadPlanPathBtn"><span>パス読込</span></button>
-          <button class="btn" id="reloadPlansBtn"><span>図面一覧再読込</span></button>
+          <button class="btn" id="reloadPlansBtn"><span>一覧再読込</span></button>
           <button class="btn magenta" id="loadHeimenBtn"><span>平面図.pdf読込</span></button>
           <button class="btn" id="showPlanApiBtn"><span>参照URL表示</span></button>
         </div>
@@ -675,12 +653,12 @@
 
         <div class="mini-input-row three">
           <div class="mini-field">
-            <label>幅 X</label>
-            <input id="planWidthInput" type="number" step="0.1" value="10">
+            <label>基準幅 X = 100%</label>
+            <input id="planBaseWidthInput" type="number" step="0.1" value="10">
           </div>
           <div class="mini-field">
-            <label>奥行 Z</label>
-            <input id="planDepthInput" type="number" step="0.1" value="7">
+            <label>大きさ %</label>
+            <input id="planPercentInput" type="number" min="1" step="1" value="100">
           </div>
           <div class="mini-field">
             <label>透明度</label>
@@ -688,41 +666,21 @@
           </div>
         </div>
 
-        <div class="button-grid three" style="margin-top:8px;">
-          <button class="btn" id="planScaleDownBtn"><span>全体縮小</span></button>
-          <button class="btn lime active" id="planAspectLockBtn"><span>比率固定ON</span></button>
-          <button class="btn" id="planScaleUpBtn"><span>全体拡大</span></button>
+        <div class="button-grid four">
+          <button class="btn" id="planPct50Btn"><span>50%</span></button>
+          <button class="btn" id="planPct100Btn"><span>100%</span></button>
+          <button class="btn" id="planPct150Btn"><span>150%</span></button>
+          <button class="btn" id="planPct200Btn"><span>200%</span></button>
         </div>
 
-        <div class="button-grid" style="margin-top:8px;">
-          <button class="btn" id="planWidthMinusBtn"><span>幅 −</span></button>
-          <button class="btn" id="planWidthPlusBtn"><span>幅 ＋</span></button>
-          <button class="btn" id="planDepthMinusBtn"><span>奥行 −</span></button>
-          <button class="btn" id="planDepthPlusBtn"><span>奥行 ＋</span></button>
+        <div class="button-grid four">
+          <button class="btn" id="planPctMinus10Btn"><span>-10%</span></button>
+          <button class="btn" id="planPctPlus10Btn"><span>+10%</span></button>
+          <button class="btn" id="planPctMinus1Btn"><span>-1%</span></button>
+          <button class="btn" id="planPctPlus1Btn"><span>+1%</span></button>
         </div>
 
-        <div class="button-grid three" style="margin-top:8px;">
-          <button class="btn magenta" id="planA4PortraitBtn"><span>A4縦</span></button>
-          <button class="btn magenta" id="planA4LandscapeBtn"><span>A4横</span></button>
-          <button class="btn" id="planSizeResetBtn"><span>初期サイズ</span></button>
-        </div>
-
-        <div class="mini-input-row">
-          <div class="mini-field">
-            <label>調整幅</label>
-            <input id="planStepInput" type="number" min="0.05" step="0.05" value="0.5">
-          </div>
-          <div class="mini-field">
-            <label>全体倍率</label>
-            <input id="planScaleRateInput" type="number" min="1.01" step="0.01" value="1.1">
-          </div>
-        </div>
-
-        <div class="size-help">
-          「比率固定ON」の時は、幅Xを変えるとPDFの縦横比に合わせて奥行Zも自動調整します。図面が伸びる場合はON、任意に変形したい場合はOFF。
-        </div>
-
-        <div class="button-grid" style="margin-top:8px;">
+        <div class="button-grid">
           <button class="btn lime" id="applyPlanSizeBtn"><span>サイズ反映</span></button>
           <button class="btn" id="fitPlanToModelBtn"><span>モデル基準</span></button>
           <button class="btn" id="togglePlanBtn"><span>表示/非表示</span></button>
@@ -731,46 +689,39 @@
           <button class="btn magenta" id="clearPlanBtn"><span>図面クリア</span></button>
         </div>
 
-        <div class="plan-readout" id="planStatusText">
-          plans/平面図.pdf を直接参照できます。読込後は全体拡大/縮小・幅/奥行ボタンで大きさ調整できます。
+        <div class="readout" id="planStatusText">
+          plans/平面図.pdf を直接参照できます。大きさは%で調整し、PDFの縦横比は崩しません。
         </div>
 
-        <p class="hint warning">
-          GitHubでは空フォルダだけを作れないため、plans/ にPDFまたは仮ファイルを1つ入れてください。
-        </p>
+        <div class="help">
+          重要：この版ではPDFの比率を固定します。奥行ZはPDFの縦横比から自動計算されるため、図面が横伸び・縦伸びしません。
+        </div>
       </div>
     </section>
 
-    <section class="panel" id="infoPanel">
-      <div class="panel-head">
-        <div class="panel-title">INFO</div>
-        <button class="toggle" data-target="infoPanel">−</button>
+    <section class="drawer right" id="infoDrawer">
+      <div class="drawer-head">
+        <div class="drawer-title">INFO</div>
+        <button class="close" data-close="infoDrawer">×</button>
       </div>
-      <div class="panel-body">
+      <div class="drawer-body">
         <div class="row"><div class="k">MODEL</div><div class="v" id="infoName">未選択</div></div>
         <div class="row"><div class="k">PLAN</div><div class="v" id="infoPlan">未選択</div></div>
+        <div class="row"><div class="k">PLAN SIZE</div><div class="v" id="infoPlanSize">未配置</div></div>
+        <div class="row"><div class="k">操作</div><div class="v">左ドラッグ=回転 / 右ドラッグ=移動 / ホイール=拡大縮小</div></div>
       </div>
     </section>
 
-    <section class="panel" id="commandPanel">
-      <div class="panel-head">
-        <div class="panel-title">COMMAND</div>
-        <button class="toggle" data-target="commandPanel">−</button>
-      </div>
-      <div class="panel-body">
-        <div class="button-grid wide">
-          <button class="btn" id="reloadBtn"><span>全再読込</span></button>
-          <button class="btn lime" id="resetViewBtn"><span>視点リセット</span></button>
-          <button class="btn magenta" id="openArBtn"><span>ARビューアー</span></button>
-          <button class="btn" id="copyArUrlBtn"><span>AR URL表示</span></button>
-          <button class="btn" id="toggleAnimBtn"><span>アニメ再生/停止</span></button>
-          <button class="btn lime" id="fitBtn"><span>画面に合わせる</span></button>
-          <button class="btn" id="toggleGridBtn"><span>グリッド表示</span></button>
-          <button class="btn magenta" id="copyPlanUrlBtn"><span>図面URL表示</span></button>
-        </div>
-        <p class="hint">PDF図面は右側の PDF PLAN FOLDER から選択。3Dビューアーの地面として表示します。</p>
-      </div>
-    </section>
+    <div class="bottom-dock">
+      <button class="btn lime" id="modelBtn"><span>モデル</span></button>
+      <button class="btn lime" id="planBtn"><span>PDF図面</span></button>
+      <button class="btn" id="infoBtn"><span>情報</span></button>
+      <button class="btn" id="resetViewBtn"><span>視点リセット</span></button>
+      <button class="btn" id="fitBtn"><span>全体表示</span></button>
+      <button class="btn" id="toggleGridBtn"><span>グリッド</span></button>
+      <button class="btn magenta" id="openArBtn"><span>AR</span></button>
+      <button class="btn magenta" id="closePanelsBtn"><span>閉じる</span></button>
+    </div>
 
     <div class="statusbar" id="statusText">SYSTEM READY</div>
   </div>
@@ -794,8 +745,6 @@
     const MODEL_ROOTS = ["models", "モデル"];
     const PLAN_ROOTS = ["plans", "図面", "PDF", "pdf"];
 
-    // GitHub APIの一覧取得が失敗した時用の直接参照候補。
-    // 今回のように plans/平面図.pdf をアップロードした場合でも拾えるようにする。
     const PLAN_FALLBACK_FILES = [
       "plans/平面図.pdf",
       "plans/配置図.pdf",
@@ -821,16 +770,20 @@
     const dateText = document.getElementById("dateText");
     const infoName = document.getElementById("infoName");
     const infoPlan = document.getElementById("infoPlan");
+    const infoPlanSize = document.getElementById("infoPlanSize");
 
-    const reloadBtn = document.getElementById("reloadBtn");
+    const modelDrawer = document.getElementById("modelDrawer");
+    const planDrawer = document.getElementById("planDrawer");
+    const infoDrawer = document.getElementById("infoDrawer");
+
+    const modelBtn = document.getElementById("modelBtn");
+    const planBtn = document.getElementById("planBtn");
+    const infoBtn = document.getElementById("infoBtn");
     const resetViewBtn = document.getElementById("resetViewBtn");
-    const openArBtn = document.getElementById("openArBtn");
-    const copyArUrlBtn = document.getElementById("copyArUrlBtn");
-    const toggleAnimBtn = document.getElementById("toggleAnimBtn");
     const fitBtn = document.getElementById("fitBtn");
     const toggleGridBtn = document.getElementById("toggleGridBtn");
-    const copyPlanUrlBtn = document.getElementById("copyPlanUrlBtn");
-    const mobilePanelBtn = document.getElementById("mobilePanelBtn");
+    const openArBtn = document.getElementById("openArBtn");
+    const closePanelsBtn = document.getElementById("closePanelsBtn");
 
     const planFileInput = document.getElementById("planFileInput");
     const planPathInput = document.getElementById("planPathInput");
@@ -843,21 +796,17 @@
     const togglePlanBtn = document.getElementById("togglePlanBtn");
     const rotatePlanBtn = document.getElementById("rotatePlanBtn");
     const centerPlanBtn = document.getElementById("centerPlanBtn");
-    const planWidthInput = document.getElementById("planWidthInput");
-    const planDepthInput = document.getElementById("planDepthInput");
+    const planBaseWidthInput = document.getElementById("planBaseWidthInput");
+    const planPercentInput = document.getElementById("planPercentInput");
     const planOpacityInput = document.getElementById("planOpacityInput");
-    const planScaleDownBtn = document.getElementById("planScaleDownBtn");
-    const planAspectLockBtn = document.getElementById("planAspectLockBtn");
-    const planScaleUpBtn = document.getElementById("planScaleUpBtn");
-    const planWidthMinusBtn = document.getElementById("planWidthMinusBtn");
-    const planWidthPlusBtn = document.getElementById("planWidthPlusBtn");
-    const planDepthMinusBtn = document.getElementById("planDepthMinusBtn");
-    const planDepthPlusBtn = document.getElementById("planDepthPlusBtn");
-    const planA4PortraitBtn = document.getElementById("planA4PortraitBtn");
-    const planA4LandscapeBtn = document.getElementById("planA4LandscapeBtn");
-    const planSizeResetBtn = document.getElementById("planSizeResetBtn");
-    const planStepInput = document.getElementById("planStepInput");
-    const planScaleRateInput = document.getElementById("planScaleRateInput");
+    const planPct50Btn = document.getElementById("planPct50Btn");
+    const planPct100Btn = document.getElementById("planPct100Btn");
+    const planPct150Btn = document.getElementById("planPct150Btn");
+    const planPct200Btn = document.getElementById("planPct200Btn");
+    const planPctMinus10Btn = document.getElementById("planPctMinus10Btn");
+    const planPctPlus10Btn = document.getElementById("planPctPlus10Btn");
+    const planPctMinus1Btn = document.getElementById("planPctMinus1Btn");
+    const planPctPlus1Btn = document.getElementById("planPctPlus1Btn");
     const applyPlanSizeBtn = document.getElementById("applyPlanSizeBtn");
     const fitPlanToModelBtn = document.getElementById("fitPlanToModelBtn");
     const planStatusText = document.getElementById("planStatusText");
@@ -915,7 +864,7 @@
 
     const grid = new THREE.GridHelper(10, 20, 0x22f8ff, 0x18324f);
     grid.material.transparent = true;
-    grid.material.opacity = 0.28;
+    grid.material.opacity = 0.22;
     scene.add(grid);
 
     const planGroup = new THREE.Group();
@@ -927,7 +876,6 @@
     let planTexture = null;
     let planRotationQuarter = 0;
     let planVisible = true;
-    let planAspectLock = true;
     let planImageAspect = 10 / 7;
 
     const axesGroup = new THREE.Group();
@@ -1008,6 +956,16 @@
       }[s]));
     }
 
+    function openDrawer(drawer){
+      [modelDrawer, planDrawer, infoDrawer].forEach(d => {
+        d.classList.toggle("open", d === drawer && !d.classList.contains("open"));
+      });
+    }
+
+    function closeDrawers(){
+      [modelDrawer, planDrawer, infoDrawer].forEach(d => d.classList.remove("open"));
+    }
+
     async function fetchGitHubContents(path, ref){
       const safePath = encodePath(path);
       const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${safePath}?ref=${encodeURIComponent(ref)}&_=${Date.now()}`;
@@ -1075,31 +1033,6 @@
       };
     }
 
-    async function loadModelList(){
-      setStatus("SCANNING model folders ...");
-      modelList.innerHTML = `<div class="empty">models/ または モデル/ を走査中...</div>`;
-      allModels = [];
-
-      const result = await scanRoots(MODEL_ROOTS, MODEL_EXTENSIONS, "model");
-      allModels = result.items;
-      renderModelList();
-
-      if (allModels.length > 0){
-        setStatus(`LOADED ${allModels.length} MODELS / ${result.ref}`);
-        selectModel(allModels[0]);
-      } else {
-        modelList.innerHTML = `
-          <div class="empty">
-            モデルが見つかりません。<br>
-            対応フォルダ：models/ または モデル/<br>
-            対応形式：OBJ / FBX / GLB / GLTF
-          </div>
-        `;
-        setStatus("MODEL SCAN EMPTY");
-      }
-    }
-
-
     async function findFallbackPlans(){
       const found = [];
 
@@ -1134,6 +1067,30 @@
       return Array.from(map.values()).sort((a,b) => a.path.localeCompare(b.path, "ja"));
     }
 
+    async function loadModelList(){
+      setStatus("SCANNING model folders ...");
+      modelList.innerHTML = `<div class="empty">models/ または モデル/ を走査中...</div>`;
+      allModels = [];
+
+      const result = await scanRoots(MODEL_ROOTS, MODEL_EXTENSIONS, "model");
+      allModels = result.items;
+      renderModelList();
+
+      if (allModels.length > 0){
+        setStatus(`LOADED ${allModels.length} MODELS / ${result.ref}`);
+        selectModel(allModels[0]);
+      } else {
+        modelList.innerHTML = `
+          <div class="empty">
+            モデルが見つかりません。<br>
+            対応フォルダ：models/ または モデル/<br>
+            対応形式：OBJ / FBX / GLB / GLTF
+          </div>
+        `;
+        setStatus("MODEL SCAN EMPTY");
+      }
+    }
+
     async function loadPlanList(){
       setPlanStatus("SCANNING plans folder ...");
       planList.innerHTML = `<div class="empty">plans/、図面/、PDF/ を走査中...</div>`;
@@ -1141,29 +1098,26 @@
 
       const result = await scanRoots(PLAN_ROOTS, PLAN_EXTENSIONS, "plan");
       allPlans = result.items;
+
+      if (allPlans.length === 0){
+        setPlanStatus("GitHub API一覧が空です。直接参照を確認中...");
+        allPlans = await findFallbackPlans();
+      }
+
       renderPlanList();
 
       if (allPlans.length > 0){
-        setPlanStatus(`図面一覧 ${allPlans.length}件 / ${result.ref}`);
+        setPlanStatus(`図面一覧 ${allPlans.length}件`);
       } else {
-        setPlanStatus("GitHub API一覧が空です。直接参照を確認中...");
-        allPlans = await findFallbackPlans();
-        renderPlanList();
-
-        if (allPlans.length > 0){
-          setPlanStatus(`直接参照で図面を検出：${allPlans.length}件`);
-        } else {
-          planList.innerHTML = `
-            <div class="empty">
-              PDF図面が見つかりません。<br>
-              現在探している場所：plans/、図面/、PDF/、pdf/<br>
-              例：plans/平面図.pdf<br><br>
-              GitHubにアップロード直後は反映に少し時間がかかることがあります。<br>
-              「図面一覧再読込」を押すか、手入力パスに plans/平面図.pdf を入れて「パス読込」を押してください。
-            </div>
-          `;
-          setPlanStatus("plans/ を参照できません。手入力で plans/平面図.pdf を試してください。");
-        }
+        planList.innerHTML = `
+          <div class="empty">
+            PDF図面が見つかりません。<br>
+            現在探している場所：plans/、図面/、PDF/、pdf/<br>
+            例：plans/平面図.pdf<br><br>
+            「平面図.pdf読込」または手入力パスで plans/平面図.pdf を試してください。
+          </div>
+        `;
+        setPlanStatus("plans/ を参照できません。手入力で plans/平面図.pdf を試してください。");
       }
     }
 
@@ -1218,6 +1172,7 @@
           <div class="item-path">${escapeHtml(p.path)}</div>
           <div class="badge-row">
             <span class="badge lime">${escapeHtml(p.ext.toUpperCase().slice(1))}</span>
+            <span class="badge magenta">比率固定</span>
             <span class="badge">地面図面</span>
           </div>
         `;
@@ -1361,10 +1316,14 @@
     }
 
     function readPlanSettings(){
-      const width = Math.max(0.1, parseFloat(planWidthInput.value) || 10);
-      const depth = Math.max(0.1, parseFloat(planDepthInput.value) || 7);
+      const baseWidth = Math.max(0.1, parseFloat(planBaseWidthInput.value) || 10);
+      const percent = Math.max(1, parseFloat(planPercentInput.value) || 100);
       const opacity = Math.max(0.1, Math.min(1, parseFloat(planOpacityInput.value) || 0.85));
-      return { width, depth, opacity };
+
+      const width = baseWidth * (percent / 100);
+      const depth = width / Math.max(0.001, planImageAspect);
+
+      return { baseWidth, percent, opacity, width, depth };
     }
 
     function clearPlanFloor(){
@@ -1378,7 +1337,7 @@
       if (planBorder){
         planGroup.remove(planBorder);
         planBorder.geometry.dispose();
-        if (planBorder.material) planBorder.material.dispose();
+        planBorder.material.dispose();
         planBorder = null;
       }
 
@@ -1389,6 +1348,7 @@
 
       selectedPlan = null;
       infoPlan.textContent = "未選択";
+      infoPlanSize.textContent = "未配置";
       planRotationQuarter = 0;
       grid.visible = true;
       renderPlanList();
@@ -1427,12 +1387,7 @@
     function applyCanvasAsPlanFloor(sourceCanvas, label){
       planImageAspect = sourceCanvas.width / Math.max(1, sourceCanvas.height);
 
-      if (planAspectLock){
-        const widthNow = Math.max(0.1, parseFloat(planWidthInput.value) || 10);
-        planDepthInput.value = (widthNow / planImageAspect).toFixed(2);
-      }
-
-      const { width, depth, opacity } = readPlanSettings();
+      const { width, depth, opacity, percent } = readPlanSettings();
 
       if (planPlane){
         planGroup.remove(planPlane);
@@ -1478,7 +1433,8 @@
       grid.visible = false;
 
       infoPlan.textContent = label;
-      setPlanStatus(`図面床を配置：${label} / ${width} x ${depth}`);
+      infoPlanSize.textContent = `${percent}% / X ${width.toFixed(2)} / Z ${depth.toFixed(2)} / aspect ${planImageAspect.toFixed(3)}`;
+      setPlanStatus(`図面床を配置：${label} / ${percent}% / X ${width.toFixed(2)} / Z ${depth.toFixed(2)}`);
     }
 
     async function renderPdfToCanvas(pdfSource, pageNumber, label){
@@ -1567,7 +1523,7 @@
     async function loadPlanFromPath(pathArg){
       const raw = pathArg || planPathInput.value.trim();
       if (!raw){
-        alert("plans/zumen.pdf のように入力してください。");
+        alert("plans/平面図.pdf のように入力してください。");
         return;
       }
 
@@ -1590,77 +1546,13 @@
       }
     }
 
-
-    function getPlanStep(){
-      return Math.max(0.05, parseFloat(planStepInput.value) || 0.5);
-    }
-
-    function getPlanScaleRate(){
-      return Math.max(1.01, parseFloat(planScaleRateInput.value) || 1.1);
-    }
-
-    function setPlanAspectLock(enabled){
-      planAspectLock = enabled;
-      planAspectLockBtn.classList.toggle("active", planAspectLock);
-      planAspectLockBtn.innerHTML = planAspectLock ? "<span>比率固定ON</span>" : "<span>比率固定OFF</span>";
-
-      if (planAspectLock){
-        const w = Math.max(0.1, parseFloat(planWidthInput.value) || 10);
-        planDepthInput.value = (w / planImageAspect).toFixed(2);
-      }
-
-      applyPlanSize();
-    }
-
-    function setPlanWidth(width){
-      const w = Math.max(0.1, width);
-      planWidthInput.value = w.toFixed(2);
-
-      if (planAspectLock){
-        planDepthInput.value = (w / planImageAspect).toFixed(2);
-      }
-
-      applyPlanSize();
-    }
-
-    function setPlanDepth(depth){
-      const d = Math.max(0.1, depth);
-      planDepthInput.value = d.toFixed(2);
-
-      if (planAspectLock){
-        planWidthInput.value = (d * planImageAspect).toFixed(2);
-      }
-
-      applyPlanSize();
-    }
-
-    function scalePlanFloor(rate){
-      const w = Math.max(0.1, parseFloat(planWidthInput.value) || 10);
-      const d = Math.max(0.1, parseFloat(planDepthInput.value) || 7);
-      planWidthInput.value = (w * rate).toFixed(2);
-      planDepthInput.value = (d * rate).toFixed(2);
-      applyPlanSize();
-    }
-
-    function setPlanPaperSize(width, depth){
-      planWidthInput.value = width.toFixed(2);
-      planDepthInput.value = depth.toFixed(2);
-
-      if (planAspectLock){
-        // 用紙比率を優先して、今後の幅変更時もこの比率になるよう更新
-        planImageAspect = width / depth;
-      }
-
-      applyPlanSize();
-    }
-
     function applyPlanSize(){
       if (!planPlane){
         setPlanStatus("図面床が未読込です。先にPDF/画像を読み込んでください。");
         return;
       }
 
-      const { width, depth, opacity } = readPlanSettings();
+      const { width, depth, opacity, percent } = readPlanSettings();
 
       planPlane.geometry.dispose();
       planPlane.geometry = new THREE.PlaneGeometry(width, depth);
@@ -1670,7 +1562,14 @@
       createPlanBorder(width, depth);
       if (planBorder) planBorder.visible = planVisible;
 
-      setPlanStatus(`図面床サイズ反映：${width} x ${depth} / opacity ${opacity}`);
+      infoPlanSize.textContent = `${percent}% / X ${width.toFixed(2)} / Z ${depth.toFixed(2)} / aspect ${planImageAspect.toFixed(3)}`;
+      setPlanStatus(`図面床サイズ反映：${percent}% / X ${width.toFixed(2)} / Z ${depth.toFixed(2)}`);
+    }
+
+    function setPlanPercent(percent){
+      const p = Math.max(1, Math.min(1000, percent));
+      planPercentInput.value = String(Math.round(p));
+      applyPlanSize();
     }
 
     function togglePlanVisible(){
@@ -1698,8 +1597,8 @@
 
     function fitPlanToModel(){
       const base = currentSize && currentSize > 0 ? currentSize : 5;
-      planWidthInput.value = (base * 2.0).toFixed(1);
-      planDepthInput.value = (base * 1.4).toFixed(1);
+      planBaseWidthInput.value = (base * 2.0).toFixed(2);
+      planPercentInput.value = "100";
       applyPlanSize();
     }
 
@@ -1728,7 +1627,7 @@
         box.getCenter(center);
 
         const maxDim = Math.max(size.x, size.y, size.z) || 1;
-        const dist = maxDim * 1.8;
+        const dist = maxDim * 1.75;
 
         controls.target.copy(center);
         camera.position.set(center.x + dist, center.y + dist * 0.65, center.z + dist);
@@ -1739,11 +1638,6 @@
       }
     }
 
-    function toggleAnimation(){
-      animationsEnabled = !animationsEnabled;
-      setStatus(animationsEnabled ? "ANIMATION ON" : "ANIMATION OFF");
-    }
-
     function openAr(){
       if (!selectedModel){
         alert("モデルを選択してください。");
@@ -1751,25 +1645,6 @@
       }
       const file = encodeURIComponent(selectedModel.path);
       location.href = `${location.origin}/ar.html?file=${file}`;
-    }
-
-    function copyArUrl(){
-      if (!selectedModel){
-        alert("モデルを選択してください。");
-        return;
-      }
-      const url = `${location.origin}/ar.html?file=${encodeURIComponent(selectedModel.path)}`;
-      prompt("ARビューアー確認用URL", url);
-    }
-
-    function copyPlanUrl(){
-      const path = selectedPlan ? selectedPlan.path : planPathInput.value.trim();
-      if (!path){
-        alert("図面を選択してください。");
-        return;
-      }
-      const url = `${location.origin}/${encodePath(path)}`;
-      prompt("図面ファイルURL", url);
     }
 
     function resize(){
@@ -1792,32 +1667,25 @@
       renderer.render(scene, camera);
     }
 
-    document.querySelectorAll(".toggle").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-target");
-        const panel = document.getElementById(id);
-        panel.classList.toggle("collapsed");
-        btn.textContent = panel.classList.contains("collapsed") ? "+" : "−";
-      });
+    document.querySelectorAll("[data-close]").forEach(btn => {
+      btn.addEventListener("click", closeDrawers);
     });
+
+    modelBtn.addEventListener("click", () => openDrawer(modelDrawer));
+    planBtn.addEventListener("click", () => openDrawer(planDrawer));
+    infoBtn.addEventListener("click", () => openDrawer(infoDrawer));
+    closePanelsBtn.addEventListener("click", closeDrawers);
 
     searchInput.addEventListener("input", renderModelList);
     planSearchInput.addEventListener("input", renderPlanList);
 
-    reloadBtn.addEventListener("click", async () => {
-      await loadModelList();
-      await loadPlanList();
-    });
     resetViewBtn.addEventListener("click", resetView);
-    openArBtn.addEventListener("click", openAr);
-    copyArUrlBtn.addEventListener("click", copyArUrl);
-    toggleAnimBtn.addEventListener("click", toggleAnimation);
     fitBtn.addEventListener("click", resetView);
     toggleGridBtn.addEventListener("click", () => {
       grid.visible = !grid.visible;
       setStatus(grid.visible ? "GRID ON" : "GRID OFF");
     });
-    copyPlanUrlBtn.addEventListener("click", copyPlanUrl);
+    openArBtn.addEventListener("click", openAr);
 
     planFileInput.addEventListener("change", () => {
       const file = planFileInput.files && planFileInput.files[0];
@@ -1838,29 +1706,21 @@
     togglePlanBtn.addEventListener("click", togglePlanVisible);
     rotatePlanBtn.addEventListener("click", rotatePlanFloor);
     centerPlanBtn.addEventListener("click", centerPlanFloor);
-    planScaleDownBtn.addEventListener("click", () => scalePlanFloor(1 / getPlanScaleRate()));
-    planScaleUpBtn.addEventListener("click", () => scalePlanFloor(getPlanScaleRate()));
-    planAspectLockBtn.addEventListener("click", () => setPlanAspectLock(!planAspectLock));
-    planWidthMinusBtn.addEventListener("click", () => setPlanWidth((parseFloat(planWidthInput.value) || 10) - getPlanStep()));
-    planWidthPlusBtn.addEventListener("click", () => setPlanWidth((parseFloat(planWidthInput.value) || 10) + getPlanStep()));
-    planDepthMinusBtn.addEventListener("click", () => setPlanDepth((parseFloat(planDepthInput.value) || 7) - getPlanStep()));
-    planDepthPlusBtn.addEventListener("click", () => setPlanDepth((parseFloat(planDepthInput.value) || 7) + getPlanStep()));
-    planA4PortraitBtn.addEventListener("click", () => setPlanPaperSize(2.10, 2.97));
-    planA4LandscapeBtn.addEventListener("click", () => setPlanPaperSize(2.97, 2.10));
-    planSizeResetBtn.addEventListener("click", () => {
-      planImageAspect = 10 / 7;
-      planWidthInput.value = "10";
-      planDepthInput.value = "7";
-      planOpacityInput.value = "0.85";
-      applyPlanSize();
-    });
     applyPlanSizeBtn.addEventListener("click", applyPlanSize);
     fitPlanToModelBtn.addEventListener("click", fitPlanToModel);
 
-    mobilePanelBtn.addEventListener("click", () => {
-      document.body.classList.toggle("mobile-open");
-      mobilePanelBtn.textContent = document.body.classList.contains("mobile-open") ? "CLOSE" : "PANEL";
-    });
+    planPct50Btn.addEventListener("click", () => setPlanPercent(50));
+    planPct100Btn.addEventListener("click", () => setPlanPercent(100));
+    planPct150Btn.addEventListener("click", () => setPlanPercent(150));
+    planPct200Btn.addEventListener("click", () => setPlanPercent(200));
+    planPctMinus10Btn.addEventListener("click", () => setPlanPercent((parseFloat(planPercentInput.value) || 100) - 10));
+    planPctPlus10Btn.addEventListener("click", () => setPlanPercent((parseFloat(planPercentInput.value) || 100) + 10));
+    planPctMinus1Btn.addEventListener("click", () => setPlanPercent((parseFloat(planPercentInput.value) || 100) - 1));
+    planPctPlus1Btn.addEventListener("click", () => setPlanPercent((parseFloat(planPercentInput.value) || 100) + 1));
+
+    planBaseWidthInput.addEventListener("change", applyPlanSize);
+    planPercentInput.addEventListener("change", applyPlanSize);
+    planOpacityInput.addEventListener("change", applyPlanSize);
 
     window.addEventListener("resize", resize);
 
