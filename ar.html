@@ -1,1564 +1,503 @@
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - PDF Percent Tray</title>
-
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
-
-  <style>
-    :root{
-      --bg0:#02030a;
-      --bg1:#061020;
-      --panel:rgba(8,16,32,.88);
-      --panel2:rgba(14,24,48,.94);
-      --cyan:#22f8ff;
-      --blue:#377cff;
-      --magenta:#ff2deb;
-      --lime:#a6ff2d;
-      --yellow:#ffe66d;
-      --danger:#ff477e;
-      --text:#eafbff;
-      --sub:#91a6c9;
-      --line:rgba(34,248,255,.34);
-      --shadow:0 0 18px rgba(34,248,255,.18), 0 0 34px rgba(255,45,235,.10);
-    }
-
-    *{ box-sizing:border-box; }
-
-    html,body{
-      width:100%;
-      height:100%;
-      margin:0;
-      overflow:hidden;
-      background:
-        radial-gradient(circle at 20% 20%, rgba(34,248,255,.09), transparent 28%),
-        radial-gradient(circle at 80% 70%, rgba(255,45,235,.10), transparent 32%),
-        linear-gradient(135deg, var(--bg0), var(--bg1) 55%, #050616);
-      color:var(--text);
-      font-family:"MS UI Gothic","Yu Gothic UI","Meiryo",sans-serif;
-      user-select:none;
-    }
-
-    body::before{
-      content:"";
-      position:fixed;
-      inset:0;
-      z-index:2;
-      pointer-events:none;
-      background:
-        linear-gradient(rgba(255,255,255,.023) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(34,248,255,.023) 1px, transparent 1px);
-      background-size:4px 4px, 18px 18px;
-      mix-blend-mode:screen;
-    }
-
-    body::after{
-      content:"";
-      position:fixed;
-      inset:0;
-      z-index:3;
-      pointer-events:none;
-      background:linear-gradient(to bottom, rgba(255,255,255,.038), transparent 1px);
-      background-size:100% 5px;
-      opacity:.28;
-    }
-
-    #app{
-      position:relative;
-      width:100%;
-      height:100%;
-      overflow:hidden;
-    }
-
-    model-viewer{
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-      z-index:1;
-      background:transparent;
-      --poster-color:transparent;
-      --progress-bar-color:#22f8ff;
-      --progress-bar-height:3px;
-    }
-
-    .pdf-preview-floor{
-      position:absolute;
-      z-index:0;
-      left:50%;
-      top:60%;
-      width:620px;
-      max-width:88vw;
-      aspect-ratio:1.414/1;
-      transform:translate(-50%,-50%) perspective(900px) rotateX(64deg) scale(var(--plan-scale, 1));
-      transform-origin:center center;
-      opacity:var(--plan-opacity, .85);
-      pointer-events:none;
-      display:none;
-      filter:contrast(1.05) saturate(.92);
-    }
-
-    .pdf-preview-floor.visible{
-      display:block;
-    }
-
-    .pdf-preview-floor img{
-      width:100%;
-      height:100%;
-      object-fit:contain;
-      display:block;
-      background:rgba(255,255,255,.92);
-      box-shadow:0 0 18px rgba(34,248,255,.18), 0 0 0 1px rgba(166,255,45,.52);
-    }
-
-    .pdf-preview-floor::after{
-      content:"PDF PLAN PREVIEW";
-      position:absolute;
-      left:6px;
-      top:6px;
-      border:1px solid rgba(166,255,45,.35);
-      background:rgba(2,8,18,.58);
-      color:var(--lime);
-      font:10px Consolas,"Courier New",monospace;
-      padding:3px 5px;
-      letter-spacing:.08em;
-    }
-
-    .top-bar{
-      position:absolute;
-      z-index:10;
-      top:10px;
-      left:10px;
-      right:10px;
-      height:56px;
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:10px;
-      pointer-events:none;
-    }
-
-    .brand{
-      pointer-events:auto;
-      min-width:0;
-      border:1px solid rgba(34,248,255,.42);
-      background:linear-gradient(90deg, rgba(8,16,32,.70), rgba(10,22,44,.45));
-      box-shadow:var(--shadow);
-      backdrop-filter:blur(12px);
-      -webkit-backdrop-filter:blur(12px);
-      clip-path:polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
-      padding:9px 14px;
-    }
-
-    .brand-line{
-      height:2px;
-      margin-bottom:6px;
-      background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--lime));
-      box-shadow:0 0 12px rgba(34,248,255,.60);
-    }
-
-    .brand-title{
-      font-size:15px;
-      font-weight:bold;
-      letter-spacing:.12em;
-      text-shadow:0 0 8px rgba(34,248,255,.70);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .brand-sub{
-      margin-top:3px;
-      color:var(--sub);
-      font-size:11px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .digital{
-      pointer-events:auto;
-      border:1px solid rgba(166,255,45,.36);
-      background:rgba(2,8,18,.68);
-      box-shadow:0 0 15px rgba(166,255,45,.13);
-      backdrop-filter:blur(12px);
-      -webkit-backdrop-filter:blur(12px);
-      width:210px;
-      padding:8px 10px;
-      text-align:right;
-    }
-
-    .digital .label{
-      color:var(--sub);
-      font-size:10px;
-      letter-spacing:.14em;
-    }
-
-    .digital .value{
-      margin-top:3px;
-      color:var(--lime);
-      font-family:Consolas,"Courier New",monospace;
-      font-size:14px;
-      font-weight:bold;
-      text-shadow:0 0 8px rgba(166,255,45,.55);
-    }
-
-    .panel-tray{
-      position:absolute;
-      z-index:14;
-      left:50%;
-      bottom:10px;
-      transform:translateX(-50%);
-      width:min(920px, calc(100vw - 20px));
-      min-height:50px;
-      border:1px solid rgba(34,248,255,.34);
-      background:rgba(4,10,20,.78);
-      box-shadow:var(--shadow);
-      backdrop-filter:blur(12px);
-      -webkit-backdrop-filter:blur(12px);
-      padding:7px;
-      display:grid;
-      grid-template-columns:1.2fr 1.2fr 1fr 1fr 1fr 1fr;
-      gap:7px;
-      pointer-events:auto;
-    }
-
-    .tray-label{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      border:1px solid rgba(166,255,45,.26);
-      background:rgba(166,255,45,.045);
-      color:var(--lime);
-      font-size:10px;
-      font-family:Consolas,"Courier New",monospace;
-      letter-spacing:.08em;
-      text-shadow:0 0 6px rgba(166,255,45,.38);
-      padding:0 6px;
-      min-height:36px;
-    }
-
-    .btn{
-      position:relative;
-      min-height:36px;
-      border:1px solid rgba(34,248,255,.42);
-      background:linear-gradient(180deg, rgba(15,28,58,.92), rgba(3,8,18,.92));
-      color:var(--text);
-      font-weight:bold;
-      cursor:pointer;
-      overflow:hidden;
-      letter-spacing:.04em;
-      font-size:12px;
-      padding:0 8px;
-    }
-
-    .btn::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:radial-gradient(circle at center, rgba(34,248,255,.32), transparent 62%);
-      transform:scaleX(0);
-      transform-origin:center;
-      transition:transform .22s ease;
-    }
-
-    .btn:hover::before{ transform:scaleX(1); }
-
-    .btn:hover{
-      border-color:var(--cyan);
-      color:white;
-      box-shadow:0 0 18px rgba(34,248,255,.22);
-    }
-
-    .btn span{
-      position:relative;
-      z-index:1;
-    }
-
-    .btn.magenta{ border-color:rgba(255,45,235,.42); }
-    .btn.magenta:hover{ border-color:var(--magenta); box-shadow:0 0 18px rgba(255,45,235,.24); }
-
-    .btn.lime{ border-color:rgba(166,255,45,.42); }
-    .btn.lime:hover{ border-color:var(--lime); box-shadow:0 0 18px rgba(166,255,45,.20); }
-
-    .btn.yellow{ border-color:rgba(255,230,109,.42); }
-    .btn.yellow:hover{ border-color:var(--yellow); box-shadow:0 0 18px rgba(255,230,109,.18); }
-
-    .btn.active{
-      border-color:var(--lime);
-      color:var(--lime);
-      box-shadow:0 0 16px rgba(166,255,45,.20);
-      background:linear-gradient(180deg, rgba(28,58,15,.72), rgba(3,12,8,.90));
-    }
-
-    .drawer{
-      position:absolute;
-      z-index:13;
-      top:76px;
-      bottom:70px;
-      width:380px;
-      max-width:calc(100vw - 20px);
-      display:none;
-      flex-direction:column;
-      min-height:0;
-      border:1px solid var(--line);
-      background:var(--panel);
-      box-shadow:var(--shadow);
-      backdrop-filter:blur(13px);
-      -webkit-backdrop-filter:blur(13px);
-      color:var(--text);
-      pointer-events:auto;
-    }
-
-    .drawer.open{ display:flex; }
-
-    .drawer.left{ left:10px; }
-    .drawer.right{ right:10px; }
-
-    .drawer.wide{
-      width:460px;
-    }
-
-    .drawer-head{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      padding:9px 10px;
-      border-bottom:1px solid rgba(34,248,255,.20);
-      background:linear-gradient(90deg, rgba(34,248,255,.10), rgba(255,45,235,.07));
-      flex:0 0 auto;
-    }
-
-    .drawer-title{
-      color:var(--cyan);
-      font-size:12px;
-      font-weight:bold;
-      letter-spacing:.12em;
-      text-shadow:0 0 8px rgba(34,248,255,.60);
-    }
-
-    .close{
-      min-width:34px;
-      height:26px;
-      border:1px solid rgba(255,71,126,.52);
-      background:rgba(20,4,10,.74);
-      color:#ffdce6;
-      cursor:pointer;
-      font-weight:bold;
-    }
-
-    .drawer-body{
-      padding:10px;
-      overflow:auto;
-      min-height:0;
-      flex:1 1 auto;
-    }
-
-    .search,
-    .input,
-    .file-input{
-      width:100%;
-      min-height:32px;
-      border:1px solid rgba(34,248,255,.34);
-      background:rgba(1,5,14,.88);
-      color:var(--text);
-      padding:6px 8px;
-      outline:none;
-      font-size:12px;
-    }
-
-    .search:focus,
-    .input:focus{
-      border-color:var(--magenta);
-      box-shadow:0 0 14px rgba(255,45,235,.20);
-    }
-
-    .list{
-      margin-top:8px;
-      border:1px solid rgba(34,248,255,.16);
-      background:rgba(2,8,18,.34);
-      padding:6px;
-      overflow:auto;
-      max-height:38vh;
-      min-height:120px;
-    }
-
-    .item{
-      width:100%;
-      text-align:left;
-      border:1px solid rgba(55,124,255,.28);
-      background:linear-gradient(90deg, rgba(5,13,28,.96), rgba(12,23,48,.72));
-      color:var(--text);
-      padding:8px 9px;
-      margin:0 0 6px 0;
-      cursor:pointer;
-      font-size:12px;
-      line-height:1.35;
-    }
-
-    .item:hover{
-      border-color:var(--cyan);
-      box-shadow:0 0 14px rgba(34,248,255,.20);
-    }
-
-    .item.active{
-      border-color:var(--lime);
-      background:linear-gradient(90deg, rgba(166,255,45,.15), rgba(34,248,255,.08));
-      box-shadow:0 0 16px rgba(166,255,45,.14);
-    }
-
-    .item-name{
-      color:var(--text);
-      font-weight:bold;
-      word-break:break-all;
-    }
-
-    .item-path{
-      margin-top:3px;
-      color:var(--sub);
-      font-size:10px;
-      word-break:break-all;
-    }
-
-    .badge-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-      margin-top:7px;
-    }
-
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      min-height:18px;
-      border:1px solid rgba(34,248,255,.35);
-      color:var(--cyan);
-      background:rgba(34,248,255,.06);
-      padding:2px 6px;
-      font-size:10px;
-      font-family:Consolas,"Courier New",monospace;
-    }
-
-    .badge.magenta{
-      border-color:rgba(255,45,235,.45);
-      color:var(--magenta);
-      background:rgba(255,45,235,.07);
-    }
-
-    .badge.lime{
-      border-color:rgba(166,255,45,.45);
-      color:var(--lime);
-      background:rgba(166,255,45,.07);
-    }
-
-    .button-grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:8px;
-      margin-top:8px;
-    }
-
-    .button-grid.three{
-      grid-template-columns:1fr 1fr 1fr;
-    }
-
-    .button-grid.four{
-      grid-template-columns:1fr 1fr 1fr 1fr;
-    }
-
-    .mini-input-row{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:7px;
-      margin-top:8px;
-    }
-
-    .mini-field{
-      display:flex;
-      flex-direction:column;
-      gap:3px;
-      min-width:0;
-    }
-
-    .mini-field label{
-      color:var(--sub);
-      font-size:10px;
-      letter-spacing:.05em;
-    }
-
-    .mini-field input{
-      width:100%;
-      height:30px;
-      border:1px solid rgba(34,248,255,.30);
-      background:rgba(1,5,14,.88);
-      color:var(--text);
-      padding:0 7px;
-      outline:none;
-      font-size:12px;
-    }
-
-    .mini-field input:focus{
-      border-color:var(--magenta);
-      box-shadow:0 0 12px rgba(255,45,235,.18);
-    }
-
-    .percent-display{
-      margin-top:8px;
-      border:1px solid rgba(166,255,45,.30);
-      background:rgba(166,255,45,.055);
-      color:var(--lime);
-      padding:10px;
-      text-align:center;
-      font-family:Consolas,"Courier New",monospace;
-      box-shadow:inset 0 0 14px rgba(166,255,45,.05);
-    }
-
-    .percent-display .big{
-      font-size:28px;
-      font-weight:bold;
-      letter-spacing:.06em;
-      text-shadow:0 0 9px rgba(166,255,45,.42);
-    }
-
-    .percent-display .sub{
-      margin-top:4px;
-      color:var(--sub);
-      font-size:11px;
-      line-height:1.45;
-      font-family:"MS UI Gothic","Yu Gothic UI","Meiryo",sans-serif;
-    }
-
-    .readout{
-      margin-top:8px;
-      border:1px solid rgba(166,255,45,.25);
-      background:rgba(166,255,45,.045);
-      color:var(--lime);
-      padding:7px;
-      font-size:11px;
-      line-height:1.45;
-      font-family:Consolas,"Courier New",monospace;
-      word-break:break-all;
-    }
-
-    .help{
-      margin-top:8px;
-      border:1px solid rgba(255,230,109,.24);
-      background:rgba(24,20,6,.30);
-      color:var(--yellow);
-      padding:7px;
-      font-size:11px;
-      line-height:1.5;
-    }
-
-    .empty{
-      border:1px dashed rgba(145,166,201,.34);
-      color:var(--sub);
-      padding:12px;
-      font-size:12px;
-      line-height:1.55;
-    }
-
-    .row{
-      display:grid;
-      grid-template-columns:92px 1fr;
-      gap:8px;
-      margin:7px 0;
-      font-size:12px;
-    }
-
-    .row .k{ color:var(--sub); }
-    .row .v{ color:var(--text); word-break:break-all; }
-
-    .viewer-only-note{
-      position:absolute;
-      right:10px;
-      bottom:64px;
-      z-index:9;
-      max-width:min(560px, calc(100vw - 20px));
-      border:1px solid rgba(34,248,255,.20);
-      background:rgba(2,8,18,.45);
-      color:var(--sub);
-      padding:6px 8px;
-      font-size:10px;
-      pointer-events:none;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .statusbar{
-      position:absolute;
-      left:10px;
-      bottom:64px;
-      z-index:9;
-      max-width:calc(100vw - 20px);
-      border:1px solid rgba(166,255,45,.28);
-      background:rgba(2,8,16,.58);
-      color:var(--lime);
-      padding:6px 9px;
-      font-size:11px;
-      font-family:Consolas,"Courier New",monospace;
-      box-shadow:0 0 12px rgba(166,255,45,.10);
-      pointer-events:none;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .ar-button{
-      position:absolute;
-      left:50%;
-      bottom:78px;
-      transform:translateX(-50%);
-      z-index:12;
-      min-width:176px;
-      min-height:42px;
-      border:1px solid rgba(166,255,45,.62);
-      background:rgba(3,8,18,.82);
-      color:var(--lime);
-      font-weight:bold;
-      letter-spacing:.08em;
-      box-shadow:0 0 18px rgba(166,255,45,.18);
-      backdrop-filter:blur(8px);
-      -webkit-backdrop-filter:blur(8px);
-    }
-
-    .ar-button:hover{
-      border-color:var(--lime);
-      color:white;
-      box-shadow:0 0 22px rgba(166,255,45,.22);
-    }
-
-    @media (max-width: 900px){
-      .top-bar{
-        top:6px;
-        left:6px;
-        right:6px;
-        height:48px;
-        grid-template-columns:1fr;
-      }
-
-      .digital{ display:none; }
-
-      .brand{
-        padding:7px 10px;
-      }
-
-      .brand-title{
-        font-size:12px;
-      }
-
-      .brand-sub{
-        font-size:10px;
-      }
-
-      .panel-tray{
-        bottom:6px;
-        width:calc(100vw - 12px);
-        grid-template-columns:repeat(3, 1fr);
-        padding:6px;
-        gap:5px;
-      }
-
-      .tray-label{
-        display:none;
-      }
-
-      .btn{
-        min-height:32px;
-        font-size:10px;
-      }
-
-      .drawer{
-        top:60px;
-        bottom:86px;
-        left:6px !important;
-        right:6px !important;
-        width:auto !important;
-        max-width:none;
-      }
-
-      .list{
-        max-height:30vh;
-      }
-
-      .button-grid.four,
-      .button-grid.three{
-        grid-template-columns:1fr 1fr;
-      }
-
-      .statusbar,
-      .viewer-only-note{
-        display:none;
-      }
-
-      .ar-button{
-        bottom:66px;
-      }
-
-      .pdf-preview-floor{
-        top:62%;
-        width:86vw;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div id="app">
-    <div class="pdf-preview-floor" id="pdfPreviewFloor">
-      <img id="pdfPreviewImage" alt="PDF plan preview">
-    </div>
-
-    <model-viewer
-      id="viewer"
-      camera-controls
-      touch-action="pan-y"
-      auto-rotate
-      shadow-intensity="0.75"
-      exposure="1.1"
-      ar
-      ar-modes="scene-viewer quick-look"
-      ar-scale="auto"
-      ar-placement="floor"
-      scale="1 1 1"
-      orientation="0deg 0deg 0deg"
-    >
-      <button slot="ar-button" class="ar-button">ARで表示</button>
-    </model-viewer>
-
-    <div class="top-bar">
-      <div class="brand">
-        <div class="brand-line"></div>
-        <div class="brand-title">SF AR VIEWER / PDF SCALE % + PANEL TRAY</div>
-        <div class="brand-sub">3Dビューアーと同じ収納バー構成。PDF図面は比率固定で％調整。</div>
-      </div>
-      <div class="digital">
-        <div class="label">SYSTEM DATE</div>
-        <div class="value" id="dateText">----</div>
-      </div>
-    </div>
-
-    <section class="drawer left" id="modelDrawer">
-      <div class="drawer-head">
-        <div class="drawer-title">MODEL LIST</div>
-        <button class="close" data-close="modelDrawer">×</button>
-      </div>
-      <div class="drawer-body">
-        <input class="search" id="modelSearchInput" placeholder="GLB / GLTF モデル名で検索">
-        <div class="badge-row">
-          <span class="badge lime">GLB</span>
-          <span class="badge lime">GLTF</span>
-          <span class="badge">AR対応</span>
-        </div>
-        <div class="list" id="modelList">
-          <div class="empty">models/ または モデル/ を読み込み中...</div>
-        </div>
-
-        <div class="mini-input-row">
-          <div class="mini-field">
-            <label>手入力パス</label>
-            <input id="modelPathInput" placeholder="models/test.glb">
-          </div>
-          <div class="mini-field">
-            <label>状態</label>
-            <input id="modelStateInput" value="未選択" readonly>
-          </div>
-        </div>
-
-        <div class="button-grid">
-          <button class="btn lime" id="loadModelPathBtn"><span>パス読込</span></button>
-          <button class="btn" id="reloadModelsBtn"><span>一覧再読込</span></button>
-        </div>
-      </div>
-    </section>
-
-    <section class="drawer right wide" id="planDrawer">
-      <div class="drawer-head">
-        <div class="drawer-title">PDF PLAN FOLDER v1</div>
-        <button class="close" data-close="planDrawer">×</button>
-      </div>
-      <div class="drawer-body">
-        <input class="search" id="planSearchInput" placeholder="PDF図面名で検索">
-
-        <div class="badge-row">
-          <span class="badge lime">plans/</span>
-          <span class="badge">PDF</span>
-          <span class="badge">PNG</span>
-          <span class="badge">JPG</span>
-          <span class="badge magenta">比率固定</span>
-        </div>
-
-        <div class="list" id="planList">
-          <div class="empty">PDFアップロード用フォルダを読み込み中...</div>
-        </div>
-
-        <div class="mini-input-row">
-          <div class="mini-field">
-            <label>手入力パス</label>
-            <input id="planPathInput" placeholder="plans/平面図.pdf">
-          </div>
-          <div class="mini-field">
-            <label>PDFページ</label>
-            <input id="planPageInput" type="number" min="1" step="1" value="1">
-          </div>
-        </div>
-
-        <div class="button-grid">
-          <button class="btn lime" id="loadPlanPathBtn"><span>パス読込</span></button>
-          <button class="btn" id="reloadPlansBtn"><span>一覧再読込</span></button>
-          <button class="btn magenta" id="loadHeimenBtn"><span>平面図.pdf読込</span></button>
-          <button class="btn" id="showPlanApiBtn"><span>参照URL表示</span></button>
-        </div>
-
-        <div style="margin-top:8px;">
-          <input class="file-input" id="planFileInput" type="file" accept=".pdf,image/png,image/jpeg,image/webp">
-        </div>
-
-        <div class="percent-display">
-          <div class="big"><span id="planPercentView">100</span>%</div>
-          <div class="sub">
-            PDF比率固定 / 幅・奥行入力なし<br>
-            AR起動前の配置参考として表示
-          </div>
-        </div>
-
-        <div class="mini-input-row">
-          <div class="mini-field">
-            <label>大きさ %</label>
-            <input id="planPercentInput" type="number" min="1" max="1000" step="1" value="100">
-          </div>
-          <div class="mini-field">
-            <label>透明度</label>
-            <input id="planOpacityInput" type="number" min="0.1" max="1" step="0.05" value="0.85">
-          </div>
-        </div>
-
-        <div class="button-grid four">
-          <button class="btn" id="planPct25Btn"><span>25%</span></button>
-          <button class="btn" id="planPct50Btn"><span>50%</span></button>
-          <button class="btn" id="planPct100Btn"><span>100%</span></button>
-          <button class="btn" id="planPct200Btn"><span>200%</span></button>
-        </div>
-
-        <div class="button-grid four">
-          <button class="btn" id="planPctMinus10Btn"><span>-10%</span></button>
-          <button class="btn" id="planPctPlus10Btn"><span>+10%</span></button>
-          <button class="btn" id="planPctMinus1Btn"><span>-1%</span></button>
-          <button class="btn" id="planPctPlus1Btn"><span>+1%</span></button>
-        </div>
-
-        <div class="button-grid">
-          <button class="btn lime" id="applyPlanSizeBtn"><span>%反映</span></button>
-          <button class="btn" id="togglePlanBtn"><span>表示/非表示</span></button>
-          <button class="btn magenta" id="rotatePlanBtn"><span>90°回転</span></button>
-          <button class="btn magenta" id="clearPlanBtn"><span>図面クリア</span></button>
-        </div>
-
-        <div class="readout" id="planStatusText">
-          PDF図面はプレビュー上の床ガイドとして表示します。大きさは%だけで調整します。
-        </div>
-
-        <div class="help">
-          注意：Quick Look / Scene Viewer の実AR空間にはPDF床を一緒に送れません。ここではAR起動前の配置参考としてPDF図面を重ねて表示します。
-        </div>
-      </div>
-    </section>
-
-    <section class="drawer right" id="infoDrawer">
-      <div class="drawer-head">
-        <div class="drawer-title">INFO</div>
-        <button class="close" data-close="infoDrawer">×</button>
-      </div>
-      <div class="drawer-body">
-        <div class="row"><div class="k">MODEL</div><div class="v" id="infoModel">未選択</div></div>
-        <div class="row"><div class="k">PLAN</div><div class="v" id="infoPlan">未選択</div></div>
-        <div class="row"><div class="k">PLAN SIZE</div><div class="v" id="infoPlanSize">未配置</div></div>
-        <div class="row"><div class="k">AR</div><div class="v">実ARでは端末側の床・壁認識で配置します。</div></div>
-      </div>
-    </section>
-
-    <div class="panel-tray">
-      <div class="tray-label">PANEL STORAGE</div>
-      <button class="btn lime" id="modelBtn"><span>モデル収納</span></button>
-      <button class="btn lime" id="planBtn"><span>PDF図面収納</span></button>
-      <button class="btn" id="infoBtn"><span>情報収納</span></button>
-      <button class="btn" id="resetViewBtn"><span>視点リセット</span></button>
-      <button class="btn magenta" id="closePanelsBtn"><span>パネル収納</span></button>
-    </div>
-
-    <div class="viewer-only-note">パネルは下部の PANEL STORAGE に収納。PDFはAR起動前の配置参考として表示。</div>
-    <div class="statusbar" id="statusText">SYSTEM READY</div>
-  </div>
-
-  <script type="module">
-    import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
-
-    const GITHUB_OWNER = "ASKR-created";
-    const GITHUB_REPO = "ASKR-created.github.io";
-    const GITHUB_REFS = ["main", "master"];
-
-    const MODEL_ROOTS = ["models", "モデル"];
-    const PLAN_ROOTS = ["plans", "図面", "PDF", "pdf"];
-
-    const PLAN_FALLBACK_FILES = [
-      "plans/平面図.pdf",
-      "plans/配置図.pdf",
-      "plans/zumen.pdf",
-      "plans/plan.pdf",
-      "plans/floor.pdf",
-      "plans/平面図.png",
-      "plans/配置図.png",
-      "plans/zumen.png",
-      "plans/plan.png"
-    ];
-
-    const MODEL_EXTENSIONS = [".glb", ".gltf"];
-    const PLAN_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
-
-    const viewer = document.getElementById("viewer");
-    const pdfPreviewFloor = document.getElementById("pdfPreviewFloor");
-    const pdfPreviewImage = document.getElementById("pdfPreviewImage");
-
-    const modelDrawer = document.getElementById("modelDrawer");
-    const planDrawer = document.getElementById("planDrawer");
-    const infoDrawer = document.getElementById("infoDrawer");
-
-    const modelBtn = document.getElementById("modelBtn");
-    const planBtn = document.getElementById("planBtn");
-    const infoBtn = document.getElementById("infoBtn");
-    const resetViewBtn = document.getElementById("resetViewBtn");
-    const closePanelsBtn = document.getElementById("closePanelsBtn");
-
-    const modelSearchInput = document.getElementById("modelSearchInput");
-    const modelList = document.getElementById("modelList");
-    const modelPathInput = document.getElementById("modelPathInput");
-    const modelStateInput = document.getElementById("modelStateInput");
-    const loadModelPathBtn = document.getElementById("loadModelPathBtn");
-    const reloadModelsBtn = document.getElementById("reloadModelsBtn");
-
-    const planSearchInput = document.getElementById("planSearchInput");
-    const planList = document.getElementById("planList");
-    const planFileInput = document.getElementById("planFileInput");
-    const planPathInput = document.getElementById("planPathInput");
-    const planPageInput = document.getElementById("planPageInput");
-    const loadPlanPathBtn = document.getElementById("loadPlanPathBtn");
-    const reloadPlansBtn = document.getElementById("reloadPlansBtn");
-    const loadHeimenBtn = document.getElementById("loadHeimenBtn");
-    const showPlanApiBtn = document.getElementById("showPlanApiBtn");
-
-    const planPercentInput = document.getElementById("planPercentInput");
-    const planPercentView = document.getElementById("planPercentView");
-    const planOpacityInput = document.getElementById("planOpacityInput");
-    const planPct25Btn = document.getElementById("planPct25Btn");
-    const planPct50Btn = document.getElementById("planPct50Btn");
-    const planPct100Btn = document.getElementById("planPct100Btn");
-    const planPct200Btn = document.getElementById("planPct200Btn");
-    const planPctMinus10Btn = document.getElementById("planPctMinus10Btn");
-    const planPctPlus10Btn = document.getElementById("planPctPlus10Btn");
-    const planPctMinus1Btn = document.getElementById("planPctMinus1Btn");
-    const planPctPlus1Btn = document.getElementById("planPctPlus1Btn");
-    const applyPlanSizeBtn = document.getElementById("applyPlanSizeBtn");
-    const togglePlanBtn = document.getElementById("togglePlanBtn");
-    const rotatePlanBtn = document.getElementById("rotatePlanBtn");
-    const clearPlanBtn = document.getElementById("clearPlanBtn");
-
-    const infoModel = document.getElementById("infoModel");
-    const infoPlan = document.getElementById("infoPlan");
-    const infoPlanSize = document.getElementById("infoPlanSize");
-    const planStatusText = document.getElementById("planStatusText");
-    const statusText = document.getElementById("statusText");
-    const dateText = document.getElementById("dateText");
-
-    let allModels = [];
-    let allPlans = [];
-    let selectedModel = null;
-    let selectedPlan = null;
-
-    let planImageAspect = 1.414;
-    let planVisible = false;
-    let planRotationQuarter = 0;
-    let currentPlanLabel = "";
-
-    const params = new URLSearchParams(location.search);
-    const initialFile = params.get("file") ? decodeURIComponent(params.get("file")) : "";
-
-    function setStatus(text){
-      statusText.textContent = text;
-      console.log("[AR VIEWER]", text);
-    }
-
-    function setPlanStatus(text){
-      planStatusText.textContent = text;
-      setStatus(text);
-    }
-
-    function updateDate(){
-      const now = new Date();
-      const week = ["SUN","MON","TUE","WED","THU","FRI","SAT"][now.getDay()];
-      const yyyy = now.getFullYear();
-      const mm = String(now.getMonth()+1).padStart(2, "0");
-      const dd = String(now.getDate()).padStart(2, "0");
-      const hh = String(now.getHours()).padStart(2, "0");
-      const mi = String(now.getMinutes()).padStart(2, "0");
-      dateText.textContent = `${yyyy}.${mm}.${dd} ${week} ${hh}:${mi}`;
-    }
-    updateDate();
-    setInterval(updateDate, 15000);
-
-    function encodePath(path){
-      return String(path).split("/").map(part => encodeURIComponent(part)).join("/");
-    }
-
-    function toAssetUrl(path){
-      if (!path) return "";
-      if (/^https?:\/\//i.test(path)) return path;
-      return encodePath(path).replace(/%3A/g, ":");
-    }
-
-    function getExt(path){
-      const m = String(path).toLowerCase().match(/\.[^.\/?#]+$/);
-      return m ? m[0] : "";
-    }
-
-    function getBaseName(path){
-      return String(path).split("/").pop() || path;
-    }
-
-    function escapeHtml(str){
-      return String(str).replace(/[&<>"']/g, s => ({
-        "&":"&amp;",
-        "<":"&lt;",
-        ">":"&gt;",
-        '"':"&quot;",
-        "'":"&#39;"
-      }[s]));
-    }
-
-    function openDrawer(drawer){
-      const willOpen = !drawer.classList.contains("open");
-      [modelDrawer, planDrawer, infoDrawer].forEach(d => {
-        d.classList.toggle("open", d === drawer && willOpen);
-      });
-      setStatus(willOpen ? "PANEL OPENED FROM STORAGE BAR" : "PANEL STORED IN STORAGE BAR");
-    }
-
-    function closeDrawers(){
-      [modelDrawer, planDrawer, infoDrawer].forEach(d => d.classList.remove("open"));
-      setStatus("PANELS STORED IN BOTTOM STORAGE BAR");
-    }
-
-    async function fetchGitHubContents(path, ref){
-      const safePath = encodePath(path);
-      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${safePath}?ref=${encodeURIComponent(ref)}&_=${Date.now()}`;
-      const res = await fetch(url, {
-        headers: { "Accept": "application/vnd.github+json" }
-      });
-      if (!res.ok){
-        throw new Error(`GitHub API ${res.status}: ${path}`);
-      }
-      return await res.json();
-    }
-
-    async function scanRecursive(path, ref, bucket, allowedExts){
-      const items = await fetchGitHubContents(path, ref);
-      if (!Array.isArray(items)) return bucket;
-
-      for (const item of items){
-        if (item.type === "dir"){
-          await scanRecursive(item.path, ref, bucket, allowedExts);
-        } else if (item.type === "file"){
-          const ext = getExt(item.path);
-          if (allowedExts.includes(ext)){
-            bucket.push({
-              name:item.name,
-              path:item.path,
-              ext,
-              size:item.size || 0
-            });
-          }
-        }
-      }
-      return bucket;
-    }
-
-    async function scanRoots(roots, allowedExts, label){
-      let lastError = null;
-
-      for (const ref of GITHUB_REFS){
-        const bucket = [];
-
-        for (const root of roots){
-          try{
-            await scanRecursive(root, ref, bucket, allowedExts);
-          }catch(err){
-            lastError = err;
-            console.warn(`${label} root scan skipped:`, root, err.message);
-          }
-        }
-
-        if (bucket.length > 0){
-          return {
-            items: bucket.sort((a,b) => a.path.localeCompare(b.path, "ja")),
-            ref
-          };
-        }
-      }
-
-      return {
-        items: [],
-        ref: "",
-        error: lastError
-      };
-    }
-
-    async function findFallbackPlans(){
-      const found = [];
-
-      for (const path of PLAN_FALLBACK_FILES){
-        try{
-          const res = await fetch(toAssetUrl(path) + "?check=" + Date.now(), {
-            method:"HEAD",
-            cache:"no-store"
-          });
-
-          if (res.ok){
-            found.push({
-              name:getBaseName(path),
-              path,
-              ext:getExt(path),
-              size:0
-            });
-          }
-        }catch(err){
-          console.warn("fallback plan skipped:", path, err.message);
-        }
-      }
-
-      const map = new Map();
-      found.forEach(item => map.set(item.path.toLowerCase(), item));
-      return Array.from(map.values()).sort((a,b) => a.path.localeCompare(b.path, "ja"));
-    }
-
-    async function loadModelList(){
-      modelList.innerHTML = `<div class="empty">models/ または モデル/ を走査中...</div>`;
-      setStatus("SCANNING MODEL FOLDERS ...");
-
-      const result = await scanRoots(MODEL_ROOTS, MODEL_EXTENSIONS, "model");
-      allModels = result.items;
-      renderModelList();
-
-      if (allModels.length > 0){
-        setStatus(`MODEL LIST ${allModels.length} / ${result.ref}`);
-
-        if (initialFile){
-          selectModelPath(initialFile);
-        } else {
-          selectModel(allModels[0]);
-        }
-      } else {
-        modelList.innerHTML = `
-          <div class="empty">
-            GLB / GLTFが見つかりません。<br>
-            対応フォルダ：models/ または モデル/
-          </div>
-        `;
-        setStatus("MODEL LIST EMPTY");
-      }
-    }
-
-    async function loadPlanList(){
-      planList.innerHTML = `<div class="empty">plans/、図面/、PDF/ を走査中...</div>`;
-      setPlanStatus("SCANNING PLAN FOLDERS ...");
-
-      const result = await scanRoots(PLAN_ROOTS, PLAN_EXTENSIONS, "plan");
-      allPlans = result.items;
-
-      if (allPlans.length === 0){
-        setPlanStatus("GitHub API一覧が空です。直接参照を確認中...");
-        allPlans = await findFallbackPlans();
-      }
-
-      renderPlanList();
-
-      if (allPlans.length > 0){
-        setPlanStatus(`図面一覧 ${allPlans.length}件`);
-      } else {
-        planList.innerHTML = `
-          <div class="empty">
-            PDF図面が見つかりません。<br>
-            例：plans/平面図.pdf<br><br>
-            「平面図.pdf読込」または手入力パスで試してください。
-          </div>
-        `;
-        setPlanStatus("PLAN LIST EMPTY");
-      }
-    }
-
-    function renderModelList(){
-      const q = modelSearchInput.value.trim().toLowerCase();
-      const filtered = allModels.filter(m => {
-        if (!q) return true;
-        return m.name.toLowerCase().includes(q) || m.path.toLowerCase().includes(q);
-      });
-
-      if (filtered.length === 0){
-        modelList.innerHTML = `<div class="empty">該当するモデルがありません。</div>`;
-        return;
-      }
-
-      modelList.innerHTML = "";
-
-      for (const m of filtered){
-        const btn = document.createElement("button");
-        btn.className = "item" + (selectedModel && selectedModel.path === m.path ? " active" : "");
-        btn.innerHTML = `
-          <div class="item-name">${escapeHtml(m.name)}</div>
-          <div class="item-path">${escapeHtml(m.path)}</div>
-          <div class="badge-row">
-            <span class="badge lime">${escapeHtml(m.ext.toUpperCase().slice(1))}</span>
-            <span class="badge">AR表示</span>
-          </div>
-        `;
-        btn.addEventListener("click", () => selectModel(m));
-        modelList.appendChild(btn);
-      }
-    }
-
-    function renderPlanList(){
-      const q = planSearchInput.value.trim().toLowerCase();
-      const filtered = allPlans.filter(p => {
-        if (!q) return true;
-        return p.name.toLowerCase().includes(q) || p.path.toLowerCase().includes(q);
-      });
-
-      if (filtered.length === 0){
-        planList.innerHTML = `<div class="empty">該当するPDF/画像図面がありません。</div>`;
-        return;
-      }
-
-      planList.innerHTML = "";
-
-      for (const p of filtered){
-        const btn = document.createElement("button");
-        btn.className = "item" + (selectedPlan && selectedPlan.path === p.path ? " active" : "");
-        btn.innerHTML = `
-          <div class="item-name">${escapeHtml(p.name)}</div>
-          <div class="item-path">${escapeHtml(p.path)}</div>
-          <div class="badge-row">
-            <span class="badge lime">${escapeHtml(p.ext.toUpperCase().slice(1))}</span>
-            <span class="badge magenta">比率固定</span>
-            <span class="badge">プレビュー床</span>
-          </div>
-        `;
-        btn.addEventListener("click", () => selectPlan(p));
-        planList.appendChild(btn);
-      }
-    }
-
-    function selectModel(model){
-      selectedModel = model;
-      modelPathInput.value = model.path;
-      modelStateInput.value = "読込中";
-      infoModel.textContent = model.path;
-      viewer.src = toAssetUrl(model.path);
-      renderModelList();
-
-      const newUrl = new URL(location.href);
-      newUrl.searchParams.set("file", model.path);
-      history.replaceState(null, "", newUrl.toString());
-
-      closeDrawers();
-      setStatus("MODEL LOADING: " + model.path);
-    }
-
-    function selectModelPath(path){
-      const ext = getExt(path);
-      if (!MODEL_EXTENSIONS.includes(ext)){
-        alert("ARビューアーでは GLB / GLTF を指定してください。");
-        return;
-      }
-
-      const found = allModels.find(m => m.path === path);
-      if (found){
-        selectModel(found);
-        return;
-      }
-
-      selectModel({
-        name:getBaseName(path),
-        path,
-        ext,
-        size:0
-      });
-    }
-
-    async function selectPlan(plan){
-      selectedPlan = plan;
-      planPathInput.value = plan.path;
-      infoPlan.textContent = plan.path;
-      renderPlanList();
-      await loadPlanFromPath(plan.path);
-    }
-
-    function updatePlanPreviewStyle(){
-      const percent = Math.max(1, Math.min(1000, parseFloat(planPercentInput.value) || 100));
-      const opacity = Math.max(0.1, Math.min(1, parseFloat(planOpacityInput.value) || .85));
-
-      planPercentInput.value = String(Math.round(percent));
-      planPercentView.textContent = String(Math.round(percent));
-
-      document.documentElement.style.setProperty("--plan-scale", String(percent / 100));
-      document.documentElement.style.setProperty("--plan-opacity", String(opacity));
-
-      pdfPreviewFloor.style.transform =
-        `translate(-50%,-50%) perspective(900px) rotateX(64deg) rotateZ(${planRotationQuarter * 90}deg) scale(${percent / 100})`;
-
-      infoPlanSize.textContent = `${Math.round(percent)}% / 比率固定 / aspect ${planImageAspect.toFixed(3)}`;
-    }
-
-    function setPlanPercent(percent){
-      const p = Math.max(1, Math.min(1000, percent));
-      planPercentInput.value = String(Math.round(p));
-      updatePlanPreviewStyle();
-      setPlanStatus(`PDF大きさ：${Math.round(p)}% / 比率固定`);
-    }
-
-    function clearPlan(){
-      selectedPlan = null;
-      currentPlanLabel = "";
-      pdfPreviewImage.removeAttribute("src");
-      pdfPreviewFloor.classList.remove("visible");
-      planVisible = false;
-      planRotationQuarter = 0;
-      infoPlan.textContent = "未選択";
-      infoPlanSize.textContent = "未配置";
-      setPlanStatus("PDF図面をクリアしました。");
-      renderPlanList();
-    }
-
-    function applyCanvasAsPreview(canvas, label){
-      planImageAspect = canvas.width / Math.max(1, canvas.height);
-      currentPlanLabel = label;
-      pdfPreviewImage.src = canvas.toDataURL("image/png");
-      pdfPreviewFloor.classList.add("visible");
-      planVisible = true;
-      updatePlanPreviewStyle();
-      infoPlan.textContent = label;
-      setPlanStatus(`PDF図面をプレビュー床として表示：${label}`);
-    }
-
-    async function renderPdfToCanvas(pdfSource, pageNumber, label){
-      setPlanStatus("PDF図面を画像化中...");
-
-      const task = pdfjsLib.getDocument(pdfSource);
-      const pdf = await task.promise;
-      const safePage = Math.max(1, Math.min(pageNumber || 1, pdf.numPages));
-      const page = await pdf.getPage(safePage);
-
-      const baseViewport = page.getViewport({ scale:1 });
-      const maxSide = 2048;
-      const scale = Math.min(2.2, maxSide / Math.max(baseViewport.width, baseViewport.height));
-      const viewport = page.getViewport({ scale });
-
-      const canvas2d = document.createElement("canvas");
-      canvas2d.width = Math.max(1, Math.floor(viewport.width));
-      canvas2d.height = Math.max(1, Math.floor(viewport.height));
-
-      const ctx = canvas2d.getContext("2d", { alpha:false });
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas2d.width, canvas2d.height);
-
-      await page.render({
-        canvasContext:ctx,
-        viewport
-      }).promise;
-
-      applyCanvasAsPreview(canvas2d, `${label} / page ${safePage}`);
-    }
-
-    async function renderImageToCanvas(src, label){
-      setPlanStatus("画像図面を読込中...");
-
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = src;
-      await img.decode();
-
-      const maxSide = 2048;
-      const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
-      const w = Math.max(1, Math.floor(img.naturalWidth * scale));
-      const h = Math.max(1, Math.floor(img.naturalHeight * scale));
-
-      const canvas2d = document.createElement("canvas");
-      canvas2d.width = w;
-      canvas2d.height = h;
-
-      const ctx = canvas2d.getContext("2d", { alpha:false });
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0, w, h);
-
-      applyCanvasAsPreview(canvas2d, label);
-    }
-
-    async function loadPlanFromFile(file){
-      if (!file) return;
-
-      const ext = getExt(file.name);
-      const pageNumber = Math.max(1, parseInt(planPageInput.value || "1", 10));
-
-      try{
-        if (ext === ".pdf"){
-          const data = new Uint8Array(await file.arrayBuffer());
-          selectedPlan = { name:file.name, path:file.name, ext };
-          await renderPdfToCanvas({ data }, pageNumber, file.name);
-        } else if (file.type.startsWith("image/")){
-          const url = URL.createObjectURL(file);
-          try{
-            selectedPlan = { name:file.name, path:file.name, ext };
-            await renderImageToCanvas(url, file.name);
-          } finally {
-            URL.revokeObjectURL(url);
-          }
-        } else {
-          alert("PDFまたはPNG/JPG/WebPを選択してください。");
-        }
-      }catch(err){
-        console.error(err);
-        alert("図面の読み込みに失敗しました。\n\n" + err.message);
-        setPlanStatus("図面読み込み失敗");
-      }
-    }
-
-    async function loadPlanFromPath(pathArg){
-      const raw = pathArg || planPathInput.value.trim();
-      if (!raw){
-        alert("plans/平面図.pdf のように入力してください。");
-        return;
-      }
-
-      const url = toAssetUrl(raw);
-      const ext = getExt(raw);
-      const pageNumber = Math.max(1, parseInt(planPageInput.value || "1", 10));
-
-      try{
-        if (ext === ".pdf"){
-          await renderPdfToCanvas(url, pageNumber, raw);
-        } else if ([".png", ".jpg", ".jpeg", ".webp"].includes(ext)){
-          await renderImageToCanvas(url, raw);
-        } else {
-          alert("PDFまたはPNG/JPG/WebPのパスを指定してください。");
-        }
-      }catch(err){
-        console.error(err);
-        alert("図面の読み込みに失敗しました。\n\n" + raw + "\n\n" + err.message);
-        setPlanStatus("図面読み込み失敗");
-      }
-    }
-
-    viewer.addEventListener("load", () => {
-      modelStateInput.value = "読込完了";
-      setStatus("MODEL LOADED");
-    });
-
-    viewer.addEventListener("error", () => {
-      modelStateInput.value = "読込失敗";
-      setStatus("MODEL LOAD ERROR");
-    });
-
-    viewer.addEventListener("ar-status", event => {
-      setStatus("AR " + event.detail.status);
-    });
-
-    document.querySelectorAll("[data-close]").forEach(btn => {
-      btn.addEventListener("click", closeDrawers);
-    });
-
-    modelBtn.addEventListener("click", () => openDrawer(modelDrawer));
-    planBtn.addEventListener("click", () => openDrawer(planDrawer));
-    infoBtn.addEventListener("click", () => openDrawer(infoDrawer));
-    closePanelsBtn.addEventListener("click", closeDrawers);
-
-    resetViewBtn.addEventListener("click", () => {
-      viewer.cameraOrbit = "0deg 75deg auto";
-      viewer.cameraTarget = "auto auto auto";
-      viewer.fieldOfView = "auto";
-      setStatus("VIEW RESET");
-    });
-
-    modelSearchInput.addEventListener("input", renderModelList);
-    planSearchInput.addEventListener("input", renderPlanList);
-
-    loadModelPathBtn.addEventListener("click", () => {
-      const path = modelPathInput.value.trim();
-      if (!path){
-        alert("models/test.glb のように入力してください。");
-        return;
-      }
-      selectModelPath(path);
-    });
-
-    reloadModelsBtn.addEventListener("click", loadModelList);
-
-    planFileInput.addEventListener("change", () => {
-      const file = planFileInput.files && planFileInput.files[0];
-      loadPlanFromFile(file);
-    });
-
-    loadPlanPathBtn.addEventListener("click", () => loadPlanFromPath());
-    reloadPlansBtn.addEventListener("click", loadPlanList);
-
-    loadHeimenBtn.addEventListener("click", () => {
-      planPathInput.value = "plans/平面図.pdf";
-      loadPlanFromPath("plans/平面図.pdf");
-    });
-
-    showPlanApiBtn.addEventListener("click", () => {
-      const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/plans?ref=main`;
-      const fileUrl = `${location.origin}/plans/平面図.pdf`;
-      prompt("plansフォルダ参照URL / 直接PDF URL", apiUrl + "\n" + fileUrl);
-    });
-
-    planPct25Btn.addEventListener("click", () => setPlanPercent(25));
-    planPct50Btn.addEventListener("click", () => setPlanPercent(50));
-    planPct100Btn.addEventListener("click", () => setPlanPercent(100));
-    planPct200Btn.addEventListener("click", () => setPlanPercent(200));
-    planPctMinus10Btn.addEventListener("click", () => setPlanPercent((parseFloat(planPercentInput.value) || 100) - 10));
-    planPctPlus10Btn.addEventListener("click", () => setPlanPercent((parseFloat(planPercentInput.value) || 100) + 10));
-    planPctMinus1Btn.addEventListener("click", () => setPlanPercent((parseFloat(planPercentInput.value) || 100) - 1));
-    planPctPlus1Btn.addEventListener("click", () => setPlanPercent((parseFloat(planPercentInput.value) || 100) + 1));
-
-    applyPlanSizeBtn.addEventListener("click", () => setPlanPercent(parseFloat(planPercentInput.value) || 100));
-
-    planPercentInput.addEventListener("change", () => setPlanPercent(parseFloat(planPercentInput.value) || 100));
-    planOpacityInput.addEventListener("change", updatePlanPreviewStyle);
-
-    togglePlanBtn.addEventListener("click", () => {
-      planVisible = !planVisible;
-      pdfPreviewFloor.classList.toggle("visible", planVisible && !!pdfPreviewImage.getAttribute("src"));
-      setPlanStatus(planVisible ? "PDF図面を表示しました。" : "PDF図面を非表示にしました。");
-    });
-
-    rotatePlanBtn.addEventListener("click", () => {
-      planRotationQuarter = (planRotationQuarter + 1) % 4;
-      updatePlanPreviewStyle();
-      setPlanStatus(`PDF図面を${planRotationQuarter * 90}°回転しました。`);
-    });
-
-    clearPlanBtn.addEventListener("click", clearPlan);
-
-    updatePlanPreviewStyle();
-    loadModelList();
-    loadPlanList();
-
-    if (initialFile){
-      modelPathInput.value = initialFile;
-    }
-  </script>
-</body>
-</html>
+Option Explicit
+
+'============================================================
+' R8年度訓練カレンダー 時間数集計 1004完全回避版
+'
+' ・数式は使わず、VBAで計算した値だけを入れる
+' ・UnMerge / ClearFormats / Protect / Locked など1004が出やすい処理は安全処理化
+' ・1～2行目、26～27行目は可能な範囲で編集不可にする
+' ・保護解除できないシートがある場合も、そこで全体停止しない
+'============================================================
+
+Public Sub R8時間数集計_全シート()
+    R8_時間数集計_全シート
+End Sub
+
+Public Sub R8時間数集計_表示中シート()
+    R8_時間数集計_表示中シート
+End Sub
+
+Public Sub R8_時間数集計_全シート()
+
+    Dim wb As Workbook
+    Dim sheetNames As Variant
+    Dim i As Long
+    Dim ws As Worksheet
+    Dim ngList As String
+    Dim resultText As String
+
+    Dim oldScreenUpdating As Boolean
+    Dim oldEnableEvents As Boolean
+    Dim oldDisplayAlerts As Boolean
+
+    On Error GoTo ErrHandler
+
+    Set wb = ThisWorkbook
+    sheetNames = R8H_TargetSheetNames()
+
+    oldScreenUpdating = Application.ScreenUpdating
+    oldEnableEvents = Application.EnableEvents
+    oldDisplayAlerts = Application.DisplayAlerts
+
+    Application.ScreenUpdating = False
+    Application.EnableEvents = False
+    Application.DisplayAlerts = False
+
+    ngList = ""
+
+    For i = LBound(sheetNames) To UBound(sheetNames)
+        If R8H_WorksheetExists(wb, CStr(sheetNames(i))) Then
+            Set ws = wb.Worksheets(CStr(sheetNames(i)))
+            resultText = R8H_CalculateOneSheetSafe(ws)
+            If Len(resultText) > 0 Then
+                ngList = ngList & "・" & ws.Name & "：" & resultText & vbCrLf
+            End If
+        End If
+    Next i
+
+    Application.DisplayAlerts = oldDisplayAlerts
+    Application.EnableEvents = oldEnableEvents
+    Application.ScreenUpdating = oldScreenUpdating
+
+    If Len(ngList) = 0 Then
+        MsgBox "全対象シートの時間数を集計しました。" & vbCrLf & vbCrLf & _
+               "各月26行目：時間数" & vbCrLf & _
+               "ユニット外26行目：時間数" & vbCrLf & _
+               "ユニット外27行目：シート合計" & vbCrLf & vbCrLf & _
+               "26行目・27行目は編集不可にしました。", _
+               vbInformation, "完了"
+    Else
+        MsgBox "時間数集計は完了しましたが、一部確認が必要です。" & vbCrLf & vbCrLf & _
+               ngList, _
+               vbExclamation, "確認"
+    End If
+
+    Exit Sub
+
+ErrHandler:
+    Application.DisplayAlerts = oldDisplayAlerts
+    Application.EnableEvents = oldEnableEvents
+    Application.ScreenUpdating = oldScreenUpdating
+
+    MsgBox "時間数集計中にエラーが発生しました。" & vbCrLf & vbCrLf & _
+           "エラー番号：" & Err.Number & vbCrLf & _
+           "内容：" & Err.Description, _
+           vbExclamation, "エラー"
+
+End Sub
+
+Public Sub R8_時間数集計_表示中シート()
+
+    Dim ws As Worksheet
+    Dim resultText As String
+
+    On Error GoTo ErrHandler
+
+    Set ws = ActiveSheet
+
+    resultText = R8H_CalculateOneSheetSafe(ws)
+
+    If Len(resultText) = 0 Then
+        MsgBox "表示中シートの時間数を集計しました。" & vbCrLf & _
+               "26行目・27行目は編集不可にしました。", _
+               vbInformation, "完了"
+    Else
+        MsgBox "表示中シートの時間数集計で確認が必要です。" & vbCrLf & vbCrLf & _
+               resultText, _
+               vbExclamation, "確認"
+    End If
+
+    Exit Sub
+
+ErrHandler:
+    MsgBox "時間数集計中にエラーが発生しました。" & vbCrLf & vbCrLf & _
+           "エラー番号：" & Err.Number & vbCrLf & _
+           "内容：" & Err.Description, _
+           vbExclamation, "エラー"
+
+End Sub
+
+Private Function R8H_CalculateOneSheetSafe(ByVal ws As Worksheet) As String
+
+    Dim c As Long
+    Dim headerText As String
+    Dim dateCol As Long
+    Dim unitCol As Long
+    Dim unitOutDateCol As Long
+    Dim unitOutUnitCol As Long
+    Dim lastUsedCol As Long
+
+    Dim monthHours As Long
+    Dim unitOutHours As Long
+    Dim sheetTotalHours As Long
+    Dim hasAnyMonth As Boolean
+    Dim noteText As String
+
+    On Error GoTo SafeError
+
+    noteText = ""
+
+    R8H_UnprotectSheetSafe ws
+
+    If ws.ProtectContents Then
+        R8H_CalculateOneSheetSafe = "シート保護を解除できませんでした。先に保護解除してください。"
+        Exit Function
+    End If
+
+    R8H_ClearSummaryAreaSafe ws
+
+    unitOutDateCol = 0
+    unitOutUnitCol = 0
+    sheetTotalHours = 0
+    hasAnyMonth = False
+
+    For c = 1 To 31 Step 2
+
+        If CStr(ws.Cells(2, c).Value) = "日付" Then
+
+            dateCol = c
+            unitCol = c + 1
+            headerText = R8H_GetMergedHeaderText(ws.Cells(1, c))
+
+            If Len(Trim$(headerText)) > 0 Then
+
+                hasAnyMonth = True
+
+                R8H_SetCellValueSafe ws.Cells(26, dateCol), "時間数"
+
+                If headerText = "ユニット外" Then
+
+                    unitOutDateCol = dateCol
+                    unitOutUnitCol = unitCol
+
+                    unitOutHours = R8H_CalcUnitOutHours(ws, unitCol)
+                    R8H_SetCellValueSafe ws.Cells(26, unitCol), unitOutHours
+                    R8H_SetNumberFormatSafe ws.Cells(26, unitCol)
+
+                    sheetTotalHours = sheetTotalHours + unitOutHours
+
+                Else
+
+                    monthHours = R8H_CountDateCells(ws, dateCol) * 6
+                    R8H_SetCellValueSafe ws.Cells(26, unitCol), monthHours
+                    R8H_SetNumberFormatSafe ws.Cells(26, unitCol)
+
+                    sheetTotalHours = sheetTotalHours + monthHours
+
+                End If
+
+                R8H_FormatHourPairSafe ws, dateCol, unitCol, 26
+
+            End If
+
+        End If
+
+    Next c
+
+    If unitOutDateCol > 0 And unitOutUnitCol > 0 Then
+
+        R8H_SetCellValueSafe ws.Cells(27, unitOutDateCol), "シート合計"
+        R8H_SetCellValueSafe ws.Cells(27, unitOutUnitCol), sheetTotalHours
+        R8H_SetNumberFormatSafe ws.Cells(27, unitOutUnitCol)
+        R8H_FormatHourPairSafe ws, unitOutDateCol, unitOutUnitCol, 27
+
+    ElseIf hasAnyMonth Then
+
+        lastUsedCol = R8H_GetLastHeaderColumn(ws)
+        If lastUsedCol < 1 Then lastUsedCol = 1
+        If lastUsedCol > 30 Then lastUsedCol = 30
+
+        R8H_SetCellValueSafe ws.Cells(27, lastUsedCol), "シート合計"
+        R8H_SetCellValueSafe ws.Cells(27, lastUsedCol + 1), sheetTotalHours
+        R8H_SetNumberFormatSafe ws.Cells(27, lastUsedCol + 1)
+        R8H_FormatHourPairSafe ws, lastUsedCol, lastUsedCol + 1, 27
+
+        noteText = "ユニット外列が見つからなかったため、最終列付近にシート合計を配置しました。"
+    End If
+
+    R8H_SetRowHeightSafe ws
+
+    If Not R8H_ProtectOneTargetSheetSafe(ws) Then
+        If Len(noteText) > 0 Then
+            noteText = noteText & " "
+        End If
+        noteText = noteText & "シート保護の再設定に失敗しました。"
+    End If
+
+    R8H_CalculateOneSheetSafe = noteText
+    Exit Function
+
+SafeError:
+    R8H_CalculateOneSheetSafe = "処理中にエラー：" & Err.Number & " / " & Err.Description
+
+End Function
+
+Private Sub R8H_ClearSummaryAreaSafe(ByVal ws As Worksheet)
+
+    Dim r As Long
+    Dim c As Long
+
+    On Error Resume Next
+
+    ws.Range("A26:AF27").UnMerge
+
+    For r = 26 To 27
+        For c = 1 To 32
+            ws.Cells(r, c).ClearContents
+            ws.Cells(r, c).Interior.Color = RGB(255, 255, 255)
+            ws.Cells(r, c).Borders.LineStyle = xlNone
+            ws.Cells(r, c).Font.Bold = False
+            ws.Cells(r, c).Locked = False
+        Next c
+    Next r
+
+    On Error GoTo 0
+
+End Sub
+
+Private Sub R8H_SetCellValueSafe(ByVal targetCell As Range, ByVal v As Variant)
+
+    On Error Resume Next
+    targetCell.Value = v
+    On Error GoTo 0
+
+End Sub
+
+Private Sub R8H_SetNumberFormatSafe(ByVal targetCell As Range)
+
+    On Error Resume Next
+    targetCell.NumberFormatLocal = "0""H"""
+    On Error GoTo 0
+
+End Sub
+
+Private Sub R8H_SetRowHeightSafe(ByVal ws As Worksheet)
+
+    On Error Resume Next
+    ws.Rows("26:27").RowHeight = 22
+    On Error GoTo 0
+
+End Sub
+
+Private Function R8H_CountDateCells(ByVal ws As Worksheet, ByVal dateCol As Long) As Long
+
+    Dim r As Long
+    Dim cnt As Long
+    Dim v As String
+
+    cnt = 0
+
+    For r = 3 To 25
+        v = Trim$(CStr(ws.Cells(r, dateCol).Value))
+        If Len(v) > 0 Then
+            cnt = cnt + 1
+        End If
+    Next r
+
+    R8H_CountDateCells = cnt
+
+End Function
+
+Private Function R8H_CalcUnitOutHours(ByVal ws As Worksheet, ByVal unitCol As Long) As Long
+
+    Dim r As Long
+    Dim txt As String
+    Dim totalHours As Long
+
+    totalHours = 0
+
+    For r = 3 To 25
+
+        txt = Trim$(CStr(ws.Cells(r, unitCol).Value))
+
+        If Len(txt) > 0 Then
+            totalHours = totalHours + R8H_UnitOutTextToHours(txt)
+        End If
+
+    Next r
+
+    R8H_CalcUnitOutHours = totalHours
+
+End Function
+
+Private Function R8H_UnitOutTextToHours(ByVal textValue As String) As Long
+
+    Dim t As String
+    Dim h As Long
+
+    t = R8H_NormalizeText(textValue)
+    h = 0
+
+    If InStr(1, t, "入所式", vbTextCompare) > 0 Then
+        h = h + 6
+    End If
+
+    If InStr(1, t, "就職", vbTextCompare) > 0 Then
+        h = h + 3
+    End If
+
+    If InStr(1, t, "IT/講話", vbTextCompare) > 0 _
+       Or InStr(1, t, "IT・講話", vbTextCompare) > 0 Then
+        h = h + 6
+    ElseIf InStr(1, t, "講話", vbTextCompare) > 0 Then
+        h = h + 6
+    End If
+
+    If InStr(1, t, "修了日", vbTextCompare) > 0 Then
+        h = h + 3
+    End If
+
+    If InStr(1, t, "終了日", vbTextCompare) > 0 Then
+        h = h + 3
+    End If
+
+    R8H_UnitOutTextToHours = h
+
+End Function
+
+Private Sub R8H_FormatHourPairSafe(ByVal ws As Worksheet, _
+                                   ByVal dateCol As Long, _
+                                   ByVal unitCol As Long, _
+                                   ByVal targetRow As Long)
+
+    On Error Resume Next
+
+    With ws.Range(ws.Cells(targetRow, dateCol), ws.Cells(targetRow, unitCol))
+        .Font.Name = "ＭＳ Ｐゴシック"
+        .Font.Size = 10
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .Borders.LineStyle = xlContinuous
+        .Borders.Color = RGB(180, 180, 180)
+        .Interior.Color = RGB(242, 242, 242)
+        .Locked = True
+    End With
+
+    ws.Cells(targetRow, dateCol).Font.Bold = True
+    ws.Cells(targetRow, unitCol).Font.Bold = True
+
+    On Error GoTo 0
+
+End Sub
+
+Private Function R8H_GetLastHeaderColumn(ByVal ws As Worksheet) As Long
+
+    Dim c As Long
+    Dim lastCol As Long
+
+    lastCol = 0
+
+    For c = 1 To 32
+        If Len(Trim$(CStr(ws.Cells(1, c).Value))) > 0 _
+           Or Len(Trim$(CStr(ws.Cells(2, c).Value))) > 0 Then
+            lastCol = c
+        End If
+    Next c
+
+    R8H_GetLastHeaderColumn = lastCol
+
+End Function
+
+Private Function R8H_GetMergedHeaderText(ByVal targetCell As Range) As String
+
+    On Error GoTo ErrHandler
+
+    R8H_GetMergedHeaderText = CStr(targetCell.MergeArea.Cells(1, 1).Value)
+    Exit Function
+
+ErrHandler:
+    R8H_GetMergedHeaderText = CStr(targetCell.Value)
+
+End Function
+
+Private Function R8H_ProtectOneTargetSheetSafe(ByVal ws As Worksheet) As Boolean
+
+    On Error Resume Next
+
+    R8H_UnprotectSheetSafe ws
+
+    If ws.ProtectContents Then
+        R8H_ProtectOneTargetSheetSafe = False
+        Exit Function
+    End If
+
+    ws.Cells.Locked = False
+
+    ws.Rows("1:2").Locked = True
+    ws.Rows("26:27").Locked = True
+
+    ws.Protect Contents:=True
+
+    R8H_ProtectOneTargetSheetSafe = Not CBool(Err.Number <> 0)
+
+    Err.Clear
+    On Error GoTo 0
+
+End Function
+
+Private Sub R8H_UnprotectSheetSafe(ByVal ws As Worksheet)
+
+    On Error Resume Next
+
+    ws.Unprotect Password:="R8"
+    ws.Unprotect Password:=""
+
+    On Error GoTo 0
+
+End Sub
+
+Private Function R8H_TargetSheetNames() As Variant
+
+    R8H_TargetSheetNames = Array( _
+        "①JR12月生", _
+        "②JR2月生", _
+        "③JR3月生", _
+        "④JR6月生", _
+        "⑤JR8月生", _
+        "⑥JR9月生", _
+        "⑦JR12月生", _
+        "⑧JR2月生", _
+        "⑨JR3月生", _
+        "①CAD10月生", _
+        "②CAD4月生", _
+        "③CAD5月生", _
+        "④CAD10月生", _
+        "⑤CAD11月生" _
+    )
+
+End Function
+
+Private Function R8H_WorksheetExists(ByVal wb As Workbook, ByVal sheetName As String) As Boolean
+
+    Dim ws As Worksheet
+
+    On Error Resume Next
+    Set ws = wb.Worksheets(sheetName)
+    On Error GoTo 0
+
+    R8H_WorksheetExists = Not ws Is Nothing
+
+End Function
+
+Private Function R8H_NormalizeText(ByVal s As String) As String
+
+    Dim t As String
+
+    t = CStr(s)
+
+    On Error Resume Next
+    t = StrConv(t, vbNarrow)
+    On Error GoTo 0
+
+    t = UCase$(t)
+    t = Replace(t, vbCr, "")
+    t = Replace(t, vbLf, "")
+    t = Replace(t, "　", "")
+    t = Replace(t, " ", "")
+    t = Replace(t, "･", "/")
+    t = Replace(t, "・", "/")
+    t = Replace(t, "／", "/")
+
+    R8H_NormalizeText = t
+
+End Function
