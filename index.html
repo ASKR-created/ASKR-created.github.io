@@ -476,6 +476,24 @@
       word-break:break-all;
     }
 
+
+    .size-help{
+      margin-top:8px;
+      border:1px solid rgba(255,230,109,.25);
+      background:rgba(24,20,6,.34);
+      color:var(--yellow);
+      padding:7px;
+      font-size:11px;
+      line-height:1.45;
+    }
+
+    .btn.active{
+      border-color:var(--lime);
+      color:var(--lime);
+      box-shadow:0 0 16px rgba(166,255,45,.20);
+      background:linear-gradient(180deg, rgba(28,58,15,.72), rgba(3,12,8,.90));
+    }
+
     .empty{
       border:1px dashed rgba(145,166,201,.34);
       color:var(--sub);
@@ -585,7 +603,7 @@
       <div class="brand">
         <div class="brand-line"></div>
         <div class="brand-title">SF 3D VIEWER / PDF PLAN FLOOR</div>
-        <div class="brand-sub">plans/ フォルダを直接参照して図面を選択・配置</div>
+        <div class="brand-sub">plans/ 図面選択 + PDF床の大きさをボタンで調整</div>
       </div>
       <div class="digital">
         <div class="label">SYSTEM DATE</div>
@@ -616,7 +634,7 @@
 
     <section class="panel" id="planPanel">
       <div class="panel-head">
-        <div class="panel-title">PDF PLAN FOLDER v2</div>
+        <div class="panel-title">PDF PLAN FOLDER v3</div>
         <button class="toggle" data-target="planPanel">−</button>
       </div>
       <div class="panel-body">
@@ -670,6 +688,40 @@
           </div>
         </div>
 
+        <div class="button-grid three" style="margin-top:8px;">
+          <button class="btn" id="planScaleDownBtn"><span>全体縮小</span></button>
+          <button class="btn lime active" id="planAspectLockBtn"><span>比率固定ON</span></button>
+          <button class="btn" id="planScaleUpBtn"><span>全体拡大</span></button>
+        </div>
+
+        <div class="button-grid" style="margin-top:8px;">
+          <button class="btn" id="planWidthMinusBtn"><span>幅 −</span></button>
+          <button class="btn" id="planWidthPlusBtn"><span>幅 ＋</span></button>
+          <button class="btn" id="planDepthMinusBtn"><span>奥行 −</span></button>
+          <button class="btn" id="planDepthPlusBtn"><span>奥行 ＋</span></button>
+        </div>
+
+        <div class="button-grid three" style="margin-top:8px;">
+          <button class="btn magenta" id="planA4PortraitBtn"><span>A4縦</span></button>
+          <button class="btn magenta" id="planA4LandscapeBtn"><span>A4横</span></button>
+          <button class="btn" id="planSizeResetBtn"><span>初期サイズ</span></button>
+        </div>
+
+        <div class="mini-input-row">
+          <div class="mini-field">
+            <label>調整幅</label>
+            <input id="planStepInput" type="number" min="0.05" step="0.05" value="0.5">
+          </div>
+          <div class="mini-field">
+            <label>全体倍率</label>
+            <input id="planScaleRateInput" type="number" min="1.01" step="0.01" value="1.1">
+          </div>
+        </div>
+
+        <div class="size-help">
+          「比率固定ON」の時は、幅Xを変えるとPDFの縦横比に合わせて奥行Zも自動調整します。図面が伸びる場合はON、任意に変形したい場合はOFF。
+        </div>
+
         <div class="button-grid" style="margin-top:8px;">
           <button class="btn lime" id="applyPlanSizeBtn"><span>サイズ反映</span></button>
           <button class="btn" id="fitPlanToModelBtn"><span>モデル基準</span></button>
@@ -680,7 +732,7 @@
         </div>
 
         <div class="plan-readout" id="planStatusText">
-          plans/平面図.pdf を直接参照できます。一覧が出ない場合は「平面図.pdf読込」を押してください。
+          plans/平面図.pdf を直接参照できます。読込後は全体拡大/縮小・幅/奥行ボタンで大きさ調整できます。
         </div>
 
         <p class="hint warning">
@@ -794,6 +846,18 @@
     const planWidthInput = document.getElementById("planWidthInput");
     const planDepthInput = document.getElementById("planDepthInput");
     const planOpacityInput = document.getElementById("planOpacityInput");
+    const planScaleDownBtn = document.getElementById("planScaleDownBtn");
+    const planAspectLockBtn = document.getElementById("planAspectLockBtn");
+    const planScaleUpBtn = document.getElementById("planScaleUpBtn");
+    const planWidthMinusBtn = document.getElementById("planWidthMinusBtn");
+    const planWidthPlusBtn = document.getElementById("planWidthPlusBtn");
+    const planDepthMinusBtn = document.getElementById("planDepthMinusBtn");
+    const planDepthPlusBtn = document.getElementById("planDepthPlusBtn");
+    const planA4PortraitBtn = document.getElementById("planA4PortraitBtn");
+    const planA4LandscapeBtn = document.getElementById("planA4LandscapeBtn");
+    const planSizeResetBtn = document.getElementById("planSizeResetBtn");
+    const planStepInput = document.getElementById("planStepInput");
+    const planScaleRateInput = document.getElementById("planScaleRateInput");
     const applyPlanSizeBtn = document.getElementById("applyPlanSizeBtn");
     const fitPlanToModelBtn = document.getElementById("fitPlanToModelBtn");
     const planStatusText = document.getElementById("planStatusText");
@@ -863,6 +927,8 @@
     let planTexture = null;
     let planRotationQuarter = 0;
     let planVisible = true;
+    let planAspectLock = true;
+    let planImageAspect = 10 / 7;
 
     const axesGroup = new THREE.Group();
     scene.add(axesGroup);
@@ -1359,6 +1425,13 @@
     }
 
     function applyCanvasAsPlanFloor(sourceCanvas, label){
+      planImageAspect = sourceCanvas.width / Math.max(1, sourceCanvas.height);
+
+      if (planAspectLock){
+        const widthNow = Math.max(0.1, parseFloat(planWidthInput.value) || 10);
+        planDepthInput.value = (widthNow / planImageAspect).toFixed(2);
+      }
+
       const { width, depth, opacity } = readPlanSettings();
 
       if (planPlane){
@@ -1515,6 +1588,70 @@
         alert("図面の読み込みに失敗しました。\n\n" + raw + "\n\n" + err.message);
         setPlanStatus("図面読み込み失敗");
       }
+    }
+
+
+    function getPlanStep(){
+      return Math.max(0.05, parseFloat(planStepInput.value) || 0.5);
+    }
+
+    function getPlanScaleRate(){
+      return Math.max(1.01, parseFloat(planScaleRateInput.value) || 1.1);
+    }
+
+    function setPlanAspectLock(enabled){
+      planAspectLock = enabled;
+      planAspectLockBtn.classList.toggle("active", planAspectLock);
+      planAspectLockBtn.innerHTML = planAspectLock ? "<span>比率固定ON</span>" : "<span>比率固定OFF</span>";
+
+      if (planAspectLock){
+        const w = Math.max(0.1, parseFloat(planWidthInput.value) || 10);
+        planDepthInput.value = (w / planImageAspect).toFixed(2);
+      }
+
+      applyPlanSize();
+    }
+
+    function setPlanWidth(width){
+      const w = Math.max(0.1, width);
+      planWidthInput.value = w.toFixed(2);
+
+      if (planAspectLock){
+        planDepthInput.value = (w / planImageAspect).toFixed(2);
+      }
+
+      applyPlanSize();
+    }
+
+    function setPlanDepth(depth){
+      const d = Math.max(0.1, depth);
+      planDepthInput.value = d.toFixed(2);
+
+      if (planAspectLock){
+        planWidthInput.value = (d * planImageAspect).toFixed(2);
+      }
+
+      applyPlanSize();
+    }
+
+    function scalePlanFloor(rate){
+      const w = Math.max(0.1, parseFloat(planWidthInput.value) || 10);
+      const d = Math.max(0.1, parseFloat(planDepthInput.value) || 7);
+      planWidthInput.value = (w * rate).toFixed(2);
+      planDepthInput.value = (d * rate).toFixed(2);
+      applyPlanSize();
+    }
+
+    function setPlanPaperSize(width, depth){
+      planWidthInput.value = width.toFixed(2);
+      planDepthInput.value = depth.toFixed(2);
+
+      if (planAspectLock){
+        // 用紙比率を優先して、今後の幅変更時もこの比率になるよう更新
+        planImageAspect = width / depth;
+      }
+
+      applyPlanSize();
     }
 
     function applyPlanSize(){
@@ -1701,6 +1838,22 @@
     togglePlanBtn.addEventListener("click", togglePlanVisible);
     rotatePlanBtn.addEventListener("click", rotatePlanFloor);
     centerPlanBtn.addEventListener("click", centerPlanFloor);
+    planScaleDownBtn.addEventListener("click", () => scalePlanFloor(1 / getPlanScaleRate()));
+    planScaleUpBtn.addEventListener("click", () => scalePlanFloor(getPlanScaleRate()));
+    planAspectLockBtn.addEventListener("click", () => setPlanAspectLock(!planAspectLock));
+    planWidthMinusBtn.addEventListener("click", () => setPlanWidth((parseFloat(planWidthInput.value) || 10) - getPlanStep()));
+    planWidthPlusBtn.addEventListener("click", () => setPlanWidth((parseFloat(planWidthInput.value) || 10) + getPlanStep()));
+    planDepthMinusBtn.addEventListener("click", () => setPlanDepth((parseFloat(planDepthInput.value) || 7) - getPlanStep()));
+    planDepthPlusBtn.addEventListener("click", () => setPlanDepth((parseFloat(planDepthInput.value) || 7) + getPlanStep()));
+    planA4PortraitBtn.addEventListener("click", () => setPlanPaperSize(2.10, 2.97));
+    planA4LandscapeBtn.addEventListener("click", () => setPlanPaperSize(2.97, 2.10));
+    planSizeResetBtn.addEventListener("click", () => {
+      planImageAspect = 10 / 7;
+      planWidthInput.value = "10";
+      planDepthInput.value = "7";
+      planOpacityInput.value = "0.85";
+      applyPlanSize();
+    });
     applyPlanSizeBtn.addEventListener("click", applyPlanSize);
     fitPlanToModelBtn.addEventListener("click", fitPlanToModel);
 
