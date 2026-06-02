@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Three.js Multi PDF Fixed</title>
+  <title>SF 3D Viewer - Ground Snap PDF Wall Fixed</title>
 
   <script type="importmap">
   {
@@ -246,8 +246,8 @@
     <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / MODEL + MULTI PDF RESTORE</div>
-        <div class="brand-sub">OBJ / FBX / GLB / GLTF復帰。PDF複数配置、地面・側面、％のみ・比率固定。</div>
+        <div class="brand-title">SF 3D VIEWER / GROUND SNAP + PDF WALL</div>
+        <div class="brand-sub">モデルを地面Y=0へ吸着。PDF地面は下、側面は高さY方向へ配置。</div>
       </div>
       <div class="digital">
         <div class="label">SYSTEM DATE</div>
@@ -273,14 +273,16 @@
         <div class="button-grid">
           <button class="btn lime" id="loadModelPathBtn"><span>パス読込</span></button>
           <button class="btn" id="reloadModelsBtn"><span>一覧再読込</span></button>
+          <button class="btn magenta" id="snapGroundBtn"><span>地面に置く</span></button>
+          <button class="btn" id="showGroundBtn"><span>基準表示</span></button>
         </div>
-        <div class="help">前版で読めなくなったOBJ/FBXも復帰しています。OBJは同名MTLがあれば自動で読み込みます。</div>
+        <div class="help">モデルの最下部を地面Y=0へ自動吸着します。浮いて見える場合は「地面に置く」を押してください。</div>
       </div>
     </section>
 
     <section class="drawer right wide" id="planDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MULTI PDF PLAN v3</div>
+        <div class="drawer-title">MULTI PDF PLAN v4</div>
         <button class="close" data-close="planDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -316,7 +318,7 @@
         </div>
         <div class="mini-input-row">
           <div class="mini-field"><label>大きさ %</label><input id="planPercentInput" type="number" min="1" max="1000" step="1" value="100"></div>
-          <div class="mini-field"><label>透明度</label><input id="planOpacityInput" type="number" min="0.1" max="1" step="0.05" value="0.85"></div>
+          <div class="mini-field"><label>透明度</label><input id="planOpacityInput" type="number" min="0.1" max="1" step="0.05" value="0.65"></div>
         </div>
         <div class="button-grid four">
           <button class="btn" id="planPct25Btn"><span>25%</span></button>
@@ -339,7 +341,7 @@
           <button class="btn magenta" id="clearLayersBtn"><span>全PDF削除</span></button>
         </div>
         <div class="layer-list" id="planLayerList"><div class="empty">PDFレイヤー未配置。地面または側面に追加してください。</div></div>
-        <div class="readout" id="planStatusText">PDFを複数配置できます。地面・側面を選び、％だけでサイズ調整します。</div>
+        <div class="readout" id="planStatusText">PDFを複数配置できます。地面はY=0の下、側面は高さY方向に立てて配置します。</div>
       </div>
     </section>
 
@@ -366,7 +368,7 @@
       <button class="btn magenta" id="closePanelsBtn"><span>パネル収納</span></button>
     </div>
 
-    <div class="viewer-only-note">モデル読込をThree.js方式へ復帰。PDFは地面・側面へ複数配置できます。</div>
+    <div class="viewer-only-note">モデル最下部を地面Y=0へ吸着。PDF地面はモデルの下、側面は高さY方向へ立てます。</div>
     <div class="statusbar" id="statusText">SYSTEM READY</div>
   </div>
 
@@ -417,6 +419,8 @@
     const modelStateInput = document.getElementById("modelStateInput");
     const loadModelPathBtn = document.getElementById("loadModelPathBtn");
     const reloadModelsBtn = document.getElementById("reloadModelsBtn");
+    const snapGroundBtn = document.getElementById("snapGroundBtn");
+    const showGroundBtn = document.getElementById("showGroundBtn");
 
     const planSearchInput = document.getElementById("planSearchInput");
     const planList = document.getElementById("planList");
@@ -513,6 +517,14 @@
     grid.material.transparent = true;
     grid.material.opacity = .22;
     scene.add(grid);
+
+    const groundMarker = new THREE.GridHelper(2.2, 4, 0xa6ff2d, 0x335533);
+    groundMarker.name = "GROUND_ZERO_MARKER";
+    groundMarker.position.y = 0.001;
+    groundMarker.material.transparent = true;
+    groundMarker.material.opacity = 0.55;
+    groundMarker.visible = false;
+    scene.add(groundMarker);
 
     const pdfRoot = new THREE.Group();
     pdfRoot.name = "MULTI_PDF_ROOT";
@@ -777,6 +789,22 @@
       selectModel({name:getBaseName(path), path, ext, size:0});
     }
 
+    function snapModelToGround(){
+      if (!currentObject) {
+        setStatus("MODEL NOT LOADED");
+        return;
+      }
+
+      const box = new THREE.Box3().setFromObject(currentObject);
+      if (box.isEmpty()) return;
+
+      // 3D空間の地面基準はY=0。
+      // モデル最下部をY=0へ合わせる。
+      currentObject.position.y += -box.min.y;
+
+      setStatus("MODEL SNAPPED TO GROUND Y=0");
+    }
+
     function normalizeAndAddObject(obj){
       currentObject = obj;
       scene.add(currentObject);
@@ -796,8 +824,7 @@
       box.getCenter(center);
       currentObject.position.sub(center);
 
-      box = new THREE.Box3().setFromObject(currentObject);
-      currentObject.position.y -= box.min.y;
+      snapModelToGround();
 
       box = new THREE.Box3().setFromObject(currentObject);
       box.getSize(size);
@@ -952,10 +979,15 @@
       layer.group.visible = layer.visible;
 
       if (layer.placement === "floor"){
-        layer.group.position.set(0, 0.003 * layer.id, 0);
+        // 地面図面はY=0の少し下へ配置。
+        // モデルはY=0に置くため、PDF面がモデルを覆いにくくなる。
+        layer.group.position.set(0, -0.006 * layer.id, 0);
         layer.group.rotation.set(-Math.PI / 2, 0, layer.rotationQuarter * Math.PI / 2);
       } else {
-        layer.group.position.set(0, height / 2, -baseWidth * 0.42);
+        // 側面図面は「高さ方向=Y」に立てる。
+        // PlaneGeometryの縦方向がYになるため、中心をheight/2に置くと下端が地面Y=0に合う。
+        const sideZ = -Math.max(currentSize * 1.35, baseWidth * 0.45);
+        layer.group.position.set(0, height / 2, sideZ);
         layer.group.rotation.set(0, 0, layer.rotationQuarter * Math.PI / 2);
       }
 
@@ -964,6 +996,7 @@
 
       layer.width = width;
       layer.height = height;
+      layer.bottomY = layer.placement === "side" ? 0 : -0.006 * layer.id;
     }
 
     function addCanvasAsLayer(canvas2d, label, placement){
@@ -971,7 +1004,7 @@
       const material = new THREE.MeshBasicMaterial({
         map:texture,
         transparent:true,
-        opacity:Math.max(0.1, Math.min(1, parseFloat(planOpacityInput.value) || 0.85)),
+        opacity:Math.max(0.1, Math.min(1, parseFloat(planOpacityInput.value) || 0.65)),
         side:THREE.DoubleSide,
         depthWrite:false,
         polygonOffset:true,
@@ -980,12 +1013,14 @@
       });
 
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material);
+      mesh.renderOrder = -100 + layerSeq;
       const borderMat = new THREE.LineBasicMaterial({
         color: placement === "floor" ? 0xa6ff2d : 0x22f8ff,
         transparent:true,
         opacity:0.82
       });
       const border = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(1, 1)), borderMat);
+      border.renderOrder = 10 + layerSeq;
 
       const group = new THREE.Group();
       group.name = `PDF_LAYER_${layerSeq}`;
@@ -1018,7 +1053,7 @@
       setActiveLayer(id);
       resetView();
 
-      setPlanStatus(`PDFを${placement === "floor" ? "地面" : "側面"}に追加：${label}`);
+      setPlanStatus(`PDFを${placement === "floor" ? "地面Y=0下" : "側面Y高さ方向"}に追加：${label}`);
     }
 
     async function renderPdfToCanvas(pdfSource, pageNumber){
@@ -1314,6 +1349,14 @@
       selectModelPath(path);
     });
     reloadModelsBtn.addEventListener("click", loadModelList);
+    snapGroundBtn.addEventListener("click", () => {
+      snapModelToGround();
+      resetView();
+    });
+    showGroundBtn.addEventListener("click", () => {
+      groundMarker.visible = !groundMarker.visible;
+      setStatus(groundMarker.visible ? "GROUND Y=0 MARKER ON" : "GROUND Y=0 MARKER OFF");
+    });
 
     addFloorBtn.addEventListener("click", () => addPlanFromPath("floor"));
     addSideBtn.addEventListener("click", () => addPlanFromPath("side"));
