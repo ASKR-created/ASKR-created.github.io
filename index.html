@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Multi Action Animation v19</title>
+  <title>SF 3D Viewer - Teaching Contest v24</title>
 
   <script type="importmap">
   {
@@ -16,226 +16,323 @@
 
   <style>
     :root{
-      --bg0:#02030a;
-      --bg1:#061020;
+      --bg:#030712;
       --panel:rgba(8,16,32,.88);
+      --panel2:rgba(10,22,44,.94);
       --cyan:#22f8ff;
-      --magenta:#ff2deb;
       --lime:#a6ff2d;
+      --magenta:#ff2deb;
       --yellow:#ffe66d;
       --text:#eafbff;
-      --sub:#91a6c9;
+      --sub:#96a8c8;
       --line:rgba(34,248,255,.34);
-      --shadow:0 0 18px rgba(34,248,255,.18),0 0 34px rgba(255,45,235,.10);
+      --shadow:0 0 18px rgba(34,248,255,.18),0 0 30px rgba(255,45,235,.08);
     }
 
     *{box-sizing:border-box}
     html,body{
-      width:100%;height:100%;margin:0;overflow:hidden;
+      width:100%;
+      height:100%;
+      margin:0;
+      overflow:hidden;
       background:
-        radial-gradient(circle at 20% 20%, rgba(34,248,255,.09), transparent 28%),
-        radial-gradient(circle at 80% 70%, rgba(255,45,235,.10), transparent 32%),
-        linear-gradient(135deg,var(--bg0),var(--bg1) 55%,#050616);
+        radial-gradient(circle at 18% 18%, rgba(34,248,255,.10), transparent 28%),
+        radial-gradient(circle at 86% 76%, rgba(255,45,235,.10), transparent 32%),
+        linear-gradient(135deg,#02030a,#061020 58%,#050616);
       color:var(--text);
       font-family:"MS UI Gothic","Yu Gothic UI","Meiryo",sans-serif;
-      user-select:none;
     }
 
     body::before{
-      content:"";position:fixed;inset:0;z-index:30;pointer-events:none;
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:50;
       background:
-        linear-gradient(rgba(255,255,255,.023) 1px,transparent 1px),
-        linear-gradient(90deg,rgba(34,248,255,.023) 1px,transparent 1px);
+        linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(34,248,255,.022) 1px,transparent 1px);
       background-size:4px 4px,18px 18px;
       mix-blend-mode:screen;
     }
+
     body::after{
-      content:"";position:fixed;inset:0;z-index:31;pointer-events:none;
-      background:linear-gradient(to bottom,rgba(255,255,255,.038),transparent 1px);
-      background-size:100% 5px;opacity:.28;
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:51;
+      background:linear-gradient(to bottom,rgba(255,255,255,.032),transparent 1px);
+      background-size:100% 5px;
+      opacity:.28;
     }
 
-    #app{position:relative;width:100%;height:100%;overflow:hidden}
-    #viewer{position:absolute;inset:0;width:100%;height:100%;z-index:1;display:block}
-
-    .top-bar{
-      position:absolute;z-index:10;top:10px;left:10px;right:10px;height:56px;
-      display:grid;grid-template-columns:1fr auto;gap:10px;pointer-events:none;
+    #app{
+      position:relative;
+      width:100%;
+      height:100%;
+      overflow:hidden;
     }
-    .brand{
-      pointer-events:auto;min-width:0;border:1px solid rgba(34,248,255,.42);
-      background:linear-gradient(90deg,rgba(8,16,32,.70),rgba(10,22,44,.45));
-      box-shadow:var(--shadow);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+
+    #viewer{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      display:block;
+      z-index:1;
+    }
+
+    .refbar{
+      position:absolute;
+      top:10px;
+      left:10px;
+      right:10px;
+      z-index:20;
+      border:1px solid var(--line);
+      background:linear-gradient(90deg,rgba(8,16,32,.86),rgba(12,28,56,.64));
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
       clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));
-      padding:9px 14px;
     }
-    .brand-line{
-      height:2px;margin-bottom:6px;
+
+    .refbar-head{
+      display:grid;
+      grid-template-columns:1fr auto auto;
+      gap:8px;
+      align-items:center;
+      padding:8px 12px;
+      min-height:48px;
+    }
+
+    .ref-title{
+      min-width:0;
+    }
+
+    .rgb-line{
+      height:3px;
+      margin-bottom:6px;
       background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--lime));
       box-shadow:0 0 12px rgba(34,248,255,.60);
     }
-    .brand-title{
-      font-size:15px;font-weight:bold;letter-spacing:.12em;
-      text-shadow:0 0 8px rgba(34,248,255,.70);
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    }
-    .brand-sub{
-      margin-top:3px;color:var(--sub);font-size:11px;
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    }
-    .digital{
-      pointer-events:auto;border:1px solid rgba(166,255,45,.36);
-      background:rgba(2,8,18,.68);box-shadow:0 0 15px rgba(166,255,45,.13);
-      backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-      width:210px;padding:8px 10px;text-align:right;
-    }
-    .digital .label{color:var(--sub);font-size:10px;letter-spacing:.14em}
-    .digital .value{
-      margin-top:3px;color:var(--lime);font-family:Consolas,"Courier New",monospace;
-      font-size:14px;font-weight:bold;text-shadow:0 0 8px rgba(166,255,45,.55);
+
+    .title{
+      font-size:17px;
+      font-weight:bold;
+      letter-spacing:.12em;
+      text-shadow:0 0 8px rgba(34,248,255,.7);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
-    .panel-tray{
-      position:absolute;z-index:14;left:50%;bottom:10px;transform:translateX(-50%);
-      width:min(980px,calc(100vw - 20px));min-height:50px;
-      border:1px solid rgba(34,248,255,.34);background:rgba(4,10,20,.78);
-      box-shadow:var(--shadow);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-      padding:7px;display:grid;grid-template-columns:1.2fr 1.15fr 1.15fr 1fr 1fr 1fr;gap:7px;
-      pointer-events:auto;
-    }
-    .tray-label{
-      display:flex;align-items:center;justify-content:center;
-      border:1px solid rgba(166,255,45,.26);background:rgba(166,255,45,.045);
-      color:var(--lime);font-size:10px;font-family:Consolas,"Courier New",monospace;
-      letter-spacing:.08em;text-shadow:0 0 6px rgba(166,255,45,.38);padding:0 6px;min-height:36px;
+    .subtitle{
+      margin-top:3px;
+      color:var(--sub);
+      font-size:11px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
-    .btn{
-      position:relative;min-height:36px;border:1px solid rgba(34,248,255,.42);
-      background:linear-gradient(180deg,rgba(15,28,58,.92),rgba(3,8,18,.92));
-      color:var(--text);font-weight:bold;cursor:pointer;overflow:hidden;
-      letter-spacing:.04em;font-size:12px;padding:0 8px;
-    }
-    .btn::before{
-      content:"";position:absolute;inset:0;
-      background:radial-gradient(circle at center,rgba(34,248,255,.32),transparent 62%);
-      transform:scaleX(0);transform-origin:center;transition:transform .22s ease;
-    }
-    .btn:hover::before{transform:scaleX(1)}
-    .btn:hover{border-color:var(--cyan);color:white;box-shadow:0 0 18px rgba(34,248,255,.22)}
-    .btn span{position:relative;z-index:1}
-    .btn.magenta{border-color:rgba(255,45,235,.42)}
-    .btn.magenta:hover{border-color:var(--magenta);box-shadow:0 0 18px rgba(255,45,235,.24)}
-    .btn.lime{border-color:rgba(166,255,45,.42)}
-    .btn.lime:hover{border-color:var(--lime);box-shadow:0 0 18px rgba(166,255,45,.20)}
-
-    .drawer{
-      position:absolute;z-index:13;top:76px;bottom:70px;width:390px;max-width:calc(100vw - 20px);
-      display:none;flex-direction:column;min-height:0;
-      border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);
-      backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px);
-      color:var(--text);pointer-events:auto;
-    }
-    .drawer.open{display:flex}
-    .drawer.left{left:10px}
-    .drawer.right{right:10px}
-    .drawer.wide{width:500px}
-    .drawer-head{
-      display:flex;align-items:center;justify-content:space-between;gap:8px;
-      padding:9px 10px;border-bottom:1px solid rgba(34,248,255,.20);
-      background:linear-gradient(90deg,rgba(34,248,255,.10),rgba(255,45,235,.07));flex:0 0 auto;
-    }
-    .drawer-title{
-      color:var(--cyan);font-size:12px;font-weight:bold;letter-spacing:.12em;
-      text-shadow:0 0 8px rgba(34,248,255,.60);
-    }
-    .close{
-      min-width:34px;height:26px;border:1px solid rgba(255,71,126,.52);
-      background:rgba(20,4,10,.74);color:#ffdce6;cursor:pointer;font-weight:bold;
-    }
-    .drawer-body{padding:10px;overflow:auto;min-height:0;flex:1 1 auto}
-    .search,.input,.file-input{
-      width:100%;min-height:32px;border:1px solid rgba(34,248,255,.34);
-      background:rgba(1,5,14,.88);color:var(--text);padding:6px 8px;outline:none;font-size:12px;
-    }
-    .search:focus,.input:focus{border-color:var(--magenta);box-shadow:0 0 14px rgba(255,45,235,.20)}
-    .list{
-      margin-top:8px;border:1px solid rgba(34,248,255,.16);background:rgba(2,8,18,.34);
-      padding:6px;overflow:auto;max-height:30vh;min-height:104px;
-    }
-    .layer-list{
-      margin-top:8px;border:1px solid rgba(166,255,45,.18);background:rgba(2,8,18,.34);
-      padding:6px;overflow:auto;max-height:22vh;min-height:96px;
-    }
-    .item{
-      width:100%;text-align:left;border:1px solid rgba(55,124,255,.28);
-      background:linear-gradient(90deg,rgba(5,13,28,.96),rgba(12,23,48,.72));
-      color:var(--text);padding:8px 9px;margin:0 0 6px 0;cursor:pointer;font-size:12px;line-height:1.35;
-    }
-    .item:hover{border-color:var(--cyan);box-shadow:0 0 14px rgba(34,248,255,.20)}
-    .item.active{border-color:var(--lime);background:linear-gradient(90deg,rgba(166,255,45,.15),rgba(34,248,255,.08));box-shadow:0 0 16px rgba(166,255,45,.14)}
-    .item-name{color:var(--text);font-weight:bold;word-break:break-all}
-    .item-path{margin-top:3px;color:var(--sub);font-size:10px;word-break:break-all}
-    .badge-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
-    .badge{
-      display:inline-flex;align-items:center;min-height:18px;border:1px solid rgba(34,248,255,.35);
-      color:var(--cyan);background:rgba(34,248,255,.06);padding:2px 6px;font-size:10px;
-      font-family:Consolas,"Courier New",monospace;
-    }
-    .badge.magenta{border-color:rgba(255,45,235,.45);color:var(--magenta);background:rgba(255,45,235,.07)}
-    .badge.lime{border-color:rgba(166,255,45,.45);color:var(--lime);background:rgba(166,255,45,.07)}
-    .button-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-    .button-grid.four{grid-template-columns:1fr 1fr 1fr 1fr}
-    .mini-input-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
-    .mini-field{display:flex;flex-direction:column;gap:3px;min-width:0}
-    .mini-field label{color:var(--sub);font-size:10px;letter-spacing:.05em}
-    .mini-field input{
-      width:100%;height:30px;border:1px solid rgba(34,248,255,.30);
-      background:rgba(1,5,14,.88);color:var(--text);padding:0 7px;outline:none;font-size:12px;
-    }
-    .mini-field input:focus{border-color:var(--magenta);box-shadow:0 0 12px rgba(255,45,235,.18)}
-    .percent-display{
-      margin-top:8px;border:1px solid rgba(166,255,45,.30);background:rgba(166,255,45,.055);
-      color:var(--lime);padding:10px;text-align:center;font-family:Consolas,"Courier New",monospace;
-      box-shadow:inset 0 0 14px rgba(166,255,45,.05);
-    }
-    .percent-display .big{font-size:28px;font-weight:bold;letter-spacing:.06em;text-shadow:0 0 9px rgba(166,255,45,.42)}
-    .percent-display .sub{margin-top:4px;color:var(--sub);font-size:11px;line-height:1.45;font-family:"MS UI Gothic","Yu Gothic UI","Meiryo",sans-serif}
-    .readout{
-      margin-top:8px;border:1px solid rgba(166,255,45,.25);background:rgba(166,255,45,.045);
-      color:var(--lime);padding:7px;font-size:11px;line-height:1.45;font-family:Consolas,"Courier New",monospace;word-break:break-all;
-    }
-    .help{margin-top:8px;border:1px solid rgba(255,230,109,.24);background:rgba(24,20,6,.30);color:var(--yellow);padding:7px;font-size:11px;line-height:1.5}
-    .empty{border:1px dashed rgba(145,166,201,.34);color:var(--sub);padding:12px;font-size:12px;line-height:1.55}
-    .row{display:grid;grid-template-columns:92px 1fr;gap:8px;margin:7px 0;font-size:12px}
-    .row .k{color:var(--sub)}
-    .row .v{color:var(--text);word-break:break-all}
-    .viewer-only-note{
-      position:absolute;right:10px;bottom:64px;z-index:9;max-width:min(680px,calc(100vw - 20px));
-      border:1px solid rgba(34,248,255,.20);background:rgba(2,8,18,.45);color:var(--sub);
-      padding:6px 8px;font-size:10px;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    }
-    .statusbar{
-      position:absolute;left:10px;bottom:64px;z-index:9;max-width:calc(100vw - 20px);
-      border:1px solid rgba(166,255,45,.28);background:rgba(2,8,16,.58);color:var(--lime);
-      padding:6px 9px;font-size:11px;font-family:Consolas,"Courier New",monospace;
-      box-shadow:0 0 12px rgba(166,255,45,.10);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    .refbar-body{
+      display:grid;
+      grid-template-columns:1.4fr auto 1fr auto auto;
+      gap:8px;
+      padding:0 12px 10px;
+      align-items:end;
     }
 
-    @media (max-width:900px){
-      .top-bar{top:6px;left:6px;right:6px;height:48px;grid-template-columns:1fr}
-      .digital{display:none}
-      .brand{padding:7px 10px}
-      .brand-title{font-size:12px}
-      .brand-sub{font-size:10px}
-      .panel-tray{bottom:6px;width:calc(100vw - 12px);grid-template-columns:repeat(3,1fr);padding:6px;gap:5px}
-      .tray-label{display:none}
-      .btn{min-height:32px;font-size:10px}
-      .drawer{top:60px;bottom:86px;left:6px!important;right:6px!important;width:auto!important;max-width:none}
-      .list{max-height:24vh}
-      .layer-list{max-height:20vh}
-      .button-grid.four{grid-template-columns:1fr 1fr}
-      .statusbar,.viewer-only-note{display:none}
+    .refbar.collapsed .refbar-body{
+      display:none;
+    }
+
+    .side{
+      position:absolute;
+      top:124px;
+      bottom:86px;
+      width:min(360px,calc(50vw - 18px));
+      z-index:12;
+      border:1px solid var(--line);
+      background:var(--panel);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+    }
+
+    .side.left{left:10px}
+    .side.right{right:10px}
+
+    .side-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(34,248,255,.20);
+      background:linear-gradient(90deg,rgba(34,248,255,.10),rgba(255,45,235,.07));
+      color:var(--cyan);
+      font-weight:bold;
+      letter-spacing:.12em;
+      text-shadow:0 0 8px rgba(34,248,255,.6);
+    }
+
+    .side-body{
+      padding:10px;
+      overflow:auto;
+      min-height:0;
+      flex:1 1 auto;
+    }
+
+    .playbar{
+      position:absolute;
+      left:10px;
+      right:10px;
+      bottom:10px;
+      z-index:22;
+      min-height:66px;
+      border:1px solid var(--line);
+      background:rgba(4,10,20,.82);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      display:grid;
+      grid-template-columns:auto auto auto 1fr auto auto auto auto;
+      gap:8px;
+      align-items:center;
+      padding:8px;
+    }
+
+    .playbar .speedbox{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      gap:8px;
+      align-items:center;
+      min-width:260px;
+    }
+
+    button,.btn{
+      min-height:38px;
+      border:1px solid rgba(34,248,255,.40);
+      background:linear-gradient(180deg,rgba(15,28,58,.94),rgba(3,8,18,.94));
+      color:var(--text);
+      font-weight:bold;
+      cursor:pointer;
+      letter-spacing:.04em;
+      padding:0 12px;
+    }
+
+    button:hover,.btn:hover{
+      border-color:var(--cyan);
+      box-shadow:0 0 14px rgba(34,248,255,.22);
+    }
+
+    button.lime,.btn.lime{
+      border-color:rgba(166,255,45,.52);
+      color:var(--lime);
+    }
+
+    button.magenta,.btn.magenta{
+      border-color:rgba(255,45,235,.52);
+      color:#ffd4fb;
+    }
+
+    input,select{
+      width:100%;
+      min-height:34px;
+      border:1px solid rgba(34,248,255,.35);
+      background:rgba(1,5,14,.88);
+      color:var(--text);
+      padding:6px 8px;
+      outline:none;
+      font-size:13px;
+    }
+
+    input:focus,select:focus{
+      border-color:var(--magenta);
+      box-shadow:0 0 12px rgba(255,45,235,.16);
+    }
+
+    input[type="range"]{
+      accent-color:var(--lime);
+      padding:0;
+    }
+
+    label{
+      color:var(--sub);
+      font-size:11px;
+      display:block;
+      margin:8px 0 3px;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:8px;
+    }
+
+    .grid3{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:8px;
+      margin-top:8px;
+    }
+
+    .status{
+      margin-top:8px;
+      border:1px solid rgba(166,255,45,.26);
+      background:rgba(166,255,45,.045);
+      color:var(--lime);
+      padding:8px;
+      font-size:12px;
+      line-height:1.45;
+      word-break:break-all;
+      font-family:Consolas,"MS UI Gothic",monospace;
+    }
+
+    .info-row{
+      display:grid;
+      grid-template-columns:92px 1fr;
+      gap:8px;
+      padding:5px 0;
+      border-bottom:1px solid rgba(34,248,255,.08);
+      font-size:12px;
+    }
+
+    .info-row .k{color:var(--sub)}
+    .info-row .v{word-break:break-all}
+
+    .mini{
+      font-size:11px;
+      color:var(--sub);
+      line-height:1.45;
+    }
+
+    .chapter-card{
+      border:1px solid rgba(166,255,45,.28);
+      background:rgba(166,255,45,.04);
+      padding:8px;
+      margin-top:8px;
+    }
+
+    .hidden{display:none!important}
+
+    @media (max-width:980px){
+      html,body{overflow:auto;height:auto}
+      #app{position:relative;height:auto;min-height:100vh;overflow:visible;padding:8px}
+      #viewer{position:relative;height:48vh;min-height:360px;border:1px solid var(--line);margin-top:8px}
+      .refbar,.side,.playbar{position:relative;top:auto;left:auto;right:auto;bottom:auto;width:auto;margin:0 0 8px}
+      .refbar{clip-path:none}
+      .refbar-body{grid-template-columns:1fr;align-items:stretch}
+      .side{max-height:none}
+      .playbar{grid-template-columns:1fr 1fr;align-items:stretch}
+      .playbar .speedbox{grid-column:1/-1;min-width:0}
+      .title{font-size:14px}
     }
   </style>
 </head>
@@ -243,216 +340,130 @@
   <div id="app">
     <canvas id="viewer"></canvas>
 
-    <div class="top-bar">
-      <div class="brand">
-        <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / MULTI ACTION ANIMATION v19</div>
-        <div class="brand-sub">モデル一覧取得を修正。リポジトリ全体検索で models/ と モデル/ を検出。速度0.80x。</div>
+    <section class="refbar" id="refbar">
+      <div class="refbar-head">
+        <div class="ref-title">
+          <div class="rgb-line"></div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v24</div>
+          <div class="subtitle">参照フォルダ → チャプター選択 → GLBとPDFを同時読込</div>
+        </div>
+        <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
+        <button class="btn lime" id="scanBtn">参照読込</button>
       </div>
-      <div class="digital">
-        <div class="label">SYSTEM DATE</div>
-        <div class="value" id="dateText">----</div>
-      </div>
-    </div>
 
-    <section class="drawer left" id="modelDrawer">
-      <div class="drawer-head">
-        <div class="drawer-title">MODEL / ANIMATION v19</div>
-        <button class="close" data-close="modelDrawer">×</button>
-      </div>
-      <div class="drawer-body">
-        <input class="search" id="modelSearchInput" placeholder="モデル名で検索">
-        <div class="badge-row">
-          <span class="badge">OBJ</span><span class="badge">FBX</span><span class="badge lime">GLB</span><span class="badge lime">GLTF</span>
+      <div class="refbar-body">
+        <div>
+          <label>参照フォルダ</label>
+          <input id="rootInput" value="teaching-contest" placeholder="teaching-contest または 教材コンクール">
         </div>
-        <div class="list" id="modelList"><div class="empty">models/ または モデル/ を読み込み中...</div></div>
-        <div class="mini-input-row">
-          <div class="mini-field"><label>手入力パス</label><input id="modelPathInput" placeholder="モデル/鉄筋/鉄筋.glb"></div>
-          <div class="mini-field"><label>状態</label><input id="modelStateInput" value="未選択" readonly></div>
+        <button class="btn" id="autoRootBtn">自動検出</button>
+        <div>
+          <label>チャプターフォルダ</label>
+          <select id="chapterSelect">
+            <option value="">未読込</option>
+          </select>
         </div>
-        <div class="button-grid">
-          <button class="btn lime" id="loadModelPathBtn"><span>パス読込</span></button>
-          <button class="btn" id="reloadModelsBtn"><span>一覧再読込</span></button>
-          <button class="btn magenta" id="snapGroundBtn"><span>地面に置く</span></button>
-          <button class="btn" id="showGroundBtn"><span>基準表示</span></button>
-          <button class="btn" id="showModelUrlBtn"><span>モデルURL表示</span></button>
-          <button class="btn magenta" id="clearModelBtn"><span>モデルクリア</span></button>
-        </div>
-
-        <div class="help">全体ループONでも、個別Actionはループしません。すべてのアニメーションが終わってから全体を再スタートします。</div>
-        <div class="readout" id="animationStatusText">ANIMATION: 未検出</div>
-        <div class="mini-input-row">
-          <div class="mini-field">
-            <label>アニメーション</label>
-            <select class="input" id="animationSelect">
-              <option value="">未検出</option>
-            </select>
-          </div>
-          <div class="mini-field">
-            <label>速度 数値</label>
-            <input id="animationSpeedInput" type="number" min="0.01" max="2" step="0.01" value="0.80">
-          </div>
-        </div>
-        <div class="mini-input-row">
-          <div class="mini-field">
-            <label>速度スライダー</label>
-            <input id="animationSpeedRange" type="range" min="0.01" max="2" step="0.01" value="0.80">
-          </div>
-          <div class="mini-field">
-            <label>現在速度</label>
-            <input id="animationSpeedReadout" value="0.80x" readonly>
-          </div>
-        </div>
-        <div class="button-grid">
-          <button class="btn lime" id="animToggleBtn"><span>統合再生/一時停止</span></button>
-          <button class="btn lime" id="animPlayBtn"><span>統合再生</span></button>
-          <button class="btn" id="animPauseBtn"><span>一時停止</span></button>
-          <button class="btn" id="animRestartBtn"><span>最初から</span></button>
-          <button class="btn" id="animLoopBtn"><span>全体ループON</span></button>
-          <button class="btn" id="animStopBtn"><span>停止</span></button>
-          <button class="btn magenta" id="animForceBtn"><span>選択のみ再生</span></button>
-          <button class="btn magenta" id="animPlayAllBtn"><span>全Action同時※</span></button>
-          <button class="btn lime" id="animMultiModeBtn"><span>統合再生ON</span></button>
-          <button class="btn" id="animSpeedDownBtn"><span>速度-0.05</span></button>
-          <button class="btn" id="animSpeedUpBtn"><span>速度+0.05</span></button>
-        </div>
-        <div class="button-grid four">
-          <button class="btn" id="animSpeed010Btn"><span>0.10x</span></button>
-          <button class="btn" id="animSpeed025Btn"><span>0.25x</span></button>
-          <button class="btn" id="animSpeed050Btn"><span>0.50x</span></button>
-          <button class="btn lime" id="animSpeed080Btn"><span>0.80x</span></button>
-          <button class="btn magenta" id="animSpeed100Btn"><span>1.00x</span></button>
-        </div>
-        <div class="help">キーフレーム崩れ対策として、v19では複数Actionを同時ブレンドせず「統合再生」を標準にしています。全Action同時は崩れる場合があるため確認用です。初期速度は0.80xです。</div>
+        <button class="btn" id="prevChapterBtn">前CH</button>
+        <button class="btn" id="nextChapterBtn">次CH</button>
       </div>
     </section>
 
-    <section class="drawer right wide" id="planDrawer">
-      <div class="drawer-head">
-        <div class="drawer-title">MULTI PDF PLAN v19</div>
-        <button class="close" data-close="planDrawer">×</button>
+    <aside class="side left">
+      <div class="side-head">OBJECT OPERATION</div>
+      <div class="side-body">
+        <div class="chapter-card">
+          <div class="info-row"><div class="k">CHAPTER</div><div class="v" id="chapterNameText">未選択</div></div>
+          <div class="info-row"><div class="k">MODEL</div><div class="v" id="modelPathText">未読込</div></div>
+          <div class="info-row"><div class="k">PDF</div><div class="v" id="pdfPathText">未読込</div></div>
+        </div>
+
+        <label>モデル倍率</label>
+        <input id="modelScaleInput" type="number" step="0.01" value="1">
+
+        <div class="grid2">
+          <button class="btn lime" id="applyModelScaleBtn">倍率反映</button>
+          <button class="btn" id="snapGroundBtn">地面に置く</button>
+        </div>
+
+        <label>モデル回転Y</label>
+        <input id="modelRotYInput" type="number" step="1" value="0">
+
+        <div class="grid2">
+          <button class="btn" id="rotYMinusBtn">Y -90°</button>
+          <button class="btn" id="rotYPlusBtn">Y +90°</button>
+        </div>
+
+        <div class="grid2">
+          <button class="btn" id="fitViewBtn">全体表示</button>
+          <button class="btn magenta" id="clearModelBtn">モデル消去</button>
+        </div>
+
+        <div class="status" id="objectStatus">OBJECT READY</div>
       </div>
-      <div class="drawer-body">
-        <input class="search" id="planSearchInput" placeholder="PDF図面名で検索">
-        <div class="badge-row">
-          <span class="badge lime">plans/</span><span class="badge">PDF</span><span class="badge">PNG</span><span class="badge">JPG</span>
-          <span class="badge magenta">複数配置</span><span class="badge lime">地面</span><span class="badge">側面</span>
-        </div>
-        <div class="list" id="planList"><div class="empty">PDFアップロード用フォルダを読み込み中...</div></div>
-        <div class="mini-input-row">
-          <div class="mini-field"><label>手入力パス</label><input id="planPathInput" placeholder="plans/平面図.pdf"></div>
-          <div class="mini-field"><label>PDFページ</label><input id="planPageInput" type="number" min="1" step="1" value="1"></div>
-        </div>
-        <div class="button-grid">
-          <button class="btn lime" id="addFloorBtn"><span>地面に追加</span></button>
-          <button class="btn magenta" id="addSideBtn"><span>側面に追加</span></button>
-          <button class="btn" id="reloadPlansBtn"><span>一覧再読込</span></button>
-          <button class="btn" id="showPlanApiBtn"><span>参照URL表示</span></button>
+    </aside>
+
+    <aside class="side right">
+      <div class="side-head">PDF OPERATION</div>
+      <div class="side-body">
+        <div class="info-row"><div class="k">PDF</div><div class="v" id="pdfNameText">未読込</div></div>
+
+        <label>PDF配置</label>
+        <select id="pdfPlacementSelect">
+          <option value="floor">地面</option>
+          <option value="side">側面</option>
+        </select>
+
+        <label>PDFサイズ %</label>
+        <input id="pdfPercentInput" type="number" step="1" value="100">
+
+        <label>透明度</label>
+        <input id="pdfOpacityInput" type="number" min="0.05" max="1" step="0.05" value="0.65">
+
+        <div class="grid3">
+          <div><label>X</label><input id="pdfXInput" type="number" step="0.01" value="0"></div>
+          <div><label>Y</label><input id="pdfYInput" type="number" step="0.01" value="0"></div>
+          <div><label>Z</label><input id="pdfZInput" type="number" step="0.01" value="0"></div>
         </div>
 
-        <div style="margin-top:8px;">
-          <input class="file-input" id="planFileInput" type="file" accept=".pdf,image/png,image/jpeg,image/webp">
-        </div>
-        <div class="help">ローカルPDFを選んだ場合は、下の「選択ファイルを地面追加 / 側面追加」で配置します。</div>
-        <div class="button-grid">
-          <button class="btn lime" id="addFileFloorBtn"><span>選択ファイルを地面追加</span></button>
-          <button class="btn magenta" id="addFileSideBtn"><span>選択ファイルを側面追加</span></button>
+        <div class="grid2">
+          <button class="btn lime" id="applyPdfBtn">PDF反映</button>
+          <button class="btn" id="resetPdfPosBtn">位置リセット</button>
         </div>
 
-        <div class="percent-display">
-          <div class="big"><span id="planPercentView">100</span>%</div>
-          <div class="sub">選択中PDFレイヤーの大きさ<br>幅・奥行入力なし / 比率固定</div>
-        </div>
-        <div class="mini-input-row">
-          <div class="mini-field"><label>大きさ %</label><input id="planPercentInput" type="number" min="1" max="1000" step="1" value="100"></div>
-          <div class="mini-field"><label>透明度</label><input id="planOpacityInput" type="number" min="0.1" max="1" step="0.05" value="0.65"></div>
-        </div>
-        <div class="button-grid four">
-          <button class="btn" id="planPct25Btn"><span>25%</span></button>
-          <button class="btn" id="planPct50Btn"><span>50%</span></button>
-          <button class="btn" id="planPct100Btn"><span>100%</span></button>
-          <button class="btn" id="planPct200Btn"><span>200%</span></button>
-        </div>
-        <div class="button-grid four">
-          <button class="btn" id="planPctMinus10Btn"><span>-10%</span></button>
-          <button class="btn" id="planPctPlus10Btn"><span>+10%</span></button>
-          <button class="btn" id="planPctMinus1Btn"><span>-1%</span></button>
-          <button class="btn" id="planPctPlus1Btn"><span>+1%</span></button>
+        <div class="grid2">
+          <button class="btn" id="togglePdfBtn">PDF表示/非表示</button>
+          <button class="btn magenta" id="clearPdfBtn">PDF消去</button>
         </div>
 
-        <div class="readout" id="planOffsetReadout">位置調整 X:0 / Y:0 / Z:0</div>
-        <div class="mini-input-row" style="grid-template-columns:1fr 1fr 1fr;">
-          <div class="mini-field"><label>位置調整 X</label><input id="planOffsetXInput" type="number" step="0.001" value="0"></div>
-          <div class="mini-field"><label>位置調整 Y</label><input id="planOffsetYInput" type="number" step="0.001" value="0"></div>
-          <div class="mini-field"><label>位置調整 Z</label><input id="planOffsetZInput" type="number" step="0.001" value="0"></div>
-        </div>
-        <div class="mini-input-row" style="grid-template-columns:1fr 1fr 1fr;">
-          <div class="mini-field"><label>移動量</label><input id="planOffsetStepInput" type="number" min="0.001" step="0.001" value="0.05"></div>
-          <button class="btn lime" id="applyOffsetBtn"><span>位置を反映</span></button>
-          <button class="btn" id="resetOffsetBtn"><span>位置リセット</span></button>
-        </div>
-        <div class="button-grid four">
-          <button class="btn" id="nudgeXMinusBtn"><span>X-</span></button>
-          <button class="btn" id="nudgeXPlusBtn"><span>X+</span></button>
-          <button class="btn" id="nudgeZMinusBtn"><span>Z-</span></button>
-          <button class="btn" id="nudgeZPlusBtn"><span>Z+</span></button>
-        </div>
-        <div class="button-grid four">
-          <button class="btn" id="nudgeYMinusBtn"><span>Y-</span></button>
-          <button class="btn" id="nudgeYPlusBtn"><span>Y+</span></button>
-          <button class="btn" id="snapOffsetZeroBtn"><span>XYZ=0</span></button>
-          <button class="btn magenta" id="focusActiveLayerBtn"><span>選択PDFへ視点</span></button>
-        </div>
-
-        <div class="button-grid">
-          <button class="btn lime" id="setLayerFloorBtn"><span>地面へ変更</span></button>
-          <button class="btn magenta" id="setLayerSideBtn"><span>側面へ変更</span></button>
-          <button class="btn lime" id="snapSideTopBtn"><span>側面を上端へ</span></button>
-          <button class="btn" id="snapSideBottomBtn"><span>側面を下端へ</span></button>
-          <button class="btn" id="toggleLayerBtn"><span>表示/非表示</span></button>
-          <button class="btn magenta" id="rotateLayerBtn"><span>90°回転</span></button>
-          <button class="btn" id="removeLayerBtn"><span>選択削除</span></button>
-          <button class="btn magenta" id="clearLayersBtn"><span>全PDF削除</span></button>
-        </div>
-        <div class="layer-list" id="planLayerList"><div class="empty">PDFレイヤー未配置。地面または側面に追加してください。</div></div>
-        <div class="readout" id="planStatusText">側面PDFは地面PDFの外周上端に吸着します。側面追加時はA4横向きに正規化し、横幅は地面PDFの辺幅に合わせます。</div>
+        <div class="status" id="pdfStatus">PDF READY</div>
+        <div class="mini">PDFはチャプター内の最初のPDFを自動読込します。例：teaching-contest/CH01/01.ベース筋.pdf</div>
       </div>
+    </aside>
+
+    <section class="playbar">
+      <button class="btn" id="prevBottomBtn">前CH</button>
+      <button class="btn lime" id="playPauseBtn">再生</button>
+      <button class="btn" id="restartBtn">最初から</button>
+
+      <div class="speedbox">
+        <span class="mini">速度</span>
+        <input id="speedRange" type="range" min="0.05" max="2.0" step="0.05" value="0.80">
+        <span id="speedText">0.80x</span>
+      </div>
+
+      <select id="animationSelect" title="アニメーション">
+        <option value="__ALL__">全Action</option>
+      </select>
+      <button class="btn" id="loopBtn">ループOFF</button>
+      <button class="btn" id="nextBottomBtn">次CH</button>
+      <button class="btn magenta" id="openArBtn">AR切替</button>
     </section>
-
-    <section class="drawer right" id="infoDrawer">
-      <div class="drawer-head">
-        <div class="drawer-title">INFO</div>
-        <button class="close" data-close="infoDrawer">×</button>
-      </div>
-      <div class="drawer-body">
-        <div class="row"><div class="k">MODEL</div><div class="v" id="infoModel">未選択</div></div>
-        <div class="row"><div class="k">PDF数</div><div class="v" id="infoPlanCount">0</div></div>
-        <div class="row"><div class="k">選択PDF</div><div class="v" id="infoActivePlan">未選択</div></div>
-        <div class="row"><div class="k">FORMAT</div><div class="v">OBJ / FBX / GLB / GLTF / PDF / PNG / JPG / WebP</div></div>
-      </div>
-    </section>
-
-    <div class="panel-tray">
-      <div class="tray-label">PANEL STORAGE</div>
-      <button class="btn lime" id="modelBtn"><span>モデル収納</span></button>
-      <button class="btn lime" id="planBtn"><span>PDF図面収納</span></button>
-      <button class="btn" id="infoBtn"><span>情報収納</span></button>
-      <button class="btn" id="resetViewBtn"><span>視点リセット</span></button>
-      <button class="btn" id="toggleGridBtn"><span>グリッド</span></button>
-      <button class="btn magenta" id="closePanelsBtn"><span>パネル収納</span></button>
-    </div>
-
-    <div class="viewer-only-note">モデル一覧が空になる問題を修正。手入力パス・日本語フォルダ・全体検索に対応。</div>
-    <div class="statusbar" id="statusText">SYSTEM READY</div>
   </div>
 
   <script type="module">
     import * as THREE from "three";
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
     import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-    import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
-    import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
-    import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -460,163 +471,91 @@
 
     const GITHUB_OWNER = "ASKR-created";
     const GITHUB_REPO = "ASKR-created.github.io";
-    const GITHUB_REFS = ["main", "master"];
+    const GITHUB_REF = "main";
 
-    const MODEL_ROOTS = ["models", "Models", "model", "Model", "モデル", "モデルデータ", "model_data"];
-    const PLAN_ROOTS = ["plans", "図面", "PDF", "pdf"];
-    const MODEL_FALLBACK_FILES = [
-      "モデル/鉄筋/鉄筋.glb",
-      "models/鉄筋/鉄筋.glb",
-      "models/01.glb",
-      "モデル/01.glb"
+    const ROOT_CANDIDATES = [
+      "teaching-contest",
+      "teaching_contest",
+      "teachingContest",
+      "kyozai-contest",
+      "kyozai_contest",
+      "教材コンクール"
     ];
-    const MODEL_EXTENSIONS = [".obj", ".fbx", ".glb", ".gltf"];
-    const PLAN_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
 
-    const PLAN_FALLBACK_FILES = [
-      "plans/平面図.pdf","plans/配置図.pdf","plans/立面図.pdf","plans/側面図.pdf",
-      "plans/zumen.pdf","plans/plan.pdf","plans/floor.pdf","plans/wall.pdf",
-      "plans/平面図.png","plans/配置図.png","plans/側面図.png","plans/zumen.png","plans/plan.png"
-    ];
+    const MODEL_EXTS = [".glb", ".gltf"];
+    const PDF_EXTS = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
 
     const canvas = document.getElementById("viewer");
-    const statusText = document.getElementById("statusText");
-    const dateText = document.getElementById("dateText");
 
-    const modelDrawer = document.getElementById("modelDrawer");
-    const planDrawer = document.getElementById("planDrawer");
-    const infoDrawer = document.getElementById("infoDrawer");
-    const modelBtn = document.getElementById("modelBtn");
-    const planBtn = document.getElementById("planBtn");
-    const infoBtn = document.getElementById("infoBtn");
-    const resetViewBtn = document.getElementById("resetViewBtn");
-    const toggleGridBtn = document.getElementById("toggleGridBtn");
-    const closePanelsBtn = document.getElementById("closePanelsBtn");
+    const refbar = document.getElementById("refbar");
+    const collapseRefBtn = document.getElementById("collapseRefBtn");
+    const scanBtn = document.getElementById("scanBtn");
+    const autoRootBtn = document.getElementById("autoRootBtn");
+    const rootInput = document.getElementById("rootInput");
+    const chapterSelect = document.getElementById("chapterSelect");
+    const prevChapterBtn = document.getElementById("prevChapterBtn");
+    const nextChapterBtn = document.getElementById("nextChapterBtn");
 
-    const modelSearchInput = document.getElementById("modelSearchInput");
-    const modelList = document.getElementById("modelList");
-    const modelPathInput = document.getElementById("modelPathInput");
-    const modelStateInput = document.getElementById("modelStateInput");
-    const loadModelPathBtn = document.getElementById("loadModelPathBtn");
-    const reloadModelsBtn = document.getElementById("reloadModelsBtn");
+    const chapterNameText = document.getElementById("chapterNameText");
+    const modelPathText = document.getElementById("modelPathText");
+    const pdfPathText = document.getElementById("pdfPathText");
+    const pdfNameText = document.getElementById("pdfNameText");
+
+    const modelScaleInput = document.getElementById("modelScaleInput");
+    const applyModelScaleBtn = document.getElementById("applyModelScaleBtn");
     const snapGroundBtn = document.getElementById("snapGroundBtn");
-    const showGroundBtn = document.getElementById("showGroundBtn");
-    const showModelUrlBtn = document.getElementById("showModelUrlBtn");
+    const modelRotYInput = document.getElementById("modelRotYInput");
+    const rotYMinusBtn = document.getElementById("rotYMinusBtn");
+    const rotYPlusBtn = document.getElementById("rotYPlusBtn");
+    const fitViewBtn = document.getElementById("fitViewBtn");
     const clearModelBtn = document.getElementById("clearModelBtn");
-    const animationStatusText = document.getElementById("animationStatusText");
+    const objectStatus = document.getElementById("objectStatus");
+
+    const pdfPlacementSelect = document.getElementById("pdfPlacementSelect");
+    const pdfPercentInput = document.getElementById("pdfPercentInput");
+    const pdfOpacityInput = document.getElementById("pdfOpacityInput");
+    const pdfXInput = document.getElementById("pdfXInput");
+    const pdfYInput = document.getElementById("pdfYInput");
+    const pdfZInput = document.getElementById("pdfZInput");
+    const applyPdfBtn = document.getElementById("applyPdfBtn");
+    const resetPdfPosBtn = document.getElementById("resetPdfPosBtn");
+    const togglePdfBtn = document.getElementById("togglePdfBtn");
+    const clearPdfBtn = document.getElementById("clearPdfBtn");
+    const pdfStatus = document.getElementById("pdfStatus");
+
+    const prevBottomBtn = document.getElementById("prevBottomBtn");
+    const playPauseBtn = document.getElementById("playPauseBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const speedRange = document.getElementById("speedRange");
+    const speedText = document.getElementById("speedText");
     const animationSelect = document.getElementById("animationSelect");
-    const animationSpeedInput = document.getElementById("animationSpeedInput");
-    const animationSpeedRange = document.getElementById("animationSpeedRange");
-    const animationSpeedReadout = document.getElementById("animationSpeedReadout");
-    const animToggleBtn = document.getElementById("animToggleBtn");
-    const animPlayBtn = document.getElementById("animPlayBtn");
-    const animPauseBtn = document.getElementById("animPauseBtn");
-    const animRestartBtn = document.getElementById("animRestartBtn");
-    const animLoopBtn = document.getElementById("animLoopBtn");
-    const animStopBtn = document.getElementById("animStopBtn");
-    const animForceBtn = document.getElementById("animForceBtn");
-    const animPlayAllBtn = document.getElementById("animPlayAllBtn");
-    const animSpeedDownBtn = document.getElementById("animSpeedDownBtn");
-    const animSpeedUpBtn = document.getElementById("animSpeedUpBtn");
-    const animSpeed010Btn = document.getElementById("animSpeed010Btn");
-    const animSpeed025Btn = document.getElementById("animSpeed025Btn");
-    const animSpeed050Btn = document.getElementById("animSpeed050Btn");
-    const animSpeed080Btn = document.getElementById("animSpeed080Btn");
-    const animSpeed100Btn = document.getElementById("animSpeed100Btn");
+    const loopBtn = document.getElementById("loopBtn");
+    const nextBottomBtn = document.getElementById("nextBottomBtn");
+    const openArBtn = document.getElementById("openArBtn");
 
-    const planSearchInput = document.getElementById("planSearchInput");
-    const planList = document.getElementById("planList");
-    const planPathInput = document.getElementById("planPathInput");
-    const planPageInput = document.getElementById("planPageInput");
-    const planFileInput = document.getElementById("planFileInput");
-    const addFloorBtn = document.getElementById("addFloorBtn");
-    const addSideBtn = document.getElementById("addSideBtn");
-    const addFileFloorBtn = document.getElementById("addFileFloorBtn");
-    const addFileSideBtn = document.getElementById("addFileSideBtn");
-    const reloadPlansBtn = document.getElementById("reloadPlansBtn");
-    const showPlanApiBtn = document.getElementById("showPlanApiBtn");
-
-    const planPercentInput = document.getElementById("planPercentInput");
-    const planPercentView = document.getElementById("planPercentView");
-    const planOpacityInput = document.getElementById("planOpacityInput");
-    const planPct25Btn = document.getElementById("planPct25Btn");
-    const planPct50Btn = document.getElementById("planPct50Btn");
-    const planPct100Btn = document.getElementById("planPct100Btn");
-    const planPct200Btn = document.getElementById("planPct200Btn");
-    const planPctMinus10Btn = document.getElementById("planPctMinus10Btn");
-    const planPctPlus10Btn = document.getElementById("planPctPlus10Btn");
-    const planPctMinus1Btn = document.getElementById("planPctMinus1Btn");
-    const planPctPlus1Btn = document.getElementById("planPctPlus1Btn");
-    const planOffsetReadout = document.getElementById("planOffsetReadout");
-    const planOffsetXInput = document.getElementById("planOffsetXInput");
-    const planOffsetYInput = document.getElementById("planOffsetYInput");
-    const planOffsetZInput = document.getElementById("planOffsetZInput");
-    const planOffsetStepInput = document.getElementById("planOffsetStepInput");
-    const applyOffsetBtn = document.getElementById("applyOffsetBtn");
-    const resetOffsetBtn = document.getElementById("resetOffsetBtn");
-    const nudgeXMinusBtn = document.getElementById("nudgeXMinusBtn");
-    const nudgeXPlusBtn = document.getElementById("nudgeXPlusBtn");
-    const nudgeZMinusBtn = document.getElementById("nudgeZMinusBtn");
-    const nudgeZPlusBtn = document.getElementById("nudgeZPlusBtn");
-    const nudgeYMinusBtn = document.getElementById("nudgeYMinusBtn");
-    const nudgeYPlusBtn = document.getElementById("nudgeYPlusBtn");
-    const snapOffsetZeroBtn = document.getElementById("snapOffsetZeroBtn");
-    const focusActiveLayerBtn = document.getElementById("focusActiveLayerBtn");
-
-    const setLayerFloorBtn = document.getElementById("setLayerFloorBtn");
-    const setLayerSideBtn = document.getElementById("setLayerSideBtn");
-    const snapSideTopBtn = document.getElementById("snapSideTopBtn");
-    const snapSideBottomBtn = document.getElementById("snapSideBottomBtn");
-    const toggleLayerBtn = document.getElementById("toggleLayerBtn");
-    const rotateLayerBtn = document.getElementById("rotateLayerBtn");
-    const removeLayerBtn = document.getElementById("removeLayerBtn");
-    const clearLayersBtn = document.getElementById("clearLayersBtn");
-    const planLayerList = document.getElementById("planLayerList");
-    const planStatusText = document.getElementById("planStatusText");
-
-    const infoModel = document.getElementById("infoModel");
-    const infoPlanCount = document.getElementById("infoPlanCount");
-    const infoActivePlan = document.getElementById("infoActivePlan");
-
-    let allModels = [];
-    let allPlans = [];
-    let fileMap = new Map();
-    let selectedModel = null;
-    let selectedPlanSource = null;
-    let currentObject = null;
+    let chapters = [];
+    let currentChapterIndex = -1;
+    let currentRoot = "";
+    let modelWrapper = null;
+    let modelScene = null;
+    let modelBaseScale = 1;
+    let modelUserScale = 1;
+    let modelSize = 2;
     let mixer = null;
-    let animationRoot = null;
-    let animationClips = [];
-    let animationActions = [];
-    let mergedAnimationClip = null;
-    let mergedAnimationAction = null;
-    let mergedDuplicateTrackCount = 0;
-    let mergedTrackCount = 0;
-    let activeAction = null;
-    let activeAnimationIndex = 0;
-    let animationsEnabled = true;
-    let animationIsPlaying = false;
-    let playAllAnimations = false;
-    let multiActionMode = true; // true = 統合再生モード / false = 選択Actionのみ再生
-    const DEFAULT_ANIMATION_SPEED = 0.80;
-    let animationSpeed = DEFAULT_ANIMATION_SPEED;
-    let animationLoop = true;
-    let animationExpectedActions = [];
-    let animationFinishedActions = new Set();
-    let animationLoopRestartLock = false;
-    let animationCompletionMode = "none";
-    let currentSize = 2;
+    let clips = [];
+    let actions = [];
+    let isPlaying = false;
+    let loopEnabled = false;
+    let animSpeed = 0.8;
+    let animElapsed = 0;
+    let animDuration = 0;
 
-    let planLayers = [];
-    let activeLayerId = null;
-    let layerSeq = 1;
-
-    const A4_LANDSCAPE_ASPECT = 297 / 210;
+    let pdfLayer = null;
 
     const params = new URLSearchParams(location.search);
-    const initialFile = params.get("file") ? decodeURIComponent(params.get("file")) : "";
+    const initialRoot = params.get("root") ? decodeURIComponent(params.get("root")) : "";
+    const initialChapter = params.get("chapter") ? decodeURIComponent(params.get("chapter")) : "";
 
-    const clock = new THREE.Clock();
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x02030a);
 
@@ -637,1768 +576,510 @@
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.screenSpacePanning = true;
-    controls.target.set(0,0,0);
 
-    scene.add(new THREE.HemisphereLight(0xddeeff,0x101018,1.6));
+    scene.add(new THREE.HemisphereLight(0xddeeff,0x101018,1.55));
 
-    const keyLight = new THREE.DirectionalLight(0xffffff,2.0);
-    keyLight.position.set(4,8,6);
-    keyLight.castShadow = true;
-    scene.add(keyLight);
+    const key = new THREE.DirectionalLight(0xffffff,2.0);
+    key.position.set(4,8,6);
+    key.castShadow = true;
+    scene.add(key);
 
-    const fillLight = new THREE.DirectionalLight(0x22f8ff,.75);
-    fillLight.position.set(-5,2,-4);
-    scene.add(fillLight);
+    const fill = new THREE.DirectionalLight(0x22f8ff,.75);
+    fill.position.set(-5,2,-4);
+    scene.add(fill);
 
-    const magentaLight = new THREE.PointLight(0xff2deb,.8,18);
-    magentaLight.position.set(-3,2.5,3);
-    scene.add(magentaLight);
+    const magenta = new THREE.PointLight(0xff2deb,.75,18);
+    magenta.position.set(-3,2.5,3);
+    scene.add(magenta);
 
     const grid = new THREE.GridHelper(10,20,0x22f8ff,0x18324f);
     grid.material.transparent = true;
     grid.material.opacity = .22;
     scene.add(grid);
 
-    const groundMarker = new THREE.GridHelper(2.2, 4, 0xa6ff2d, 0x335533);
-    groundMarker.name = "GROUND_ZERO_MARKER";
-    groundMarker.position.y = 0.001;
-    groundMarker.material.transparent = true;
-    groundMarker.material.opacity = 0.55;
-    groundMarker.visible = false;
-    scene.add(groundMarker);
-
     const pdfRoot = new THREE.Group();
-    pdfRoot.name = "MULTI_PDF_ROOT";
     scene.add(pdfRoot);
 
-    function setStatus(text){ statusText.textContent = text; console.log("[3D VIEWER]", text); }
-    function setPlanStatus(text){ planStatusText.textContent = text; setStatus(text); }
+    const clock = new THREE.Clock();
 
-    function updateDate(){
-      const now = new Date();
-      const week = ["SUN","MON","TUE","WED","THU","FRI","SAT"][now.getDay()];
-      const yyyy = now.getFullYear();
-      const mm = String(now.getMonth()+1).padStart(2,"0");
-      const dd = String(now.getDate()).padStart(2,"0");
-      const hh = String(now.getHours()).padStart(2,"0");
-      const mi = String(now.getMinutes()).padStart(2,"0");
-      dateText.textContent = `${yyyy}.${mm}.${dd} ${week} ${hh}:${mi}`;
+    function setObjectStatus(text){
+      objectStatus.textContent = text;
+      console.log("[OBJECT]", text);
     }
-    updateDate();
-    setInterval(updateDate,15000);
+
+    function setPdfStatus(text){
+      pdfStatus.textContent = text;
+      console.log("[PDF]", text);
+    }
+
+    function normalizePath(path){
+      return String(path || "").trim().replace(/\\/g,"/").replace(/^\/+/,"").replace(/\/+$/,"");
+    }
 
     function encodePath(path){
-      return String(path).split("/").map(part => encodeURIComponent(part)).join("/");
+      return normalizePath(path).split("/").map(part => encodeURIComponent(part)).join("/");
     }
+
     function toAssetUrl(path){
       if (!path) return "";
       if (/^https?:\/\//i.test(path)) return path;
-      return encodePath(path).replace(/%3A/g, ":");
+      return `${location.origin}/${encodePath(path)}`;
     }
+
     function getExt(path){
       const m = String(path).toLowerCase().match(/\.[^.\/?#]+$/);
       return m ? m[0] : "";
     }
-    function getBaseName(path){ return String(path).split("/").pop() || path; }
-    function getDir(path){
-      const s = String(path);
-      const i = s.lastIndexOf("/");
-      return i >= 0 ? s.slice(0, i + 1) : "";
-    }
-    function withoutExt(path){ return String(path).replace(/\.[^.\/]+$/, ""); }
-    function escapeHtml(str){
-      return String(str).replace(/[&<>"']/g, s => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-      }[s]));
+
+    function getBaseName(path){
+      return String(path).split("/").pop() || path;
     }
 
-    function openDrawer(drawer){
-      const willOpen = !drawer.classList.contains("open");
-      [modelDrawer,planDrawer,infoDrawer].forEach(d => {
-        d.classList.toggle("open", d === drawer && willOpen);
-      });
-      setStatus(willOpen ? "PANEL OPENED FROM STORAGE BAR" : "PANEL STORED IN STORAGE BAR");
-    }
-    function closeDrawers(){
-      [modelDrawer,planDrawer,infoDrawer].forEach(d => d.classList.remove("open"));
-      setStatus("PANELS STORED IN BOTTOM STORAGE BAR");
-    }
-
-    async function fetchGitHubContents(path, ref){
-      const safePath = encodePath(path);
-      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${safePath}?ref=${encodeURIComponent(ref)}&_=${Date.now()}`;
+    async function fetchGitHubContents(path){
+      const safePath = path ? "/" + encodePath(path) : "";
+      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents${safePath}?ref=${encodeURIComponent(GITHUB_REF)}&_=${Date.now()}`;
       const res = await fetch(url, {headers:{"Accept":"application/vnd.github+json"}});
-      if (!res.ok) throw new Error(`GitHub API ${res.status}: ${path}`);
+      if (!res.ok) throw new Error(`GitHub API ${res.status}: ${path || "/"}`);
       return await res.json();
     }
 
-    async function scanRecursive(path, ref, bucket, allowedExts){
-      const items = await fetchGitHubContents(path, ref);
-      if (!Array.isArray(items)) return bucket;
-      for (const item of items){
-        if (item.type === "dir"){
-          await scanRecursive(item.path, ref, bucket, allowedExts);
-        } else if (item.type === "file"){
-          const ext = getExt(item.path);
-          const record = {name:item.name,path:item.path,ext,size:item.size||0};
-          fileMap.set(item.path.toLowerCase(), record);
-          if (allowedExts.includes(ext)) bucket.push(record);
-        }
+    async function scanChapter(chapterPath){
+      const items = await fetchGitHubContents(chapterPath);
+      const files = Array.isArray(items) ? items.filter(item => item.type === "file") : [];
+
+      const model = files.find(f => MODEL_EXTS.includes(getExt(f.path))) || null;
+      const pdf = files.find(f => PDF_EXTS.includes(getExt(f.path))) || null;
+
+      return {
+        name:getBaseName(chapterPath),
+        path:chapterPath,
+        model:model ? model.path : "",
+        pdf:pdf ? pdf.path : "",
+        files:files.map(f => f.path)
+      };
+    }
+
+    async function scanRoot(root){
+      root = normalizePath(root);
+      const items = await fetchGitHubContents(root);
+      const dirs = Array.isArray(items) ? items.filter(item => item.type === "dir") : [];
+      const result = [];
+
+      for (const d of dirs){
+        const ch = await scanChapter(d.path);
+        if (ch.model || ch.pdf) result.push(ch);
       }
-      return bucket;
+
+      result.sort((a,b) => a.name.localeCompare(b.name, "ja"));
+      return result;
     }
 
-    async function scanRoots(roots, allowedExts, label){
-      let lastError = null;
-      for (const ref of GITHUB_REFS){
-        const bucket = [];
-        for (const root of roots){
-          try{
-            await scanRecursive(root, ref, bucket, allowedExts);
-          }catch(err){
-            lastError = err;
-            console.warn(`${label} root scan skipped:`, root, err.message);
-          }
-        }
-        if (bucket.length > 0){
-          return {items:bucket.sort((a,b)=>a.path.localeCompare(b.path,"ja")), ref};
-        }
-      }
-      return {items:[], ref:"", error:lastError};
-    }
-
-    async function fetchGitHubTree(ref){
-      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/git/trees/${encodeURIComponent(ref)}?recursive=1&_=${Date.now()}`;
-      const res = await fetch(url, {
-        headers: {"Accept":"application/vnd.github+json"},
-        cache: "no-store"
-      });
-      if (!res.ok) throw new Error(`GitHub Tree API ${res.status}: ${ref}`);
-      return await res.json();
-    }
-
-    async function scanRepoTreeAll(allowedExts, label){
-      let lastError = null;
-
-      for (const ref of GITHUB_REFS){
+    async function autoDetectRoot(){
+      for (const candidate of ROOT_CANDIDATES){
         try{
-          const treeData = await fetchGitHubTree(ref);
-          const bucket = [];
-          const items = Array.isArray(treeData.tree) ? treeData.tree : [];
-
-          for (const item of items){
-            if (item.type !== "blob") continue;
-            const path = item.path || "";
-            const ext = getExt(path);
-            const record = {
-              name:getBaseName(path),
-              path,
-              ext,
-              size:item.size || 0
-            };
-            fileMap.set(path.toLowerCase(), record);
-            if (allowedExts.includes(ext)){
-              bucket.push(record);
-            }
-          }
-
-          if (bucket.length > 0){
-            return {
-              items:bucket.sort((a,b)=>a.path.localeCompare(b.path,"ja")),
-              ref,
-              mode:"tree"
-            };
+          const result = await scanRoot(candidate);
+          if (result.length > 0){
+            rootInput.value = candidate;
+            chapters = result;
+            currentRoot = candidate;
+            populateChapters();
+            setObjectStatus(`参照フォルダ検出: ${candidate} / ${result.length} chapters`);
+            return true;
           }
         }catch(err){
-          lastError = err;
-          console.warn(`${label} tree scan skipped:`, ref, err.message);
+          console.warn("root skipped:", candidate, err.message);
         }
       }
 
-      return {items:[], ref:"", mode:"tree", error:lastError};
+      setObjectStatus("参照フォルダが見つかりません。rootInputへ入力してください。");
+      return false;
     }
 
-    async function findFallbackModels(){
-      const found = [];
-      for (const path of MODEL_FALLBACK_FILES){
-        try{
-          const ok = await assetExists(path);
-          if (ok){
-            const record = {
-              name:getBaseName(path),
-              path,
-              ext:getExt(path),
-              size:0
-            };
-            found.push(record);
-            fileMap.set(path.toLowerCase(), record);
-          }
-        }catch(err){
-          console.warn("fallback model skipped:", path, err.message);
-        }
-      }
-
-      const map = new Map();
-      found.forEach(item => map.set(item.path.toLowerCase(), item));
-      return Array.from(map.values()).sort((a,b)=>a.path.localeCompare(b.path,"ja"));
-    }
-
-    function normalizeInputPath(path){
-      let value = String(path || "").trim();
-      if (!value) return "";
-      try{ value = decodeURIComponent(value); }catch(err){}
-      value = value.replace(/^https?:\/\/[^/]+\//i, "");
-      value = value.replace(/^\/+/, "");
-      value = value.replace(/\\/g, "/");
-      return value;
-    }
-
-    function findModelRecordByPath(path){
-      const normalized = normalizeInputPath(path);
-      const lower = normalized.toLowerCase();
-      return allModels.find(m => normalizeInputPath(m.path).toLowerCase() === lower) || null;
-    }
-
-    async function findFallbackPlans(){
-      const found = [];
-      for (const path of PLAN_FALLBACK_FILES){
-        try{
-          const res = await fetch(toAssetUrl(path) + "?check=" + Date.now(), {method:"HEAD", cache:"no-store"});
-          if (res.ok) found.push({name:getBaseName(path),path,ext:getExt(path),size:0});
-        }catch(err){
-          console.warn("fallback plan skipped:", path, err.message);
-        }
-      }
-      const map = new Map();
-      found.forEach(item => map.set(item.path.toLowerCase(), item));
-      return Array.from(map.values()).sort((a,b)=>a.path.localeCompare(b.path,"ja"));
-    }
-
-    async function assetExists(path){
-      const normalizedPath = normalizeInputPath(path);
-      const url = toAssetUrl(normalizedPath);
-      const checkUrl = url + (url.includes("?") ? "&" : "?") + "asset_check=" + Date.now();
-
-      try{
-        const head = await fetch(checkUrl, { method:"HEAD", cache:"no-store" });
-        if (head.ok) return true;
-        // 一部環境でHEADが正しく返らない場合があるため、GETでも確認する。
-        const get = await fetch(checkUrl, { method:"GET", cache:"no-store" });
-        return get.ok;
-      }catch(err){
-        console.warn("asset check failed:", normalizedPath, err.message);
-        return false;
-      }
-    }
-
-    function getPublicAssetUrl(path){
-      if (!path) return location.origin + "/";
-      if (/^https?:\/\//i.test(path)) return path;
-      return location.origin + "/" + toAssetUrl(path).replace(/^\/+/, "");
-    }
-
-    function showModelUrl(){
-      const path = normalizeInputPath(modelPathInput.value.trim() || (selectedModel ? selectedModel.path : ""));
-      if (!path){
-        alert("先にモデルを選択するか、手入力パスを入れてください。");
+    async function loadReferenceRoot(){
+      const root = normalizePath(rootInput.value || "");
+      if (!root){
+        await autoDetectRoot();
         return;
-      }
-      prompt("モデル直接URL", getPublicAssetUrl(path));
-    }
-
-    function clearCurrentModelSafe(){
-      clearCurrentModel();
-      selectedModel = null;
-      modelStateInput.value = "未選択";
-      infoModel.textContent = "未選択";
-      renderModelList();
-      resetView();
-      setStatus("MODEL CLEARED");
-    }
-
-    async function loadModelList(){
-      modelList.innerHTML = `<div class="empty">models/・モデル/・リポジトリ全体を走査中...</div>`;
-      setStatus("SCANNING MODEL FOLDERS ...");
-
-      let result = await scanRoots(MODEL_ROOTS, MODEL_EXTENSIONS, "model");
-      allModels = result.items;
-
-      if (allModels.length === 0){
-        setStatus("MODEL ROOT SCAN EMPTY / TRYING REPOSITORY TREE ...");
-        result = await scanRepoTreeAll(MODEL_EXTENSIONS, "model");
-        allModels = result.items;
-      }
-
-      if (allModels.length === 0){
-        setStatus("MODEL TREE SCAN EMPTY / TRYING DIRECT FALLBACK ...");
-        allModels = await findFallbackModels();
-      }
-
-      renderModelList();
-
-      if (allModels.length > 0){
-        setStatus(`MODEL / ANIMATION ${allModels.length} / ${result.ref || "fallback"} / ${result.mode || "contents"} / モデルを選択してください`);
-        modelStateInput.value = "モデルを選択";
-        if (initialFile){
-          selectModelPath(initialFile);
-        }
-      } else {
-        modelList.innerHTML = `
-          <div class="empty">
-            モデルが見つかりません。<br>
-            今回は models/ と モデル/ だけでなく、リポジトリ全体検索も実行しました。<br><br>
-            手入力で実際の配置を指定してください。<br>
-            例：モデル/鉄筋/鉄筋.glb<br>
-            例：models/鉄筋/鉄筋.glb<br><br>
-            対応形式：OBJ / FBX / GLB / GLTF
-          </div>
-        `;
-        modelStateInput.value = "一覧なし / 手入力可";
-        setStatus("MODEL / ANIMATION EMPTY / USE MANUAL PATH");
-      }
-    }
-
-    async function loadPlanList(){
-      planList.innerHTML = `<div class="empty">plans/、図面/、PDF/ を走査中...</div>`;
-      setPlanStatus("SCANNING PLAN FOLDERS ...");
-
-      let result = await scanRoots(PLAN_ROOTS, PLAN_EXTENSIONS, "plan");
-      allPlans = result.items;
-
-      if (allPlans.length === 0){
-        setPlanStatus("PDF root scan empty / repository tree を確認中...");
-        result = await scanRepoTreeAll(PLAN_EXTENSIONS, "plan");
-        allPlans = result.items;
-      }
-
-      if (allPlans.length === 0){
-        setPlanStatus("GitHub API一覧が空です。直接参照を確認中...");
-        allPlans = await findFallbackPlans();
-      }
-
-      renderPlanList();
-
-      if (allPlans.length > 0){
-        setPlanStatus(`図面一覧 ${allPlans.length}件`);
-      } else {
-        planList.innerHTML = `<div class="empty">PDF図面が見つかりません。<br>例：plans/平面図.pdf<br><br>手入力パスで plans/平面図.pdf を試してください。</div>`;
-        setPlanStatus("PLAN LIST EMPTY");
-      }
-    }
-
-    function renderModelList(){
-      const q = modelSearchInput.value.trim().toLowerCase();
-      const filtered = allModels.filter(m => !q || m.name.toLowerCase().includes(q) || m.path.toLowerCase().includes(q));
-      if (filtered.length === 0){
-        modelList.innerHTML = `<div class="empty">該当するモデルがありません。</div>`;
-        return;
-      }
-      modelList.innerHTML = "";
-      for (const m of filtered){
-        const btn = document.createElement("button");
-        btn.className = "item" + (selectedModel && selectedModel.path === m.path ? " active" : "");
-        btn.innerHTML = `
-          <div class="item-name">${escapeHtml(m.name)}</div>
-          <div class="item-path">${escapeHtml(m.path)}</div>
-          <div class="badge-row">
-            <span class="badge ${m.ext === ".glb" || m.ext === ".gltf" ? "lime" : ""}">${escapeHtml(m.ext.toUpperCase().slice(1))}</span>
-            ${m.ext === ".obj" ? `<span class="badge magenta">${hasSameMtl(m) ? "MTLあり" : "MTLなし"}</span>` : ""}
-          <span class="badge lime">クリックで読込</span></div>
-        `;
-        btn.addEventListener("click", () => selectModel(m));
-        modelList.appendChild(btn);
-      }
-    }
-
-    function renderPlanList(){
-      const q = planSearchInput.value.trim().toLowerCase();
-      const filtered = allPlans.filter(p => !q || p.name.toLowerCase().includes(q) || p.path.toLowerCase().includes(q));
-      if (filtered.length === 0){
-        planList.innerHTML = `<div class="empty">該当するPDF/画像図面がありません。</div>`;
-        return;
-      }
-      planList.innerHTML = "";
-      for (const p of filtered){
-        const btn = document.createElement("button");
-        btn.className = "item" + (selectedPlanSource && selectedPlanSource.path === p.path ? " active" : "");
-        btn.innerHTML = `
-          <div class="item-name">${escapeHtml(p.name)}</div>
-          <div class="item-path">${escapeHtml(p.path)}</div>
-          <div class="badge-row">
-            <span class="badge lime">${escapeHtml(p.ext.toUpperCase().slice(1))}</span>
-            <span class="badge magenta">選択中候補</span>
-          </div>
-        `;
-        btn.addEventListener("click", () => {
-          selectedPlanSource = p;
-          planPathInput.value = p.path;
-          renderPlanList();
-          setPlanStatus(`PDF候補を選択：${p.path} / 地面または側面に追加してください。`);
-        });
-        planList.appendChild(btn);
-      }
-    }
-
-    function hasSameMtl(model){
-      const mtlPath = withoutExt(model.path) + ".mtl";
-      return fileMap.has(mtlPath.toLowerCase());
-    }
-
-    function setAnimationStatus(text){
-      if (animationStatusText) animationStatusText.textContent = text;
-    }
-
-    function resetAnimationState(){
-      if (mixer){
-        mixer.stopAllAction();
-      }
-      mixer = null;
-      animationRoot = null;
-      animationClips = [];
-      animationActions = [];
-      mergedAnimationClip = null;
-      mergedAnimationAction = null;
-      mergedDuplicateTrackCount = 0;
-      mergedTrackCount = 0;
-      activeAction = null;
-      activeAnimationIndex = 0;
-      animationsEnabled = true;
-      animationIsPlaying = false;
-      playAllAnimations = false;
-      multiActionMode = true;
-      animationSpeed = DEFAULT_ANIMATION_SPEED;
-      animationLoop = true;
-      animationExpectedActions = [];
-      animationFinishedActions = new Set();
-      animationLoopRestartLock = false;
-      animationCompletionMode = "none";
-
-      if (animationSelect){
-        animationSelect.innerHTML = `<option value="">未検出</option>`;
-      }
-      if (animationSpeedInput){
-        animationSpeedInput.value = DEFAULT_ANIMATION_SPEED.toFixed(2);
-      }
-      if (animationSpeedRange){
-        animationSpeedRange.value = DEFAULT_ANIMATION_SPEED.toFixed(2);
-      }
-      if (animationSpeedReadout){
-        animationSpeedReadout.value = `${DEFAULT_ANIMATION_SPEED.toFixed(2)}x`;
-      }
-      if (animLoopBtn){
-        animLoopBtn.innerHTML = "<span>全体ループON</span>";
-      }
-      if (animToggleBtn){
-        animToggleBtn.innerHTML = "<span>統合再生</span>";
-      }
-      setAnimationStatus("ANIMATION: 未検出 / v19全体ループ制御");
-    }
-
-    function refreshAnimationSelect(){
-      if (!animationSelect) return;
-
-      if (!animationClips.length){
-        animationSelect.innerHTML = `<option value="">未検出</option>`;
-        return;
-      }
-
-      const options = [];
-      if (mergedAnimationClip){
-        options.push(`<option value="merged">統合再生：全Action整理済み</option>`);
-      }
-      animationClips.forEach((clip, index) => {
-        const name = clip.name || `Animation ${index + 1}`;
-        options.push(`<option value="${index}">${escapeHtml(name)}</option>`);
-      });
-      animationSelect.innerHTML = options.join("");
-      animationSelect.value = mergedAnimationClip ? "merged" : String(activeAnimationIndex);
-    }
-
-    function updateAnimationButtons(){
-      if (animToggleBtn){
-        animToggleBtn.innerHTML = animationIsPlaying
-          ? "<span>一時停止</span>"
-          : (multiActionMode ? "<span>統合再生</span>" : "<span>選択再生</span>");
-      }
-      if (animPlayBtn){
-        animPlayBtn.innerHTML = multiActionMode ? "<span>統合再生</span>" : "<span>選択再生</span>";
-      }
-      if (animMultiModeBtn){
-        animMultiModeBtn.innerHTML = multiActionMode ? "<span>統合再生ON</span>" : "<span>選択再生ON</span>";
-      }
-      if (animationSpeedInput) animationSpeedInput.value = animationSpeed.toFixed(2);
-      if (animationSpeedRange) animationSpeedRange.value = animationSpeed.toFixed(2);
-      if (animationSpeedReadout) animationSpeedReadout.value = `${animationSpeed.toFixed(2)}x`;
-    }
-
-    function getActiveAnimationName(){
-      if (multiActionMode && mergedAnimationClip) return "統合再生：全Action整理済み";
-      if (!animationClips.length || activeAnimationIndex < 0) return "未検出";
-      const clip = animationClips[activeAnimationIndex];
-      return clip ? (clip.name || `Animation ${activeAnimationIndex + 1}`) : "未検出";
-    }
-
-    function cloneTrackSafe(track){
-      if (track.clone) return track.clone();
-      return new track.constructor(
-        track.name,
-        Array.from(track.times || []),
-        Array.from(track.values || []),
-        track.getInterpolation ? track.getInterpolation() : undefined
-      );
-    }
-
-    function mergeTracksWithSameName(trackList){
-      if (!trackList || trackList.length === 0) return null;
-      if (trackList.length === 1) return cloneTrackSafe(trackList[0]);
-
-      const base = trackList[trackList.length - 1] || trackList[0];
-      const name = base.name;
-      const stride = Math.max(1, base.getValueSize ? base.getValueSize() : Math.round((base.values || []).length / Math.max(1, (base.times || []).length)));
-      const entries = [];
-
-      trackList.forEach((track, trackOrder) => {
-        const times = Array.from(track.times || []);
-        const values = Array.from(track.values || []);
-        const localStride = Math.max(1, track.getValueSize ? track.getValueSize() : stride);
-        for (let i = 0; i < times.length; i++){
-          const value = [];
-          for (let j = 0; j < stride; j++){
-            value.push(values[i * localStride + Math.min(j, localStride - 1)] ?? 0);
-          }
-          entries.push({ time: times[i], value, order: trackOrder });
-        }
-      });
-
-      entries.sort((a, b) => {
-        if (Math.abs(a.time - b.time) > 0.000001) return a.time - b.time;
-        return a.order - b.order;
-      });
-
-      const mergedTimes = [];
-      const mergedValues = [];
-      for (const entry of entries){
-        const lastIndex = mergedTimes.length - 1;
-        if (lastIndex >= 0 && Math.abs(mergedTimes[lastIndex] - entry.time) <= 0.000001){
-          for (let j = 0; j < stride; j++){
-            mergedValues[lastIndex * stride + j] = entry.value[j];
-          }
-        } else {
-          mergedTimes.push(entry.time);
-          for (let j = 0; j < stride; j++) mergedValues.push(entry.value[j]);
-        }
       }
 
       try{
-        return new base.constructor(
-          name,
-          mergedTimes,
-          mergedValues,
-          base.getInterpolation ? base.getInterpolation() : undefined
-        );
-      }catch(err){
-        console.warn("track merge failed, fallback clone:", name, err);
-        return cloneTrackSafe(base);
-      }
-    }
-
-    function buildMergedAnimationClip(clips){
-      const sourceClips = (clips || []).filter(Boolean);
-      if (sourceClips.length === 0) return null;
-
-      const trackGroups = new Map();
-      let totalTracks = 0;
-      let duration = 0;
-
-      sourceClips.forEach((clip) => {
-        duration = Math.max(duration, clip.duration || 0);
-        (clip.tracks || []).forEach((track) => {
-          if (!track || !track.name) return;
-          totalTracks++;
-          const key = track.name;
-          if (!trackGroups.has(key)) trackGroups.set(key, []);
-          trackGroups.get(key).push(track);
-          const times = track.times || [];
-          if (times.length) duration = Math.max(duration, Number(times[times.length - 1]) || 0);
-        });
-      });
-
-      const mergedTracks = [];
-      for (const list of trackGroups.values()){
-        const mergedTrack = mergeTracksWithSameName(list);
-        if (mergedTrack) mergedTracks.push(mergedTrack);
-      }
-
-      mergedDuplicateTrackCount = Math.max(0, totalTracks - trackGroups.size);
-      mergedTrackCount = mergedTracks.length;
-
-      if (!mergedTracks.length) return null;
-      return new THREE.AnimationClip(
-        "Merged_All_Actions_No_Blend",
-        duration > 0 ? duration : -1,
-        mergedTracks
-      );
-    }
-
-    function configureActionPlayOnce(action){
-      if (!action) return;
-      action.enabled = true;
-      action.paused = false;
-      action.clampWhenFinished = true;
-      action.setEffectiveWeight(1);
-      action.setEffectiveTimeScale(1);
-      // 重要：個別Actionは絶対に単独ループさせない。
-      // 全Actionが終わった後だけ、handleAnimationFinished側で全体を再スタートする。
-      action.setLoop(THREE.LoopOnce, 1);
-    }
-
-    function prepareAnimationCompletionWatch(actions, mode){
-      animationExpectedActions = (actions || []).filter(Boolean);
-      animationFinishedActions = new Set();
-      animationCompletionMode = mode || "none";
-      animationLoopRestartLock = false;
-    }
-
-    function getAnimationCompletionLabel(){
-      if (multiActionMode) return "統合Action";
-      if (playAllAnimations) return `全${animationExpectedActions.length}Action`;
-      return getActiveAnimationName();
-    }
-
-    function handleAnimationFinished(event){
-      const action = event && event.action;
-      if (!action || !animationIsPlaying) return;
-      if (!animationExpectedActions.includes(action)) return;
-
-      animationFinishedActions.add(action);
-      const finishedCount = animationFinishedActions.size;
-      const totalCount = animationExpectedActions.length || 1;
-
-      if (finishedCount < totalCount){
-        setAnimationStatus(`ANIMATION: ${finishedCount}/${totalCount}Action完了 / 全Action完了までループ禁止`);
-        return;
-      }
-
-      animationIsPlaying = false;
-      animationsEnabled = false;
-      updateAnimationButtons();
-
-      if (!animationLoop){
-        setAnimationStatus(`ANIMATION: 完了 / ${getAnimationCompletionLabel()} / ループOFF`);
-        return;
-      }
-
-      if (animationLoopRestartLock) return;
-      animationLoopRestartLock = true;
-      setAnimationStatus(`ANIMATION: 全Action完了 → 全体ループ再開 / ${animationSpeed.toFixed(2)}x`);
-
-      setTimeout(() => {
-        animationLoopRestartLock = false;
-        if (!mixer || !animationLoop) return;
-
-        if (multiActionMode && mergedAnimationAction){
-          playMergedAnimation(false);
-        } else if (playAllAnimations){
-          playAllAnimationActions(false);
-        } else if (activeAction){
-          forcePlayAnimation(false);
-        }
-      }, 0);
-    }
-
-    function setupAnimations(root, clips){
-      resetAnimationState();
-      animationRoot = root;
-      animationClips = (clips || []).filter(Boolean);
-
-      if (!animationRoot || animationClips.length === 0){
-        setAnimationStatus("ANIMATION: なし / 静止モデル またはGLB内にアニメーション未格納");
-        updateAnimationButtons();
-        return;
-      }
-
-      mixer = new THREE.AnimationMixer(animationRoot);
-      mixer.timeScale = animationSpeed;
-      mixer.addEventListener("finished", handleAnimationFinished);
-
-      animationActions = animationClips.map((clip) => {
-        const action = mixer.clipAction(clip, animationRoot);
-        action.clampWhenFinished = true;
-        action.enabled = true;
-        action.paused = false;
-        action.setEffectiveWeight(1);
-        action.setEffectiveTimeScale(1);
-        action.setLoop(THREE.LoopOnce, 1);
-        return action;
-      });
-
-      mergedAnimationClip = buildMergedAnimationClip(animationClips);
-      mergedAnimationAction = mergedAnimationClip ? mixer.clipAction(mergedAnimationClip, animationRoot) : null;
-      if (mergedAnimationAction){
-        mergedAnimationAction.clampWhenFinished = true;
-        mergedAnimationAction.enabled = true;
-        mergedAnimationAction.paused = false;
-        mergedAnimationAction.setEffectiveWeight(1);
-        mergedAnimationAction.setEffectiveTimeScale(1);
-        mergedAnimationAction.setLoop(THREE.LoopOnce, 1);
-      }
-
-      activeAnimationIndex = 0;
-      activeAction = animationActions[0] || null;
-      refreshAnimationSelect();
-
-      animationSpeed = DEFAULT_ANIMATION_SPEED;
-      if (mixer) mixer.timeScale = animationSpeed;
-      animationsEnabled = true;
-      animationIsPlaying = false;
-      playAllAnimations = false;
-      multiActionMode = true;
-
-      playMergedAnimation(false);
-
-      updateAnimationButtons();
-      setAnimationStatus(`ANIMATION: ${animationClips.length}Actionを統合再生 / 全体ループ制御 / ${animationSpeed.toFixed(2)}x`);
-    }
-
-    function selectAnimation(index){
-      if (String(index) === "merged"){
-        multiActionMode = true;
-        playMergedAnimation(true);
-        return;
-      }
-      if (!animationActions.length) return;
-      const safeIndex = Math.max(0, Math.min(animationActions.length - 1, Number(index) || 0));
-
-      activeAnimationIndex = safeIndex;
-      activeAction = animationActions[activeAnimationIndex];
-      if (animationSelect) animationSelect.value = String(activeAnimationIndex);
-
-      multiActionMode = false;
-      playAllAnimations = false;
-      updateAnimationButtons();
-      setAnimationStatus(`ANIMATION: 選択Action確認 / ${getActiveAnimationName()} / 「選択のみ再生」で再生`);
-    }
-
-    function playMergedAnimation(showStatus = true){
-      if (!mergedAnimationAction){
-        setAnimationStatus("ANIMATION: 統合再生できません。選択のみ再生を試してください。");
-        return;
-      }
-      if (mixer){
-        mixer.stopAllAction();
-        mixer.timeScale = animationSpeed;
-      }
-      multiActionMode = true;
-      playAllAnimations = false;
-      configureActionPlayOnce(mergedAnimationAction);
-      prepareAnimationCompletionWatch([mergedAnimationAction], "merged");
-      mergedAnimationAction.reset();
-      mergedAnimationAction.play();
-      animationsEnabled = true;
-      animationIsPlaying = true;
-      if (animationSelect) animationSelect.value = "merged";
-      updateAnimationButtons();
-      if (showStatus) setAnimationStatus(`ANIMATION: 統合再生 / 個別ループ禁止 / 全体${animationLoop ? "ループON" : "ループOFF"} / ${animationSpeed.toFixed(2)}x`);
-    }
-
-    function playAnimation(){
-      if (multiActionMode){
-        playMergedAnimation(true);
-        return;
-      }
-      forcePlayAnimation(true);
-    }
-
-    function forcePlayAnimation(showStatus = true){
-      if (!activeAction){
-        setAnimationStatus("ANIMATION: 選択再生できるActionがありません");
-        return;
-      }
-      playAllAnimations = false;
-      multiActionMode = false;
-      if (mixer){
-        mixer.stopAllAction();
-        mixer.timeScale = animationSpeed;
-      }
-      configureActionPlayOnce(activeAction);
-      prepareAnimationCompletionWatch([activeAction], "selected");
-      activeAction.reset();
-      activeAction.play();
-      animationsEnabled = true;
-      animationIsPlaying = true;
-      updateAnimationButtons();
-      if (showStatus) setAnimationStatus(`ANIMATION: 選択のみ再生 / 個別LoopOnce / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
-    }
-
-    function playAllAnimationActions(showStatus = true){
-      if (!animationActions.length){
-        setAnimationStatus("ANIMATION: 全Action同時再生できるアニメーションがありません");
-        return;
-      }
-      if (mixer){
-        mixer.stopAllAction();
-        mixer.timeScale = animationSpeed;
-      }
-      multiActionMode = false;
-      playAllAnimations = true;
-      prepareAnimationCompletionWatch(animationActions, "all");
-      animationActions.forEach((action) => {
-        configureActionPlayOnce(action);
-        action.reset();
-        action.play();
-      });
-      activeAction = animationActions[activeAnimationIndex] || animationActions[0];
-      animationsEnabled = true;
-      animationIsPlaying = true;
-      updateAnimationButtons();
-      if (showStatus) setAnimationStatus(`ANIMATION: 全${animationActions.length}Action同時再生 / 全Action完了までループ禁止 / ${animationSpeed.toFixed(2)}x`);
-    }
-
-    function pauseAnimation(){
-      if (!mixer){
-        setAnimationStatus("ANIMATION: 一時停止できるアニメーションがありません");
-        return;
-      }
-      if (mergedAnimationAction) mergedAnimationAction.paused = true;
-      for (const action of animationActions){
-        action.paused = true;
-      }
-      animationsEnabled = false;
-      animationIsPlaying = false;
-      animationLoopRestartLock = false;
-      updateAnimationButtons();
-      setAnimationStatus(`ANIMATION: 一時停止 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
-    }
-
-    function togglePlayPauseAnimation(){
-      if (animationIsPlaying){
-        pauseAnimation();
-      } else {
-        if (multiActionMode) playMergedAnimation(true);
-        else if (playAllAnimations) playAllAnimationActions(true);
-        else forcePlayAnimation(true);
-      }
-    }
-
-    function restartAnimation(){
-      if (!mixer){
-        setAnimationStatus("ANIMATION: 再生できるアニメーションがありません");
-        return;
-      }
-      if (multiActionMode){
-        playMergedAnimation(true);
-        setAnimationStatus(`ANIMATION: 統合Actionを最初から再生 / ${animationSpeed.toFixed(2)}x`);
-      } else if (playAllAnimations){
-        playAllAnimationActions(true);
-        setAnimationStatus(`ANIMATION: 全Action同時を最初から再生 / 個別ループ禁止 / ${animationSpeed.toFixed(2)}x`);
-      } else {
-        forcePlayAnimation(true);
-        setAnimationStatus(`ANIMATION: 選択のみ最初から再生 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
-      }
-    }
-
-    function stopAnimation(){
-      if (!mixer){
-        setAnimationStatus("ANIMATION: 停止できるアニメーションがありません");
-        return;
-      }
-      mixer.stopAllAction();
-      animationExpectedActions = [];
-      animationFinishedActions = new Set();
-      animationLoopRestartLock = false;
-      if (mergedAnimationAction) mergedAnimationAction.paused = true;
-      for (const action of animationActions){
-        action.paused = true;
-      }
-      playAllAnimations = false;
-      animationsEnabled = false;
-      animationIsPlaying = false;
-      animationLoopRestartLock = false;
-      updateAnimationButtons();
-      setAnimationStatus(`ANIMATION: 停止 / ${getActiveAnimationName()}`);
-    }
-
-    function setAnimationSpeed(value){
-      animationSpeed = Math.max(0.01, Math.min(2.0, Number(value) || DEFAULT_ANIMATION_SPEED));
-      if (mixer) mixer.timeScale = animationSpeed;
-      updateAnimationButtons();
-      setAnimationStatus(`ANIMATION SPEED: ${animationSpeed.toFixed(2)}x / ${multiActionMode ? "統合再生" : (playAllAnimations ? "全Action同時" : getActiveAnimationName())}${animationIsPlaying ? " / 再生中" : " / 一時停止"}`);
-    }
-
-    function toggleAnimationLoop(){
-      animationLoop = !animationLoop;
-      // ここではAction自体のLoop設定は変更しない。
-      // 個別Actionは常にLoopOnce、全Action完了後だけ全体を再スタートする。
-      if (mergedAnimationAction){
-        configureActionPlayOnce(mergedAnimationAction);
-      }
-      for (const action of animationActions){
-        configureActionPlayOnce(action);
-      }
-      if (animLoopBtn){
-        animLoopBtn.innerHTML = animationLoop ? "<span>全体ループON</span>" : "<span>全体ループOFF</span>";
-      }
-      setAnimationStatus(animationLoop
-        ? "ANIMATION LOOP: 全体ループON / 全Action完了まで個別ループ禁止"
-        : "ANIMATION LOOP: OFF / 1回再生で停止"
-      );
-    }
-
-    function toggleMultiActionMode(){
-      multiActionMode = !multiActionMode;
-      playAllAnimations = false;
-      if (multiActionMode){
-        playMergedAnimation(true);
-      } else {
-        if (mixer) mixer.stopAllAction();
-        animationIsPlaying = false;
-        animationsEnabled = false;
-        if (animationSelect && animationSelect.value === "merged") animationSelect.value = String(activeAnimationIndex);
-        updateAnimationButtons();
-        setAnimationStatus(`ANIMATION: 選択再生モード / ${getActiveAnimationName()} を選んで「選択のみ再生」`);
-      }
-    }
-
-    function disposeObject(obj){
-      obj.traverse(child => {
-        if (child.geometry) child.geometry.dispose?.();
-        if (child.material){
-          const mats = Array.isArray(child.material) ? child.material : [child.material];
-          mats.forEach(mat => {
-            for (const key in mat){
-              const v = mat[key];
-              if (v && v.isTexture) v.dispose?.();
-            }
-            mat.dispose?.();
-          });
-        }
-      });
-    }
-
-    function clearCurrentModel(){
-      if (currentObject){
-        scene.remove(currentObject);
-        disposeObject(currentObject);
-      }
-      currentObject = null;
-      resetAnimationState();
-    }
-
-    async function selectModel(model){
-      selectedModel = model;
-      modelPathInput.value = model.path;
-      modelStateInput.value = "読込中";
-      infoModel.textContent = model.path;
-      renderModelList();
-      await loadSelectedModel(model);
-    }
-
-    function selectModelPath(path){
-      const normalizedPath = normalizeInputPath(path);
-      const ext = getExt(normalizedPath);
-      if (!MODEL_EXTENSIONS.includes(ext)){
-        alert("OBJ / FBX / GLB / GLTF を指定してください。\n\n例：モデル/鉄筋/鉄筋.glb");
-        return;
-      }
-      const found = findModelRecordByPath(normalizedPath);
-      if (found){
-        selectModel(found);
-        return;
-      }
-      selectModel({name:getBaseName(normalizedPath), path:normalizedPath, ext, size:0});
-    }
-
-    function snapModelToGround(){
-      if (!currentObject) {
-        setStatus("MODEL NOT LOADED");
-        return;
-      }
-
-      const box = new THREE.Box3().setFromObject(currentObject);
-      if (box.isEmpty()) return;
-
-      // 3D空間の地面基準はY=0。
-      // モデル最下部をY=0へ合わせる。
-      currentObject.position.y += -box.min.y;
-
-      setStatus("MODEL SNAPPED TO GROUND Y=0");
-    }
-
-    function normalizeAndAddObject(obj, clips = []){
-      // アニメーション付きGLBのキーフレームを壊さないため、
-      // GLB本体には position / scale 補正を直接かけない。
-      // 外側の親Groupだけを移動・拡大縮小する。
-      const wrapper = new THREE.Group();
-      wrapper.name = "MODEL_VIEWER_ROOT_ANIMATION_SAFE";
-      wrapper.add(obj);
-
-      currentObject = wrapper;
-      scene.add(currentObject);
-
-      let box = new THREE.Box3().setFromObject(currentObject);
-      let size = new THREE.Vector3();
-      let center = new THREE.Vector3();
-      box.getSize(size);
-      box.getCenter(center);
-
-      const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      const target = 2.0;
-      const scale = target / maxDim;
-
-      // 補正は親Groupのみ。
-      currentObject.scale.setScalar(scale);
-
-      box = new THREE.Box3().setFromObject(currentObject);
-      box.getCenter(center);
-      currentObject.position.sub(center);
-
-      snapModelToGround();
-
-      box = new THREE.Box3().setFromObject(currentObject);
-      box.getSize(size);
-      currentSize = Math.max(size.x, size.y, size.z) || 2;
-
-      // v19: モデル補正後の外側Rootに対してAnimationMixerを作る。
-      // これにより、GLB本体のキーフレームとビューアー側の中央寄せ補正が競合しにくくなる。
-      setupAnimations(currentObject, clips || []);
-
-      resetView();
-      modelStateInput.value = animationClips.length > 0 ? "読込完了 / アニメあり" : "読込完了";
-      setStatus(`MODEL LOADED: ${selectedModel ? selectedModel.path : ""} / ANIMATION ROOT v19`);
-    }
-
-    async function loadSelectedModel(model){
-      setStatus(`CHECKING MODEL: ${model.path}`);
-
-      const path = normalizeInputPath(model.path);
-      const url = toAssetUrl(path);
-      const ext = model.ext || getExt(path);
-
-      const exists = await assetExists(path);
-      if (!exists){
-        modelStateInput.value = "404 / パス確認";
-        setStatus(`MODEL FILE NOT FOUND: ${path}`);
-        alert(
-          "モデルファイルが見つかりません。\n\n" +
-          path + "\n\n" +
-          "直接URL：\n" + getPublicAssetUrl(path) + "\n\n" +
-          "GitHub上に同じ場所・同じ名前でファイルがあるか確認してください。\n" +
-          "例：models/01.glb が無い場合は、実際の配置に合わせて モデル/鉄筋/鉄筋.glb などを指定します。\n日本語フォルダも使用できます。"
-        );
-        return;
-      }
-
-      clearCurrentModel();
-      setStatus(`LOADING MODEL: ${model.path}`);
-
-      try{
-        if (ext === ".glb" || ext === ".gltf"){
-          const loader = new GLTFLoader();
-          const gltf = await loader.loadAsync(url);
-          const obj = gltf.scene || gltf.scenes[0];
-          normalizeAndAddObject(obj, gltf.animations || []);
-          return;
-        }
-
-        if (ext === ".obj"){
-          const objLoader = new OBJLoader();
-          const mtlPath = withoutExt(path) + ".mtl";
-          if (fileMap.has(mtlPath.toLowerCase())){
-            const mtlLoader = new MTLLoader();
-            mtlLoader.setPath(toAssetUrl(getDir(path)));
-            const materials = await mtlLoader.loadAsync(getBaseName(mtlPath));
-            materials.preload();
-            objLoader.setMaterials(materials);
+        chapters = await scanRoot(root);
+        currentRoot = root;
+        populateChapters();
+        setObjectStatus(`参照読込: ${root} / ${chapters.length} chapters`);
+
+        if (chapters.length > 0){
+          let index = 0;
+          if (initialChapter){
+            const found = chapters.findIndex(ch => ch.name === initialChapter || ch.path.endsWith("/" + initialChapter));
+            if (found >= 0) index = found;
           }
-          const obj = await objLoader.loadAsync(url);
-          normalizeAndAddObject(obj, []);
-          return;
+          await loadChapter(index);
         }
-
-        if (ext === ".fbx"){
-          const loader = new FBXLoader();
-          const obj = await loader.loadAsync(url);
-          normalizeAndAddObject(obj, obj.animations || []);
-          return;
-        }
-
-        throw new Error("未対応形式です: " + ext);
       }catch(err){
         console.error(err);
-        modelStateInput.value = "読込失敗";
-        setStatus("MODEL LOAD ERROR");
+        setObjectStatus("参照読込失敗: " + err.message);
+        alert("参照フォルダの読み込みに失敗しました。\n\n" + root + "\n\n" + err.message);
+      }
+    }
+
+    function populateChapters(){
+      chapterSelect.innerHTML = "";
+
+      if (chapters.length === 0){
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "チャプターなし";
+        chapterSelect.appendChild(opt);
+        return;
+      }
+
+      for (let i=0; i<chapters.length; i++){
+        const ch = chapters[i];
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = `${ch.name} / ${ch.model ? getBaseName(ch.model) : "modelなし"} / ${ch.pdf ? getBaseName(ch.pdf) : "PDFなし"}`;
+        chapterSelect.appendChild(opt);
+      }
+    }
+
+    async function loadChapter(index){
+      if (index < 0 || index >= chapters.length) return;
+
+      currentChapterIndex = index;
+      const ch = chapters[index];
+      chapterSelect.value = String(index);
+
+      chapterNameText.textContent = ch.name;
+      modelPathText.textContent = ch.model || "未登録";
+      pdfPathText.textContent = ch.pdf || "未登録";
+      pdfNameText.textContent = ch.pdf ? getBaseName(ch.pdf) : "未読込";
+
+      if (ch.model) await loadModel(ch.model);
+      else clearModel();
+
+      if (ch.pdf) await loadPdf(ch.pdf);
+      else clearPdf();
+
+      updateUrlState();
+      fitView();
+    }
+
+    function updateUrlState(){
+      const url = new URL(location.href);
+      if (currentRoot) url.searchParams.set("root", currentRoot);
+      if (chapters[currentChapterIndex]) url.searchParams.set("chapter", chapters[currentChapterIndex].name);
+      history.replaceState(null, "", url.toString());
+    }
+
+    function clearModel(){
+      if (modelWrapper){
+        scene.remove(modelWrapper);
+        modelWrapper.traverse(obj => {
+          if (obj.geometry) obj.geometry.dispose?.();
+          if (obj.material){
+            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+            mats.forEach(mat => {
+              for (const key in mat){
+                if (mat[key] && mat[key].isTexture) mat[key].dispose?.();
+              }
+              mat.dispose?.();
+            });
+          }
+        });
+      }
+
+      modelWrapper = null;
+      modelScene = null;
+      mixer = null;
+      clips = [];
+      actions = [];
+      isPlaying = false;
+      playPauseBtn.textContent = "再生";
+      updateAnimationSelect();
+      setObjectStatus("モデル消去");
+    }
+
+    async function loadModel(path){
+      clearModel();
+
+      const loader = new GLTFLoader();
+      const url = toAssetUrl(path);
+
+      try{
+        setObjectStatus("MODEL LOADING: " + path);
+        const gltf = await loader.loadAsync(url);
+
+        modelScene = gltf.scene || gltf.scenes[0];
+        clips = gltf.animations || [];
+
+        modelWrapper = new THREE.Group();
+        modelWrapper.name = "TEACHING_CHAPTER_MODEL_WRAPPER";
+        modelWrapper.add(modelScene);
+        scene.add(modelWrapper);
+
+        const box = new THREE.Box3().setFromObject(modelScene);
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        box.getSize(size);
+        box.getCenter(center);
+
+        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+        modelBaseScale = 2.0 / maxDim;
+        modelUserScale = parseFloat(modelScaleInput.value) || 1;
+        modelSize = maxDim * modelBaseScale * modelUserScale;
+
+        modelWrapper.scale.setScalar(modelBaseScale * modelUserScale);
+        modelWrapper.position.set(
+          -center.x * modelBaseScale * modelUserScale,
+          -box.min.y * modelBaseScale * modelUserScale,
+          -center.z * modelBaseScale * modelUserScale
+        );
+
+        const rotY = THREE.MathUtils.degToRad(parseFloat(modelRotYInput.value) || 0);
+        modelWrapper.rotation.y = rotY;
+
+        if (clips.length > 0){
+          mixer = new THREE.AnimationMixer(modelScene);
+          actions = clips.map(clip => {
+            const action = mixer.clipAction(clip);
+            action.setLoop(THREE.LoopOnce, 1);
+            action.clampWhenFinished = true;
+            return action;
+          });
+          animDuration = Math.max(...clips.map(c => c.duration || 0), 0);
+        }
+
+        updateAnimationSelect();
+        setObjectStatus(`読込完了: ${path} / Action ${clips.length}`);
+      }catch(err){
+        console.error(err);
+        setObjectStatus("MODEL LOAD ERROR");
         alert("モデルの読み込みに失敗しました。\n\n" + path + "\n\n" + err.message);
       }
     }
 
-    function getActiveLayer(){
-      return planLayers.find(layer => layer.id === activeLayerId) || null;
+    function updateAnimationSelect(){
+      animationSelect.innerHTML = "";
+      const all = document.createElement("option");
+      all.value = "__ALL__";
+      all.textContent = clips.length ? "全Action" : "アニメーションなし";
+      animationSelect.appendChild(all);
+
+      clips.forEach((clip, i) => {
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = clip.name || `Action ${i+1}`;
+        animationSelect.appendChild(opt);
+      });
     }
 
-    function updateInfo(){
-      infoPlanCount.textContent = String(planLayers.length);
-      const active = getActiveLayer();
-      infoActivePlan.textContent = active
-        ? `${active.label} / ${active.placement === "floor" ? "地面" : "側面"} / ${active.percent}%`
-        : "未選択";
-    }
-
-    function renderPlanLayerList(){
-      if (planLayers.length === 0){
-        planLayerList.innerHTML = `<div class="empty">PDFレイヤー未配置。地面または側面に追加してください。</div>`;
-        updateInfo();
+    function playAnimation(restart=false){
+      if (!mixer || actions.length === 0){
+        setObjectStatus("アニメーションなし");
         return;
       }
 
-      planLayerList.innerHTML = "";
-      for (const layer of planLayers){
-        const btn = document.createElement("button");
-        btn.className = "item" + (activeLayerId === layer.id ? " active" : "");
-        btn.innerHTML = `
-          <div class="item-name">${escapeHtml(layer.label)}</div>
-          <div class="item-path">${layer.placement === "floor" ? "地面" : "側面A4横"}${layer.placement === "side" ? "・" + (layer.sideEdge === "bottom" ? "下端" : "上端") : ""} / ${layer.percent}% / ${layer.visible ? "表示" : "非表示"}</div>
-          <div class="item-path">POS X:${formatOffsetValue(layer.offsetX)} Y:${formatOffsetValue(layer.offsetY)} Z:${formatOffsetValue(layer.offsetZ)}</div>
-          <div class="badge-row">
-            <span class="badge ${layer.placement === "floor" ? "lime" : "magenta"}">${layer.placement === "floor" ? "GROUND" : "SIDE"}</span>
-            <span class="badge">#${layer.id}</span>
-          </div>
-        `;
-        btn.addEventListener("click", () => setActiveLayer(layer.id));
-        planLayerList.appendChild(btn);
-      }
-      updateInfo();
-    }
-
-    function setActiveLayer(id){
-      activeLayerId = id;
-      for (const layer of planLayers){
-        applyLayerStyle(layer);
+      if (restart){
+        mixer.stopAllAction();
+        animElapsed = 0;
       }
 
-      const layer = getActiveLayer();
-      if (layer){
-        planPercentInput.value = String(layer.percent);
-        planPercentView.textContent = String(layer.percent);
-        planOpacityInput.value = String(layer.opacity);
-        syncActiveLayerOffsetInputs(layer);
-        setPlanStatus(`選択PDF：${layer.label} / ${layer.placement === "floor" ? "地面" : "側面"}`);
+      const selected = animationSelect.value;
+      const targets = selected === "__ALL__" ? actions : [actions[parseInt(selected,10)]].filter(Boolean);
+
+      if (restart || !isPlaying){
+        for (const action of targets){
+          action.enabled = true;
+          action.paused = false;
+          action.reset();
+          action.setEffectiveTimeScale(1);
+          action.setEffectiveWeight(1);
+          action.play();
+        }
       } else {
-        syncActiveLayerOffsetInputs(null);
+        for (const action of targets){
+          action.paused = false;
+          action.play();
+        }
       }
 
-      renderPlanLayerList();
-      updateInfo();
+      isPlaying = true;
+      playPauseBtn.textContent = "一時停止";
+      setObjectStatus("ANIMATION PLAY");
     }
 
-    function formatOffsetValue(value){
-      const n = Number(value) || 0;
-      if (Math.abs(n) < 0.0000005) return "0";
-      return n.toFixed(3).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+    function pauseAnimation(){
+      actions.forEach(a => a.paused = true);
+      isPlaying = false;
+      playPauseBtn.textContent = "再生";
+      setObjectStatus("ANIMATION PAUSE");
     }
 
-    function updateOffsetReadout(layer){
-      if (!planOffsetReadout) return;
-      if (!layer){
-        planOffsetReadout.textContent = "位置調整 X:0 / Y:0 / Z:0";
-        return;
-      }
-      planOffsetReadout.textContent = `位置調整 X:${formatOffsetValue(layer.offsetX)} / Y:${formatOffsetValue(layer.offsetY)} / Z:${formatOffsetValue(layer.offsetZ)}`;
+    function restartAnimation(){
+      playAnimation(true);
     }
 
-    function syncActiveLayerOffsetInputs(layer){
-      const target = layer || null;
-      planOffsetXInput.value = formatOffsetValue(target?.offsetX || 0);
-      planOffsetYInput.value = formatOffsetValue(target?.offsetY || 0);
-      planOffsetZInput.value = formatOffsetValue(target?.offsetZ || 0);
-      updateOffsetReadout(target);
-    }
+    function applyModelTransform(){
+      if (!modelWrapper || !modelScene) return;
 
-    function getOffsetStep(){
-      return Math.max(0.001, parseFloat(planOffsetStepInput.value) || 0.05);
-    }
+      modelUserScale = parseFloat(modelScaleInput.value) || 1;
+      modelWrapper.scale.setScalar(modelBaseScale * modelUserScale);
 
-    function applyActiveLayerOffsetValues(){
-      const layer = getActiveLayer();
-      if (!layer){
-        setPlanStatus("位置調整値を設定しました。次に追加するPDFには反映されません。先にPDFレイヤーを選択してください。");
-        return;
-      }
-
-      layer.offsetX = parseFloat(planOffsetXInput.value) || 0;
-      layer.offsetY = parseFloat(planOffsetYInput.value) || 0;
-      layer.offsetZ = parseFloat(planOffsetZInput.value) || 0;
-      for (const target of planLayers) applyLayerStyle(target);
-      syncActiveLayerOffsetInputs(layer);
-      renderPlanLayerList();
-      setPlanStatus(`位置調整を反映しました。 X:${formatOffsetValue(layer.offsetX)} / Y:${formatOffsetValue(layer.offsetY)} / Z:${formatOffsetValue(layer.offsetZ)}`);
-    }
-
-    function nudgeActiveLayer(axis, delta){
-      const layer = getActiveLayer();
-      if (!layer){
-        alert("先にPDFレイヤーを選択してください。");
-        return;
-      }
-
-      if (axis === "x") layer.offsetX = (layer.offsetX || 0) + delta;
-      if (axis === "y") layer.offsetY = (layer.offsetY || 0) + delta;
-      if (axis === "z") layer.offsetZ = (layer.offsetZ || 0) + delta;
-
-      for (const target of planLayers) applyLayerStyle(target);
-      syncActiveLayerOffsetInputs(layer);
-      renderPlanLayerList();
-      setPlanStatus(`位置調整 ${axis.toUpperCase()} ${delta >= 0 ? "+" : ""}${formatOffsetValue(delta)}`);
-    }
-
-    function resetActiveLayerOffset(){
-      const layer = getActiveLayer();
-      if (!layer){
-        alert("先にPDFレイヤーを選択してください。");
-        return;
-      }
-
-      layer.offsetX = 0;
-      layer.offsetY = 0;
-      layer.offsetZ = 0;
-      for (const target of planLayers) applyLayerStyle(target);
-      syncActiveLayerOffsetInputs(layer);
-      renderPlanLayerList();
-      setPlanStatus("位置調整をリセットしました。");
-    }
-
-    function focusActiveLayer(){
-      const layer = getActiveLayer();
-      if (!layer || !layer.group){
-        alert("先にPDFレイヤーを選択してください。");
-        return;
-      }
-
-      layer.group.updateMatrixWorld(true);
-      const box = new THREE.Box3().setFromObject(layer.group);
+      const box = new THREE.Box3().setFromObject(modelScene);
       const center = new THREE.Vector3();
-      const size = new THREE.Vector3();
-      box.getCenter(center);
-      box.getSize(size);
-      const radius = Math.max(size.x, size.y, size.z, 0.5);
-
-      controls.target.copy(center);
-      camera.position.set(center.x + radius * 1.6, center.y + radius * 1.2, center.z + radius * 1.8);
-      controls.update();
-      setPlanStatus(`選択PDFへ視点移動：${layer.label}`);
-    }
-
-    function makeCanvasTexture(canvas2d){
-      const texture = new THREE.CanvasTexture(canvas2d);
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.wrapS = THREE.ClampToEdgeWrapping;
-      texture.wrapT = THREE.ClampToEdgeWrapping;
-      texture.minFilter = THREE.LinearMipmapLinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      texture.generateMipmaps = true;
-      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-      return texture;
-    }
-
-    function replaceLayerGeometry(layer, width, height){
-      if (layer.mesh.geometry) layer.mesh.geometry.dispose();
-      layer.mesh.geometry = new THREE.PlaneGeometry(width, height);
-
-      if (layer.border.geometry) layer.border.geometry.dispose();
-      layer.border.geometry = new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height));
-    }
-
-    
-    function getReferenceFloorLayer(){
-      if (activeLayerId){
-        const active = getActiveLayer();
-        if (active && active.placement === "floor") return active;
-      }
-
-      const visibleFloor = planLayers.find(layer => layer.placement === "floor" && layer.visible);
-      if (visibleFloor) return visibleFloor;
-
-      return planLayers.find(layer => layer.placement === "floor") || null;
-    }
-
-    function getFloorEdgeWorld(edge){
-      const floorLayer = getReferenceFloorLayer();
-
-      if (!floorLayer || !floorLayer.group){
-        const fallbackWidth = Math.max(2.5, currentSize * 3.0);
-        return {
-          midpoint: new THREE.Vector3(0, 0, -fallbackWidth / 2),
-          tangent: new THREE.Vector3(1, 0, 0),
-          length: fallbackWidth
-        };
-      }
-
-      // 見た目上の「平面PDFの上側端」に確実に合わせるため、
-      // 地面PDFのワールド外接Boxから上端/下端を取得する。
-      // これにより、画面上で見えている平面の外周端に側面の下端が吸着する。
-      floorLayer.group.updateMatrixWorld(true);
-      const box = new THREE.Box3().setFromObject(floorLayer.group);
-      const size = new THREE.Vector3();
-      const center = new THREE.Vector3();
-      box.getSize(size);
       box.getCenter(center);
 
-      const z = edge === "bottom" ? box.max.z : box.min.z;
-      const midpoint = new THREE.Vector3(center.x, 0, z);
-      const tangent = new THREE.Vector3(1, 0, 0);
-      const length = Math.max(0.1, size.x);
+      modelWrapper.position.x = -center.x * modelBaseScale * modelUserScale;
+      modelWrapper.position.z = -center.z * modelBaseScale * modelUserScale;
 
-      return { midpoint, tangent, length };
+      snapModelGround();
+
+      const rotY = THREE.MathUtils.degToRad(parseFloat(modelRotYInput.value) || 0);
+      modelWrapper.rotation.y = rotY;
+
+      modelSize = 2.0 * modelUserScale;
+      setObjectStatus(`モデル変形反映 / scale ${modelUserScale}`);
+      fitView();
+      if (pdfLayer) applyPdfTransform();
     }
 
-    function makeWallQuaternionFromEdge(tangent){
-      const xAxis = tangent.clone().normalize();
-      const yAxis = new THREE.Vector3(0, 1, 0);
-      let zAxis = new THREE.Vector3().crossVectors(xAxis, yAxis);
+    function snapModelGround(){
+      if (!modelWrapper) return;
+      const box = new THREE.Box3().setFromObject(modelWrapper);
+      if (box.isEmpty()) return;
+      modelWrapper.position.y += -box.min.y;
+      setObjectStatus("モデルを地面Y=0へ配置");
+    }
 
-      if (zAxis.lengthSq() < 0.000001){
-        zAxis.set(0, 0, 1);
-      } else {
-        zAxis.normalize();
+    function clearPdf(){
+      if (pdfLayer){
+        pdfRoot.remove(pdfLayer.group);
+        pdfLayer.texture.dispose?.();
+        pdfLayer.material.dispose?.();
+        pdfLayer.mesh.geometry.dispose?.();
+      }
+      pdfLayer = null;
+      pdfNameText.textContent = "未読込";
+      setPdfStatus("PDF消去");
+    }
+
+    async function renderPdfToCanvas(path){
+      const ext = getExt(path);
+      const url = toAssetUrl(path);
+
+      if (ext === ".pdf"){
+        const task = pdfjsLib.getDocument(url);
+        const pdf = await task.promise;
+        const page = await pdf.getPage(1);
+        const base = page.getViewport({scale:1});
+        const maxSide = 2048;
+        const scale = Math.min(2.2, maxSide / Math.max(base.width, base.height));
+        const viewport = page.getViewport({scale});
+        const canvas2d = document.createElement("canvas");
+        canvas2d.width = Math.max(1, Math.floor(viewport.width));
+        canvas2d.height = Math.max(1, Math.floor(viewport.height));
+        const ctx = canvas2d.getContext("2d", {alpha:false});
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0,0,canvas2d.width,canvas2d.height);
+        await page.render({canvasContext:ctx, viewport}).promise;
+        return canvas2d;
       }
 
-      const matrix = new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis);
-      return new THREE.Quaternion().setFromRotationMatrix(matrix);
-    }
-
-    function setActiveSideEdge(edge){
-      const layer = getActiveLayer();
-      if (!layer){
-        alert("先にPDFレイヤーを選択してください。");
-        return;
-      }
-
-      layer.placement = "side";
-      layer.sideEdge = edge;
-      for (const target of planLayers) applyLayerStyle(target);
-      renderPlanLayerList();
-      resetView();
-
-      setPlanStatus(edge === "top"
-        ? "側面PDFの下端を地面PDFの外周上端へ接続しました。"
-        : "側面PDFの下端を地面PDFの外周下端へ接続しました。"
-      );
-    }
-
-    function applyLayerStyle(layer){
-      if (!layer || !layer.group) return;
-
-      const baseWidth = Math.max(2.5, currentSize * 3.0);
-
-      let width;
-      let height;
-      let edge = null;
-
-      if (layer.placement === "floor"){
-        width = baseWidth * (layer.percent / 100);
-        height = width / Math.max(0.001, layer.aspect);
-      } else {
-        // 側面はA4横向き基準。
-        // 100%時の横幅は「地面PDFの上側端/下側端の長さ」と同じにする。
-        edge = getFloorEdgeWorld(layer.sideEdge || "top");
-        width = Math.max(0.1, edge.length) * (layer.percent / 100);
-        height = width / A4_LANDSCAPE_ASPECT;
-      }
-
-      replaceLayerGeometry(layer, width, height);
-
-      layer.material.opacity = layer.opacity;
-      layer.group.visible = layer.visible;
-
-      if (layer.placement === "floor"){
-        // 地面図面はY=0の少し下へ配置。
-        // モデルはY=0に置くため、PDF面がモデルを覆いにくくなる。
-        layer.group.position.set(layer.offsetX || 0, (-0.006 * layer.id) + (layer.offsetY || 0), layer.offsetZ || 0);
-        layer.group.rotation.set(-Math.PI / 2, 0, layer.rotationQuarter * Math.PI / 2);
-        layer.mesh.rotation.set(0, 0, 0);
-        layer.border.rotation.set(0, 0, 0);
-      } else {
-        // 側面図面は、地面PDFの外周上端/下端にぴったり合わせる。
-        // 下端の中心線が地面PDFの端と同じZ位置になる。
-        if (!edge) edge = getFloorEdgeWorld(layer.sideEdge || "top");
-
-        layer.group.quaternion.identity();
-        layer.group.position.copy(edge.midpoint);
-        layer.group.position.x += layer.offsetX || 0;
-        layer.group.position.y = (height / 2) + (layer.offsetY || 0);
-        layer.group.position.z += layer.offsetZ || 0;
-
-        // 側面はデフォルトA4横向き。90°回転を押した場合だけPDF面を回転。
-        // 通常は0のままなので、下端が地面端に合いやすい。
-        layer.mesh.rotation.set(0, 0, layer.rotationQuarter * Math.PI / 2);
-        layer.border.rotation.set(0, 0, layer.rotationQuarter * Math.PI / 2);
-      }
-
-      layer.border.material.color.set(layer.id === activeLayerId ? 0xff2deb : (layer.placement === "floor" ? 0xa6ff2d : 0x22f8ff));
-      layer.border.material.opacity = layer.id === activeLayerId ? 1.0 : 0.82;
-
-      layer.width = width;
-      layer.height = height;
-      layer.bottomY = layer.placement === "side" ? (layer.offsetY || 0) : ((-0.006 * layer.id) + (layer.offsetY || 0));
-    }
-
-    function addCanvasAsLayer(canvas2d, label, placement){
-      if (placement === "side"){
-        canvas2d = makeSideCanvasLandscape(canvas2d);
-      }
-
-      const texture = makeCanvasTexture(canvas2d);
-      const material = new THREE.MeshBasicMaterial({
-        map:texture,
-        transparent:true,
-        opacity:Math.max(0.1, Math.min(1, parseFloat(planOpacityInput.value) || 0.65)),
-        side:THREE.DoubleSide,
-        depthWrite:false,
-        polygonOffset:true,
-        polygonOffsetFactor:-1,
-        polygonOffsetUnits:-1
-      });
-
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material);
-      mesh.renderOrder = -100 + layerSeq;
-      const borderMat = new THREE.LineBasicMaterial({
-        color: placement === "floor" ? 0xa6ff2d : 0x22f8ff,
-        transparent:true,
-        opacity:0.82
-      });
-      const border = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(1, 1)), borderMat);
-      border.renderOrder = 10 + layerSeq;
-
-      const group = new THREE.Group();
-      group.name = `PDF_LAYER_${layerSeq}`;
-      group.add(mesh);
-      group.add(border);
-      pdfRoot.add(group);
-
-      const id = layerSeq++;
-      const layer = {
-        id,
-        label,
-        placement,
-        aspect: placement === "side" ? A4_LANDSCAPE_ASPECT : canvas2d.width / Math.max(1, canvas2d.height),
-        percent: Math.max(1, Math.min(1000, parseFloat(planPercentInput.value) || 100)),
-        opacity: material.opacity,
-        rotationQuarter: 0,
-        sideEdge: placement === "side" ? "top" : "top",
-        visible: true,
-        offsetX: 0,
-        offsetY: 0,
-        offsetZ: 0,
-        texture,
-        material,
-        mesh,
-        border,
-        group,
-        width: 1,
-        height: 1
-      };
-
-      planLayers.push(layer);
-      activeLayerId = id;
-      for (const target of planLayers) applyLayerStyle(target);
-      setActiveLayer(id);
-      resetView();
-
-      setPlanStatus(`PDFを${placement === "floor" ? "地面Y=0下" : "側面A4横・地面外周端へ接続"}に追加：${label} / 位置調整で微調整可能`);
-    }
-
-    
-    function rotateCanvas90Clockwise(sourceCanvas){
-      const out = document.createElement("canvas");
-      out.width = sourceCanvas.height;
-      out.height = sourceCanvas.width;
-
-      const ctx = out.getContext("2d", {alpha:false});
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, out.width, out.height);
-      ctx.translate(out.width, 0);
-      ctx.rotate(Math.PI / 2);
-      ctx.drawImage(sourceCanvas, 0, 0);
-
-      return out;
-    }
-
-    function fitCanvasIntoA4Landscape(sourceCanvas){
-      // 側面PDFはデフォルトA4横向きとして扱う。
-      // 元PDFの比率を直接引き伸ばさず、A4横キャンバス内に収める。
-      // これで「用紙サイズ」はA4横のまま、図面内容は崩れにくくなる。
-      let src = sourceCanvas;
-      if (src.height > src.width){
-        src = rotateCanvas90Clockwise(src);
-      }
-
-      const out = document.createElement("canvas");
-      out.width = 1680;
-      out.height = 1188; // 1680 / 1.414... ≒ A4横
-
-      const ctx = out.getContext("2d", {alpha:false});
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, out.width, out.height);
-
-      const margin = 36;
-      const maxW = out.width - margin * 2;
-      const maxH = out.height - margin * 2;
-      const scale = Math.min(maxW / src.width, maxH / src.height);
-      const drawW = src.width * scale;
-      const drawH = src.height * scale;
-      const x = (out.width - drawW) / 2;
-      const y = (out.height - drawH) / 2;
-
-      ctx.drawImage(src, x, y, drawW, drawH);
-
-      return out;
-    }
-
-    function makeSideCanvasLandscape(canvas2d){
-      return fitCanvasIntoA4Landscape(canvas2d);
-    }
-
-    async function renderPdfToCanvas(pdfSource, pageNumber){
-      const task = pdfjsLib.getDocument(pdfSource);
-      const pdf = await task.promise;
-      const safePage = Math.max(1, Math.min(pageNumber || 1, pdf.numPages));
-      const page = await pdf.getPage(safePage);
-
-      const baseViewport = page.getViewport({scale:1});
-      const maxSide = 2048;
-      const scale = Math.min(2.2, maxSide / Math.max(baseViewport.width, baseViewport.height));
-      const viewport = page.getViewport({scale});
-
-      const canvas2d = document.createElement("canvas");
-      canvas2d.width = Math.max(1, Math.floor(viewport.width));
-      canvas2d.height = Math.max(1, Math.floor(viewport.height));
-
-      const ctx = canvas2d.getContext("2d", {alpha:false});
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas2d.width, canvas2d.height);
-
-      await page.render({canvasContext:ctx, viewport}).promise;
-
-      return {canvas:canvas2d, page:safePage};
-    }
-
-    async function renderImageToCanvas(src){
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = src;
+      img.src = url;
       await img.decode();
 
-      const maxSide = 2048;
-      const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
-      const w = Math.max(1, Math.floor(img.naturalWidth * scale));
-      const h = Math.max(1, Math.floor(img.naturalHeight * scale));
-
       const canvas2d = document.createElement("canvas");
-      canvas2d.width = w;
-      canvas2d.height = h;
-
+      canvas2d.width = img.naturalWidth;
+      canvas2d.height = img.naturalHeight;
       const ctx = canvas2d.getContext("2d", {alpha:false});
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0, w, h);
-
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0,0,canvas2d.width,canvas2d.height);
+      ctx.drawImage(img,0,0);
       return canvas2d;
     }
 
-    async function addPlanFromPath(placement){
-      const raw = planPathInput.value.trim();
-      if (!raw){
-        alert("plans/平面図.pdf のように入力してください。");
-        return;
-      }
-
-      const ext = getExt(raw);
-      const url = toAssetUrl(raw);
-      const pageNumber = Math.max(1, parseInt(planPageInput.value || "1", 10));
+    async function loadPdf(path){
+      clearPdf();
 
       try{
-        setPlanStatus("PDF/画像を読み込み中...");
-        if (ext === ".pdf"){
-          const result = await renderPdfToCanvas(url, pageNumber);
-          addCanvasAsLayer(result.canvas, `${raw} / page ${result.page}`, placement);
-        } else if ([".png", ".jpg", ".jpeg", ".webp"].includes(ext)){
-          const canvas = await renderImageToCanvas(url);
-          addCanvasAsLayer(canvas, raw, placement);
-        } else {
-          alert("PDFまたはPNG/JPG/WebPのパスを指定してください。");
-        }
+        setPdfStatus("PDF LOADING: " + path);
+        const canvas2d = await renderPdfToCanvas(path);
+        const texture = new THREE.CanvasTexture(canvas2d);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+        const material = new THREE.MeshBasicMaterial({
+          map:texture,
+          transparent:true,
+          opacity:parseFloat(pdfOpacityInput.value) || 0.65,
+          side:THREE.DoubleSide,
+          depthWrite:false
+        });
+
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1,1), material);
+        const group = new THREE.Group();
+        group.add(mesh);
+        pdfRoot.add(group);
+
+        pdfLayer = {
+          path,
+          aspect: canvas2d.width / Math.max(1, canvas2d.height),
+          texture,
+          material,
+          mesh,
+          group,
+          visible:true
+        };
+
+        pdfNameText.textContent = getBaseName(path);
+        applyPdfTransform();
+        setPdfStatus("PDF読込完了: " + path);
       }catch(err){
         console.error(err);
-        alert("PDFの読み込みに失敗しました。\n\n" + raw + "\n\n" + err.message);
-        setPlanStatus("PDF読み込み失敗");
+        setPdfStatus("PDF LOAD ERROR");
+        alert("PDFの読み込みに失敗しました。\n\n" + path + "\n\n" + err.message);
       }
     }
 
-    async function addPlanFromFile(placement){
-      const file = planFileInput.files && planFileInput.files[0];
-      if (!file){
-        alert("先にローカルPDF/画像ファイルを選択してください。");
-        return;
-      }
+    function applyPdfTransform(){
+      if (!pdfLayer) return;
 
-      const ext = getExt(file.name);
-      const pageNumber = Math.max(1, parseInt(planPageInput.value || "1", 10));
+      const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 100);
+      const opacity = Math.max(0.05, Math.min(1, parseFloat(pdfOpacityInput.value) || 0.65));
+      const width = Math.max(2.5, modelSize * 3.5) * percent / 100;
+      const height = width / Math.max(0.001, pdfLayer.aspect);
 
-      try{
-        setPlanStatus("選択ファイルを読み込み中...");
-        if (ext === ".pdf"){
-          const data = new Uint8Array(await file.arrayBuffer());
-          const result = await renderPdfToCanvas({data}, pageNumber);
-          addCanvasAsLayer(result.canvas, `${file.name} / page ${result.page}`, placement);
-        } else if (file.type.startsWith("image/")){
-          const url = URL.createObjectURL(file);
-          try{
-            const canvas = await renderImageToCanvas(url);
-            addCanvasAsLayer(canvas, file.name, placement);
-          } finally {
-            URL.revokeObjectURL(url);
-          }
-        } else {
-          alert("PDFまたはPNG/JPG/WebPを選択してください。");
-        }
-      }catch(err){
-        console.error(err);
-        alert("選択ファイルの読み込みに失敗しました。\n\n" + err.message);
-        setPlanStatus("ファイル読み込み失敗");
-      }
-    }
+      pdfLayer.mesh.geometry.dispose();
+      pdfLayer.mesh.geometry = new THREE.PlaneGeometry(width, height);
+      pdfLayer.material.opacity = opacity;
+      pdfLayer.group.visible = pdfLayer.visible;
 
-    function updateActiveLayerPercent(percent){
-      const layer = getActiveLayer();
-      const p = Math.max(1, Math.min(1000, percent));
-      planPercentInput.value = String(Math.round(p));
-      planPercentView.textContent = String(Math.round(p));
+      const x = parseFloat(pdfXInput.value) || 0;
+      const y = parseFloat(pdfYInput.value) || 0;
+      const z = parseFloat(pdfZInput.value) || 0;
 
-      if (!layer){
-        setPlanStatus(`大きさ：${Math.round(p)}% / 次に追加するPDFへ適用`);
-        return;
-      }
-
-      layer.percent = Math.round(p);
-      for (const target of planLayers) applyLayerStyle(target);
-      renderPlanLayerList();
-      resetView();
-      setPlanStatus(`選択PDFの大きさ：${layer.percent}%`);
-    }
-
-    function updateActiveLayerOpacity(){
-      const layer = getActiveLayer();
-      const opacity = Math.max(0.1, Math.min(1, parseFloat(planOpacityInput.value) || 0.85));
-
-      if (!layer){
-        setPlanStatus(`透明度：${opacity} / 次に追加するPDFへ適用`);
-        return;
-      }
-
-      layer.opacity = opacity;
-      applyLayerStyle(layer);
-      renderPlanLayerList();
-      setPlanStatus(`選択PDFの透明度：${opacity}`);
-    }
-
-    function setActiveLayerPlacement(placement){
-      const layer = getActiveLayer();
-      if (!layer){
-        alert("先にPDFレイヤーを選択してください。");
-        return;
-      }
-
-      layer.placement = placement;
-      if (placement === "side" && !layer.sideEdge) layer.sideEdge = "top";
-      for (const target of planLayers) applyLayerStyle(target);
-      renderPlanLayerList();
-      resetView();
-      setPlanStatus(`選択PDFを${placement === "floor" ? "地面" : "側面"}へ変更しました。`);
-    }
-
-    function toggleActiveLayer(){
-      const layer = getActiveLayer();
-      if (!layer){
-        alert("先にPDFレイヤーを選択してください。");
-        return;
-      }
-
-      layer.visible = !layer.visible;
-      applyLayerStyle(layer);
-      renderPlanLayerList();
-      setPlanStatus(layer.visible ? "選択PDFを表示しました。" : "選択PDFを非表示にしました。");
-    }
-
-    function rotateActiveLayer(){
-      const layer = getActiveLayer();
-      if (!layer){
-        alert("先にPDFレイヤーを選択してください。");
-        return;
-      }
-
-      layer.rotationQuarter = (layer.rotationQuarter + 1) % 4;
-      for (const target of planLayers) applyLayerStyle(target);
-      renderPlanLayerList();
-      setPlanStatus(layer.placement === "side"
-        ? `側面PDFを${layer.rotationQuarter * 90}°回転しました。通常は0°がA4横向きです。`
-        : `選択PDFを${layer.rotationQuarter * 90}°回転しました。`
-      );
-    }
-
-    function disposeLayer(layer){
-      if (!layer) return;
-      if (layer.group && layer.group.parent) layer.group.parent.remove(layer.group);
-      layer.mesh?.geometry?.dispose?.();
-      layer.border?.geometry?.dispose?.();
-      layer.texture?.dispose?.();
-      layer.material?.dispose?.();
-      layer.border?.material?.dispose?.();
-    }
-
-    function removeActiveLayer(){
-      const layer = getActiveLayer();
-      if (!layer){
-        alert("先にPDFレイヤーを選択してください。");
-        return;
-      }
-
-      disposeLayer(layer);
-      planLayers = planLayers.filter(l => l.id !== layer.id);
-      activeLayerId = planLayers.length ? planLayers[planLayers.length - 1].id : null;
-      if (activeLayerId) {
-        setActiveLayer(activeLayerId);
+      if (pdfPlacementSelect.value === "floor"){
+        pdfLayer.group.position.set(x, -0.01 + y, z);
+        pdfLayer.group.rotation.set(-Math.PI/2, 0, 0);
       } else {
-        syncActiveLayerOffsetInputs(null);
-      }
-      for (const target of planLayers) applyLayerStyle(target);
-      renderPlanLayerList();
-      resetView();
-      setPlanStatus("選択PDFを削除しました。");
-    }
-
-    function clearAllLayers(){
-      for (const layer of planLayers){
-        disposeLayer(layer);
+        pdfLayer.group.position.set(x, height/2 + y, -height/2 + z);
+        pdfLayer.group.rotation.set(0, 0, 0);
       }
 
-      planLayers = [];
-      activeLayerId = null;
-      renderPlanLayerList();
-      resetView();
-      setPlanStatus("すべてのPDFレイヤーを削除しました。");
+      setPdfStatus(`PDF反映: ${pdfPlacementSelect.value} / ${percent}% / opacity ${opacity}`);
     }
 
-    function resetView(){
+    function fitView(){
       const box = new THREE.Box3();
-
-      if (currentObject) box.expandByObject(currentObject);
-
-      for (const layer of planLayers){
-        if (layer.group && layer.visible) box.expandByObject(layer.group);
-      }
+      if (modelWrapper) box.expandByObject(modelWrapper);
+      if (pdfLayer && pdfLayer.group.visible) box.expandByObject(pdfLayer.group);
 
       if (box.isEmpty()){
-        camera.position.set(4, 3, 5);
-        controls.target.set(0, 0, 0);
+        camera.position.set(4,3,5);
+        controls.target.set(0,0,0);
         controls.update();
         return;
       }
@@ -2408,145 +1089,136 @@
       box.getSize(size);
       box.getCenter(center);
 
-      const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      const dist = maxDim * 1.75;
+      const maxDim = Math.max(size.x,size.y,size.z) || 2;
+      const dist = maxDim * 1.8;
 
       controls.target.copy(center);
-      camera.position.set(center.x + dist, center.y + dist * 0.65, center.z + dist);
+      camera.position.set(center.x + dist, center.y + dist * 0.7, center.z + dist);
       camera.near = Math.max(0.001, maxDim / 1000);
       camera.far = Math.max(1000, maxDim * 1000);
       camera.updateProjectionMatrix();
       controls.update();
     }
 
+    function changeChapter(delta){
+      if (chapters.length === 0) return;
+      let next = currentChapterIndex + delta;
+      if (next < 0) next = chapters.length - 1;
+      if (next >= chapters.length) next = 0;
+      loadChapter(next);
+    }
+
+    function openArViewer(){
+      const ch = chapters[currentChapterIndex];
+      const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
+      url.searchParams.set("v", "20260605_0002_v24");
+      if (currentRoot) url.searchParams.set("root", currentRoot);
+      if (ch) url.searchParams.set("chapter", ch.name);
+      window.open(url.toString(), "_blank");
+    }
+
     function resize(){
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      camera.aspect = w / h;
+      const w = canvas.clientWidth || window.innerWidth;
+      const h = canvas.clientHeight || window.innerHeight;
+      camera.aspect = w / Math.max(1,h);
       camera.updateProjectionMatrix();
-      renderer.setSize(w, h, false);
+      renderer.setSize(w,h,false);
     }
 
     function animate(){
       requestAnimationFrame(animate);
       const delta = clock.getDelta();
-      if (mixer && animationsEnabled) mixer.update(delta);
+
+      if (mixer && isPlaying){
+        mixer.update(delta * animSpeed);
+        animElapsed += delta * animSpeed;
+
+        const selected = animationSelect.value;
+        const duration = selected === "__ALL__"
+          ? animDuration
+          : (clips[parseInt(selected,10)] ? clips[parseInt(selected,10)].duration : animDuration);
+
+        if (duration > 0 && animElapsed >= duration){
+          if (loopEnabled){
+            restartAnimation();
+          } else {
+            pauseAnimation();
+          }
+        }
+      }
+
       controls.update();
-      renderer.render(scene, camera);
+      renderer.render(scene,camera);
     }
 
-    document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", closeDrawers));
-    modelBtn.addEventListener("click", () => openDrawer(modelDrawer));
-    planBtn.addEventListener("click", () => openDrawer(planDrawer));
-    infoBtn.addEventListener("click", () => openDrawer(infoDrawer));
-    closePanelsBtn.addEventListener("click", closeDrawers);
-
-    resetViewBtn.addEventListener("click", resetView);
-    toggleGridBtn.addEventListener("click", () => {
-      grid.visible = !grid.visible;
-      setStatus(grid.visible ? "GRID ON" : "GRID OFF");
+    collapseRefBtn.addEventListener("click", () => {
+      refbar.classList.toggle("collapsed");
+      collapseRefBtn.textContent = refbar.classList.contains("collapsed") ? "参照フォルダ展開" : "参照フォルダ収納";
     });
 
-    modelSearchInput.addEventListener("input", renderModelList);
-    planSearchInput.addEventListener("input", renderPlanList);
+    scanBtn.addEventListener("click", loadReferenceRoot);
+    autoRootBtn.addEventListener("click", autoDetectRoot);
+    chapterSelect.addEventListener("change", () => loadChapter(parseInt(chapterSelect.value,10)));
+    prevChapterBtn.addEventListener("click", () => changeChapter(-1));
+    nextChapterBtn.addEventListener("click", () => changeChapter(1));
+    prevBottomBtn.addEventListener("click", () => changeChapter(-1));
+    nextBottomBtn.addEventListener("click", () => changeChapter(1));
 
-    loadModelPathBtn.addEventListener("click", () => {
-      const path = modelPathInput.value.trim();
-      if (!path){
-        alert("モデル/鉄筋/鉄筋.glb のように入力してください。");
-        return;
-      }
-      selectModelPath(path);
+    applyModelScaleBtn.addEventListener("click", applyModelTransform);
+    snapGroundBtn.addEventListener("click", () => { snapModelGround(); fitView(); });
+    rotYMinusBtn.addEventListener("click", () => {
+      modelRotYInput.value = String((parseFloat(modelRotYInput.value) || 0) - 90);
+      applyModelTransform();
     });
-    reloadModelsBtn.addEventListener("click", loadModelList);
-    snapGroundBtn.addEventListener("click", () => {
-      snapModelToGround();
-      resetView();
+    rotYPlusBtn.addEventListener("click", () => {
+      modelRotYInput.value = String((parseFloat(modelRotYInput.value) || 0) + 90);
+      applyModelTransform();
     });
-    showGroundBtn.addEventListener("click", () => {
-      groundMarker.visible = !groundMarker.visible;
-      setStatus(groundMarker.visible ? "GROUND Y=0 MARKER ON" : "GROUND Y=0 MARKER OFF");
-    });
-    showModelUrlBtn.addEventListener("click", showModelUrl);
-    clearModelBtn.addEventListener("click", clearCurrentModelSafe);
-    animationSelect.addEventListener("change", () => selectAnimation(animationSelect.value));
-    animationSpeedInput.addEventListener("change", () => setAnimationSpeed(animationSpeedInput.value));
-    animationSpeedRange.addEventListener("input", () => setAnimationSpeed(animationSpeedRange.value));
-    animToggleBtn.addEventListener("click", togglePlayPauseAnimation);
-    animPlayBtn.addEventListener("click", playAnimation);
-    animPauseBtn.addEventListener("click", pauseAnimation);
-    animRestartBtn.addEventListener("click", restartAnimation);
-    animStopBtn.addEventListener("click", stopAnimation);
-    animForceBtn.addEventListener("click", () => { multiActionMode = false; forcePlayAnimation(true); });
-    animPlayAllBtn.addEventListener("click", () => playAllAnimationActions(true));
-    animMultiModeBtn.addEventListener("click", toggleMultiActionMode);
-    animLoopBtn.addEventListener("click", toggleAnimationLoop);
-    animSpeedDownBtn.addEventListener("click", () => setAnimationSpeed(animationSpeed - 0.05));
-    animSpeedUpBtn.addEventListener("click", () => setAnimationSpeed(animationSpeed + 0.05));
-    animSpeed010Btn.addEventListener("click", () => setAnimationSpeed(0.10));
-    animSpeed025Btn.addEventListener("click", () => setAnimationSpeed(0.25));
-    animSpeed050Btn.addEventListener("click", () => setAnimationSpeed(0.50));
-    animSpeed080Btn.addEventListener("click", () => setAnimationSpeed(0.80));
-    animSpeed100Btn.addEventListener("click", () => setAnimationSpeed(1.00));
+    fitViewBtn.addEventListener("click", fitView);
+    clearModelBtn.addEventListener("click", clearModel);
 
-    addFloorBtn.addEventListener("click", () => addPlanFromPath("floor"));
-    addSideBtn.addEventListener("click", () => addPlanFromPath("side"));
-    addFileFloorBtn.addEventListener("click", () => addPlanFromFile("floor"));
-    addFileSideBtn.addEventListener("click", () => addPlanFromFile("side"));
-    reloadPlansBtn.addEventListener("click", loadPlanList);
+    applyPdfBtn.addEventListener("click", () => { applyPdfTransform(); fitView(); });
+    resetPdfPosBtn.addEventListener("click", () => {
+      pdfXInput.value = "0";
+      pdfYInput.value = "0";
+      pdfZInput.value = "0";
+      applyPdfTransform();
+    });
+    togglePdfBtn.addEventListener("click", () => {
+      if (!pdfLayer) return;
+      pdfLayer.visible = !pdfLayer.visible;
+      pdfLayer.group.visible = pdfLayer.visible;
+    });
+    clearPdfBtn.addEventListener("click", clearPdf);
+    pdfPlacementSelect.addEventListener("change", () => { applyPdfTransform(); fitView(); });
 
-    showPlanApiBtn.addEventListener("click", () => {
-      const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/plans?ref=main`;
-      const fileUrl = `${location.origin}/plans/平面図.pdf`;
-      prompt("plansフォルダ参照URL / 直接PDF URL", apiUrl + "\n" + fileUrl);
+    playPauseBtn.addEventListener("click", () => {
+      if (isPlaying) pauseAnimation();
+      else playAnimation(false);
+    });
+    restartBtn.addEventListener("click", restartAnimation);
+
+    speedRange.addEventListener("input", () => {
+      animSpeed = parseFloat(speedRange.value) || 0.8;
+      speedText.textContent = animSpeed.toFixed(2) + "x";
     });
 
-    planPct25Btn.addEventListener("click", () => updateActiveLayerPercent(25));
-    planPct50Btn.addEventListener("click", () => updateActiveLayerPercent(50));
-    planPct100Btn.addEventListener("click", () => updateActiveLayerPercent(100));
-    planPct200Btn.addEventListener("click", () => updateActiveLayerPercent(200));
-    planPctMinus10Btn.addEventListener("click", () => updateActiveLayerPercent((parseFloat(planPercentInput.value) || 100) - 10));
-    planPctPlus10Btn.addEventListener("click", () => updateActiveLayerPercent((parseFloat(planPercentInput.value) || 100) + 10));
-    planPctMinus1Btn.addEventListener("click", () => updateActiveLayerPercent((parseFloat(planPercentInput.value) || 100) - 1));
-    planPctPlus1Btn.addEventListener("click", () => updateActiveLayerPercent((parseFloat(planPercentInput.value) || 100) + 1));
+    loopBtn.addEventListener("click", () => {
+      loopEnabled = !loopEnabled;
+      loopBtn.textContent = loopEnabled ? "ループON" : "ループOFF";
+      loopBtn.classList.toggle("lime", loopEnabled);
+    });
 
-    planPercentInput.addEventListener("change", () => updateActiveLayerPercent(parseFloat(planPercentInput.value) || 100));
-    planOpacityInput.addEventListener("change", updateActiveLayerOpacity);
-    planOffsetXInput.addEventListener("change", applyActiveLayerOffsetValues);
-    planOffsetYInput.addEventListener("change", applyActiveLayerOffsetValues);
-    planOffsetZInput.addEventListener("change", applyActiveLayerOffsetValues);
-    applyOffsetBtn.addEventListener("click", applyActiveLayerOffsetValues);
-    resetOffsetBtn.addEventListener("click", resetActiveLayerOffset);
-    nudgeXMinusBtn.addEventListener("click", () => nudgeActiveLayer("x", -getOffsetStep()));
-    nudgeXPlusBtn.addEventListener("click", () => nudgeActiveLayer("x", getOffsetStep()));
-    nudgeZMinusBtn.addEventListener("click", () => nudgeActiveLayer("z", -getOffsetStep()));
-    nudgeZPlusBtn.addEventListener("click", () => nudgeActiveLayer("z", getOffsetStep()));
-    nudgeYMinusBtn.addEventListener("click", () => nudgeActiveLayer("y", -getOffsetStep()));
-    nudgeYPlusBtn.addEventListener("click", () => nudgeActiveLayer("y", getOffsetStep()));
-    snapOffsetZeroBtn.addEventListener("click", resetActiveLayerOffset);
-    focusActiveLayerBtn.addEventListener("click", focusActiveLayer);
-
-    setLayerFloorBtn.addEventListener("click", () => setActiveLayerPlacement("floor"));
-    setLayerSideBtn.addEventListener("click", () => setActiveLayerPlacement("side"));
-    snapSideTopBtn.addEventListener("click", () => setActiveSideEdge("top"));
-    snapSideBottomBtn.addEventListener("click", () => setActiveSideEdge("bottom"));
-    toggleLayerBtn.addEventListener("click", toggleActiveLayer);
-    rotateLayerBtn.addEventListener("click", rotateActiveLayer);
-    removeLayerBtn.addEventListener("click", removeActiveLayer);
-    clearLayersBtn.addEventListener("click", clearAllLayers);
+    animationSelect.addEventListener("change", restartAnimation);
+    openArBtn.addEventListener("click", openArViewer);
 
     window.addEventListener("resize", resize);
 
+    if (initialRoot) rootInput.value = initialRoot;
+
     resize();
     animate();
-    loadModelList();
-    loadPlanList();
-    renderPlanLayerList();
-    syncActiveLayerOffsetInputs(null);
-
-    if (initialFile){
-      modelPathInput.value = initialFile;
-    }
+    loadReferenceRoot();
   </script>
 </body>
 </html>
