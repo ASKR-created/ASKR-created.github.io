@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Model Safe Load + PDF Position v9</title>
+  <title>SF 3D Viewer - Animation Speed Safe v11</title>
 
   <script type="importmap">
   {
@@ -246,7 +246,7 @@
     <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / MODEL SAFE LOAD + PDF POSITION v9</div>
+        <div class="brand-title">SF 3D VIEWER / ANIMATION SPEED SAFE v11</div>
         <div class="brand-sub">側面PDFの下端を地面PDFの外周上端へ接続。側面はA4横向き基準。</div>
       </div>
       <div class="digital">
@@ -257,7 +257,7 @@
 
     <section class="drawer left" id="modelDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MODEL LIST</div>
+        <div class="drawer-title">MODEL / ANIMATION</div>
         <button class="close" data-close="modelDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -278,13 +278,41 @@
           <button class="btn" id="showModelUrlBtn"><span>モデルURL表示</span></button>
           <button class="btn magenta" id="clearModelBtn"><span>モデルクリア</span></button>
         </div>
-        <div class="help">起動時に存在しないモデルを自動読込しない安全版です。モデル一覧から選択、または実在するパスを手入力してください。</div>
+
+        <div class="readout" id="animationStatusText">ANIMATION: 未検出</div>
+        <div class="mini-input-row">
+          <div class="mini-field">
+            <label>アニメーション</label>
+            <select class="input" id="animationSelect">
+              <option value="">未検出</option>
+            </select>
+          </div>
+          <div class="mini-field">
+            <label>速度</label>
+            <input id="animationSpeedInput" type="number" min="0.01" max="2" step="0.01" value="0.25">
+          </div>
+        </div>
+        <div class="button-grid">
+          <button class="btn lime" id="animPlayBtn"><span>再生</span></button>
+          <button class="btn" id="animPauseBtn"><span>一時停止</span></button>
+          <button class="btn" id="animRestartBtn"><span>最初から</span></button>
+          <button class="btn" id="animLoopBtn"><span>ループON</span></button>
+          <button class="btn" id="animSpeedDownBtn"><span>速度-0.05</span></button>
+          <button class="btn" id="animSpeedUpBtn"><span>速度+0.05</span></button>
+        </div>
+        <div class="button-grid four">
+          <button class="btn" id="animSpeed010Btn"><span>0.10x</span></button>
+          <button class="btn lime" id="animSpeed025Btn"><span>0.25x</span></button>
+          <button class="btn" id="animSpeed050Btn"><span>0.50x</span></button>
+          <button class="btn magenta" id="animSpeed100Btn"><span>1.00x</span></button>
+        </div>
+        <div class="help">初期速度を0.25xに下げています。速い場合は0.10x、Blenderと同じ速さに戻す場合は1.00xを押してください。アニメーション付きGLBは、GLB本体を直接移動・拡大せず、外側の親Groupで中央寄せ・地面吸着します。</div>
       </div>
     </section>
 
     <section class="drawer right wide" id="planDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MULTI PDF PLAN v9</div>
+        <div class="drawer-title">MULTI PDF PLAN v11</div>
         <button class="close" data-close="planDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -452,6 +480,19 @@
     const showGroundBtn = document.getElementById("showGroundBtn");
     const showModelUrlBtn = document.getElementById("showModelUrlBtn");
     const clearModelBtn = document.getElementById("clearModelBtn");
+    const animationStatusText = document.getElementById("animationStatusText");
+    const animationSelect = document.getElementById("animationSelect");
+    const animationSpeedInput = document.getElementById("animationSpeedInput");
+    const animPlayBtn = document.getElementById("animPlayBtn");
+    const animPauseBtn = document.getElementById("animPauseBtn");
+    const animRestartBtn = document.getElementById("animRestartBtn");
+    const animLoopBtn = document.getElementById("animLoopBtn");
+    const animSpeedDownBtn = document.getElementById("animSpeedDownBtn");
+    const animSpeedUpBtn = document.getElementById("animSpeedUpBtn");
+    const animSpeed010Btn = document.getElementById("animSpeed010Btn");
+    const animSpeed025Btn = document.getElementById("animSpeed025Btn");
+    const animSpeed050Btn = document.getElementById("animSpeed050Btn");
+    const animSpeed100Btn = document.getElementById("animSpeed100Btn");
 
     const planSearchInput = document.getElementById("planSearchInput");
     const planList = document.getElementById("planList");
@@ -514,6 +555,15 @@
     let selectedPlanSource = null;
     let currentObject = null;
     let mixer = null;
+    let animationRoot = null;
+    let animationClips = [];
+    let animationActions = [];
+    let activeAction = null;
+    let activeAnimationIndex = 0;
+    let animationsEnabled = true;
+    const DEFAULT_ANIMATION_SPEED = 0.25;
+    let animationSpeed = DEFAULT_ANIMATION_SPEED;
+    let animationLoop = true;
     let currentSize = 2;
 
     let planLayers = [];
@@ -738,14 +788,14 @@
       renderModelList();
 
       if (allModels.length > 0){
-        setStatus(`MODEL LIST ${allModels.length} / ${result.ref} / モデルを選択してください`);
+        setStatus(`MODEL / ANIMATION ${allModels.length} / ${result.ref} / モデルを選択してください`);
         modelStateInput.value = "モデルを選択";
         if (initialFile){
           selectModelPath(initialFile);
         }
       } else {
         modelList.innerHTML = `<div class="empty">モデルが見つかりません。<br>対応フォルダ：models/ または モデル/<br>対応形式：OBJ / FBX / GLB / GLTF</div>`;
-        setStatus("MODEL LIST EMPTY");
+        setStatus("MODEL / ANIMATION EMPTY");
       }
     }
 
@@ -829,6 +879,146 @@
       return fileMap.has(mtlPath.toLowerCase());
     }
 
+    function setAnimationStatus(text){
+      if (animationStatusText) animationStatusText.textContent = text;
+    }
+
+    function resetAnimationState(){
+      if (mixer){
+        mixer.stopAllAction();
+      }
+      mixer = null;
+      animationRoot = null;
+      animationClips = [];
+      animationActions = [];
+      activeAction = null;
+      activeAnimationIndex = 0;
+      animationsEnabled = true;
+      animationSpeed = DEFAULT_ANIMATION_SPEED;
+      animationLoop = true;
+
+      if (animationSelect){
+        animationSelect.innerHTML = `<option value="">未検出</option>`;
+      }
+      if (animationSpeedInput){
+        animationSpeedInput.value = DEFAULT_ANIMATION_SPEED.toFixed(2);
+      }
+      if (animLoopBtn){
+        animLoopBtn.innerHTML = "<span>ループON</span>";
+      }
+      setAnimationStatus("ANIMATION: 未検出");
+    }
+
+    function refreshAnimationSelect(){
+      if (!animationSelect) return;
+
+      if (!animationClips.length){
+        animationSelect.innerHTML = `<option value="">未検出</option>`;
+        return;
+      }
+
+      animationSelect.innerHTML = animationClips.map((clip, index) => {
+        const name = clip.name || `Animation ${index + 1}`;
+        return `<option value="${index}">${escapeHtml(name)}</option>`;
+      }).join("");
+      animationSelect.value = String(activeAnimationIndex);
+    }
+
+    function setupAnimations(root, clips){
+      resetAnimationState();
+      animationRoot = root;
+      animationClips = clips || [];
+
+      if (!animationRoot || animationClips.length === 0){
+        setAnimationStatus("ANIMATION: なし / 静止モデル");
+        return;
+      }
+
+      mixer = new THREE.AnimationMixer(animationRoot);
+      animationActions = animationClips.map(clip => {
+        const action = mixer.clipAction(clip);
+        action.clampWhenFinished = false;
+        action.enabled = true;
+        action.setLoop(THREE.LoopRepeat, Infinity);
+        return action;
+      });
+
+      activeAnimationIndex = 0;
+      activeAction = animationActions[0] || null;
+      refreshAnimationSelect();
+
+      if (activeAction){
+        activeAction.reset().play();
+      }
+      animationsEnabled = true;
+      animationSpeed = DEFAULT_ANIMATION_SPEED;
+      if (animationSpeedInput) animationSpeedInput.value = DEFAULT_ANIMATION_SPEED.toFixed(2);
+      setAnimationStatus(`ANIMATION: ${animationClips.length}件 / 再生中 / 親Group補正ON / 低速初期値`);
+    }
+
+    function selectAnimation(index){
+      if (!animationActions.length) return;
+      const safeIndex = Math.max(0, Math.min(animationActions.length - 1, Number(index) || 0));
+
+      if (activeAction){
+        activeAction.stop();
+      }
+
+      activeAnimationIndex = safeIndex;
+      activeAction = animationActions[activeAnimationIndex];
+      if (animationSelect) animationSelect.value = String(activeAnimationIndex);
+
+      if (activeAction){
+        activeAction.reset().play();
+      }
+      animationsEnabled = true;
+      setAnimationStatus(`ANIMATION: ${animationClips[activeAnimationIndex].name || activeAnimationIndex + 1} / 再生中 / ${animationSpeed.toFixed(2)}x`);
+    }
+
+    function playAnimation(){
+      if (!activeAction){
+        setAnimationStatus("ANIMATION: 再生できるアニメーションがありません");
+        return;
+      }
+      activeAction.paused = false;
+      animationsEnabled = true;
+      setAnimationStatus(`ANIMATION: 再生中 / ${animationSpeed.toFixed(2)}x`);
+    }
+
+    function pauseAnimation(){
+      if (!activeAction) return;
+      animationsEnabled = false;
+      setAnimationStatus("ANIMATION: 一時停止");
+    }
+
+    function restartAnimation(){
+      if (!activeAction){
+        setAnimationStatus("ANIMATION: 再生できるアニメーションがありません");
+        return;
+      }
+      activeAction.reset().play();
+      animationsEnabled = true;
+      setAnimationStatus(`ANIMATION: 最初から再生 / ${animationSpeed.toFixed(2)}x`);
+    }
+
+    function setAnimationSpeed(value){
+      animationSpeed = Math.max(0.01, Math.min(2.0, Number(value) || DEFAULT_ANIMATION_SPEED));
+      if (animationSpeedInput) animationSpeedInput.value = animationSpeed.toFixed(2);
+      setAnimationStatus(`ANIMATION SPEED: ${animationSpeed.toFixed(2)}x`);
+    }
+
+    function toggleAnimationLoop(){
+      animationLoop = !animationLoop;
+      for (const action of animationActions){
+        action.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce, animationLoop ? Infinity : 1);
+        action.clampWhenFinished = !animationLoop;
+      }
+      if (animLoopBtn){
+        animLoopBtn.innerHTML = animationLoop ? "<span>ループON</span>" : "<span>ループOFF</span>";
+      }
+      setAnimationStatus(animationLoop ? "ANIMATION LOOP: ON" : "ANIMATION LOOP: OFF");
+    }
+
     function disposeObject(obj){
       obj.traverse(child => {
         if (child.geometry) child.geometry.dispose?.();
@@ -851,7 +1041,7 @@
         disposeObject(currentObject);
       }
       currentObject = null;
-      mixer = null;
+      resetAnimationState();
     }
 
     async function selectModel(model){
@@ -894,7 +1084,14 @@
     }
 
     function normalizeAndAddObject(obj){
-      currentObject = obj;
+      // アニメーション付きGLBのキーフレームを壊さないため、
+      // GLB本体には position / scale 補正を直接かけない。
+      // 外側の親Groupだけを移動・拡大縮小する。
+      const wrapper = new THREE.Group();
+      wrapper.name = "MODEL_VIEWER_ROOT_ANIMATION_SAFE";
+      wrapper.add(obj);
+
+      currentObject = wrapper;
       scene.add(currentObject);
 
       let box = new THREE.Box3().setFromObject(currentObject);
@@ -906,7 +1103,9 @@
       const maxDim = Math.max(size.x, size.y, size.z) || 1;
       const target = 2.0;
       const scale = target / maxDim;
-      currentObject.scale.multiplyScalar(scale);
+
+      // 補正は親Groupのみ。
+      currentObject.scale.setScalar(scale);
 
       box = new THREE.Box3().setFromObject(currentObject);
       box.getCenter(center);
@@ -919,8 +1118,8 @@
       currentSize = Math.max(size.x, size.y, size.z) || 2;
 
       resetView();
-      modelStateInput.value = "読込完了";
-      setStatus(`MODEL LOADED: ${selectedModel ? selectedModel.path : ""}`);
+      modelStateInput.value = animationClips.length > 0 ? "読込完了 / アニメあり" : "読込完了";
+      setStatus(`MODEL LOADED: ${selectedModel ? selectedModel.path : ""} / ANIMATION SAFE ROOT`);
     }
 
     async function loadSelectedModel(model){
@@ -952,10 +1151,7 @@
           const loader = new GLTFLoader();
           const gltf = await loader.loadAsync(url);
           const obj = gltf.scene || gltf.scenes[0];
-          if (gltf.animations && gltf.animations.length > 0){
-            mixer = new THREE.AnimationMixer(obj);
-            gltf.animations.forEach(clip => mixer.clipAction(clip).play());
-          }
+          setupAnimations(obj, gltf.animations || []);
           normalizeAndAddObject(obj);
           return;
         }
@@ -971,6 +1167,7 @@
             objLoader.setMaterials(materials);
           }
           const obj = await objLoader.loadAsync(url);
+          setupAnimations(null, []);
           normalizeAndAddObject(obj);
           return;
         }
@@ -978,10 +1175,7 @@
         if (ext === ".fbx"){
           const loader = new FBXLoader();
           const obj = await loader.loadAsync(url);
-          if (obj.animations && obj.animations.length > 0){
-            mixer = new THREE.AnimationMixer(obj);
-            obj.animations.forEach(clip => mixer.clipAction(clip).play());
-          }
+          setupAnimations(obj, obj.animations || []);
           normalizeAndAddObject(obj);
           return;
         }
@@ -1694,7 +1888,7 @@
     function animate(){
       requestAnimationFrame(animate);
       const delta = clock.getDelta();
-      if (mixer) mixer.update(delta);
+      if (mixer && animationsEnabled) mixer.update(delta * animationSpeed);
       controls.update();
       renderer.render(scene, camera);
     }
@@ -1733,6 +1927,18 @@
     });
     showModelUrlBtn.addEventListener("click", showModelUrl);
     clearModelBtn.addEventListener("click", clearCurrentModelSafe);
+    animationSelect.addEventListener("change", () => selectAnimation(animationSelect.value));
+    animationSpeedInput.addEventListener("change", () => setAnimationSpeed(animationSpeedInput.value));
+    animPlayBtn.addEventListener("click", playAnimation);
+    animPauseBtn.addEventListener("click", pauseAnimation);
+    animRestartBtn.addEventListener("click", restartAnimation);
+    animLoopBtn.addEventListener("click", toggleAnimationLoop);
+    animSpeedDownBtn.addEventListener("click", () => setAnimationSpeed(animationSpeed - 0.05));
+    animSpeedUpBtn.addEventListener("click", () => setAnimationSpeed(animationSpeed + 0.05));
+    animSpeed010Btn.addEventListener("click", () => setAnimationSpeed(0.10));
+    animSpeed025Btn.addEventListener("click", () => setAnimationSpeed(0.25));
+    animSpeed050Btn.addEventListener("click", () => setAnimationSpeed(0.50));
+    animSpeed100Btn.addEventListener("click", () => setAnimationSpeed(1.00));
 
     addFloorBtn.addEventListener("click", () => addPlanFromPath("floor"));
     addSideBtn.addEventListener("click", () => addPlanFromPath("side"));
