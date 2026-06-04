@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Animation Speed 0.80 Safe v12</title>
+  <title>SF 3D Viewer - Animation Controls v13</title>
 
   <script type="importmap">
   {
@@ -246,7 +246,7 @@
     <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / ANIMATION SPEED 0.80 SAFE v12</div>
+        <div class="brand-title">SF 3D VIEWER / ANIMATION CONTROL v13</div>
         <div class="brand-sub">側面PDFの下端を地面PDFの外周上端へ接続。側面はA4横向き基準。</div>
       </div>
       <div class="digital">
@@ -257,7 +257,7 @@
 
     <section class="drawer left" id="modelDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MODEL / ANIMATION</div>
+        <div class="drawer-title">MODEL / ANIMATION v13</div>
         <button class="close" data-close="modelDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -288,15 +288,27 @@
             </select>
           </div>
           <div class="mini-field">
-            <label>速度</label>
+            <label>速度 数値</label>
             <input id="animationSpeedInput" type="number" min="0.01" max="2" step="0.01" value="0.80">
           </div>
         </div>
+        <div class="mini-input-row">
+          <div class="mini-field">
+            <label>速度スライダー</label>
+            <input id="animationSpeedRange" type="range" min="0.01" max="2" step="0.01" value="0.80">
+          </div>
+          <div class="mini-field">
+            <label>現在速度</label>
+            <input id="animationSpeedReadout" value="0.80x" readonly>
+          </div>
+        </div>
         <div class="button-grid">
+          <button class="btn lime" id="animToggleBtn"><span>再生/一時停止</span></button>
           <button class="btn lime" id="animPlayBtn"><span>再生</span></button>
           <button class="btn" id="animPauseBtn"><span>一時停止</span></button>
           <button class="btn" id="animRestartBtn"><span>最初から</span></button>
           <button class="btn" id="animLoopBtn"><span>ループON</span></button>
+          <button class="btn" id="animStopBtn"><span>停止</span></button>
           <button class="btn" id="animSpeedDownBtn"><span>速度-0.05</span></button>
           <button class="btn" id="animSpeedUpBtn"><span>速度+0.05</span></button>
         </div>
@@ -307,13 +319,13 @@
           <button class="btn lime" id="animSpeed080Btn"><span>0.80x</span></button>
           <button class="btn magenta" id="animSpeed100Btn"><span>1.00x</span></button>
         </div>
-        <div class="help">初期速度を0.80xに設定しています。速い場合は0.50xや0.25x、Blenderと同じ速さに戻す場合は1.00xを押してください。アニメーション付きGLBは、GLB本体を直接移動・拡大せず、外側の親Groupで中央寄せ・地面吸着します。</div>
+        <div class="help">再生/一時停止ボタンで切替できます。速度はスライダー・数値入力・プリセットボタンで調整できます。初期速度は0.80xです。</div>
       </div>
     </section>
 
     <section class="drawer right wide" id="planDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MULTI PDF PLAN v12</div>
+        <div class="drawer-title">MULTI PDF PLAN v13</div>
         <button class="close" data-close="planDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -484,10 +496,14 @@
     const animationStatusText = document.getElementById("animationStatusText");
     const animationSelect = document.getElementById("animationSelect");
     const animationSpeedInput = document.getElementById("animationSpeedInput");
+    const animationSpeedRange = document.getElementById("animationSpeedRange");
+    const animationSpeedReadout = document.getElementById("animationSpeedReadout");
+    const animToggleBtn = document.getElementById("animToggleBtn");
     const animPlayBtn = document.getElementById("animPlayBtn");
     const animPauseBtn = document.getElementById("animPauseBtn");
     const animRestartBtn = document.getElementById("animRestartBtn");
     const animLoopBtn = document.getElementById("animLoopBtn");
+    const animStopBtn = document.getElementById("animStopBtn");
     const animSpeedDownBtn = document.getElementById("animSpeedDownBtn");
     const animSpeedUpBtn = document.getElementById("animSpeedUpBtn");
     const animSpeed010Btn = document.getElementById("animSpeed010Btn");
@@ -563,6 +579,7 @@
     let activeAction = null;
     let activeAnimationIndex = 0;
     let animationsEnabled = true;
+    let animationIsPlaying = false;
     const DEFAULT_ANIMATION_SPEED = 0.80;
     let animationSpeed = DEFAULT_ANIMATION_SPEED;
     let animationLoop = true;
@@ -896,6 +913,7 @@
       activeAction = null;
       activeAnimationIndex = 0;
       animationsEnabled = true;
+      animationIsPlaying = false;
       animationSpeed = DEFAULT_ANIMATION_SPEED;
       animationLoop = true;
 
@@ -905,8 +923,17 @@
       if (animationSpeedInput){
         animationSpeedInput.value = DEFAULT_ANIMATION_SPEED.toFixed(2);
       }
+      if (animationSpeedRange){
+        animationSpeedRange.value = DEFAULT_ANIMATION_SPEED.toFixed(2);
+      }
+      if (animationSpeedReadout){
+        animationSpeedReadout.value = `${DEFAULT_ANIMATION_SPEED.toFixed(2)}x`;
+      }
       if (animLoopBtn){
         animLoopBtn.innerHTML = "<span>ループON</span>";
+      }
+      if (animToggleBtn){
+        animToggleBtn.innerHTML = "<span>再生</span>";
       }
       setAnimationStatus("ANIMATION: 未検出");
     }
@@ -926,6 +953,23 @@
       animationSelect.value = String(activeAnimationIndex);
     }
 
+    function updateAnimationButtons(){
+      if (animToggleBtn){
+        animToggleBtn.innerHTML = animationIsPlaying
+          ? "<span>一時停止</span>"
+          : "<span>再生</span>";
+      }
+      if (animationSpeedInput) animationSpeedInput.value = animationSpeed.toFixed(2);
+      if (animationSpeedRange) animationSpeedRange.value = animationSpeed.toFixed(2);
+      if (animationSpeedReadout) animationSpeedReadout.value = `${animationSpeed.toFixed(2)}x`;
+    }
+
+    function getActiveAnimationName(){
+      if (!animationClips.length || activeAnimationIndex < 0) return "未検出";
+      const clip = animationClips[activeAnimationIndex];
+      return clip ? (clip.name || `Animation ${activeAnimationIndex + 1}`) : "未検出";
+    }
+
     function setupAnimations(root, clips){
       resetAnimationState();
       animationRoot = root;
@@ -933,6 +977,7 @@
 
       if (!animationRoot || animationClips.length === 0){
         setAnimationStatus("ANIMATION: なし / 静止モデル");
+        updateAnimationButtons();
         return;
       }
 
@@ -941,6 +986,7 @@
         const action = mixer.clipAction(clip);
         action.clampWhenFinished = false;
         action.enabled = true;
+        action.paused = false;
         action.setLoop(THREE.LoopRepeat, Infinity);
         return action;
       });
@@ -949,13 +995,16 @@
       activeAction = animationActions[0] || null;
       refreshAnimationSelect();
 
+      animationSpeed = DEFAULT_ANIMATION_SPEED;
+      animationsEnabled = true;
+      animationIsPlaying = true;
+
       if (activeAction){
         activeAction.reset().play();
       }
-      animationsEnabled = true;
-      animationSpeed = DEFAULT_ANIMATION_SPEED;
-      if (animationSpeedInput) animationSpeedInput.value = DEFAULT_ANIMATION_SPEED.toFixed(2);
-      setAnimationStatus(`ANIMATION: ${animationClips.length}件 / 再生中 / 親Group補正ON / 0.80x初期値`);
+
+      updateAnimationButtons();
+      setAnimationStatus(`ANIMATION: ${animationClips.length}件 / 再生中 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
     }
 
     function selectAnimation(index){
@@ -972,9 +1021,12 @@
 
       if (activeAction){
         activeAction.reset().play();
+        activeAction.paused = false;
       }
       animationsEnabled = true;
-      setAnimationStatus(`ANIMATION: ${animationClips[activeAnimationIndex].name || activeAnimationIndex + 1} / 再生中 / ${animationSpeed.toFixed(2)}x`);
+      animationIsPlaying = true;
+      updateAnimationButtons();
+      setAnimationStatus(`ANIMATION: ${getActiveAnimationName()} / 再生中 / ${animationSpeed.toFixed(2)}x`);
     }
 
     function playAnimation(){
@@ -982,15 +1034,33 @@
         setAnimationStatus("ANIMATION: 再生できるアニメーションがありません");
         return;
       }
+      activeAction.enabled = true;
       activeAction.paused = false;
+      if (!activeAction.isRunning()) activeAction.play();
       animationsEnabled = true;
-      setAnimationStatus(`ANIMATION: 再生中 / ${animationSpeed.toFixed(2)}x`);
+      animationIsPlaying = true;
+      updateAnimationButtons();
+      setAnimationStatus(`ANIMATION: 再生中 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
     }
 
     function pauseAnimation(){
-      if (!activeAction) return;
+      if (!activeAction){
+        setAnimationStatus("ANIMATION: 一時停止できるアニメーションがありません");
+        return;
+      }
+      activeAction.paused = true;
       animationsEnabled = false;
-      setAnimationStatus("ANIMATION: 一時停止");
+      animationIsPlaying = false;
+      updateAnimationButtons();
+      setAnimationStatus(`ANIMATION: 一時停止 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
+    }
+
+    function togglePlayPauseAnimation(){
+      if (animationIsPlaying){
+        pauseAnimation();
+      } else {
+        playAnimation();
+      }
     }
 
     function restartAnimation(){
@@ -999,14 +1069,31 @@
         return;
       }
       activeAction.reset().play();
+      activeAction.paused = false;
       animationsEnabled = true;
-      setAnimationStatus(`ANIMATION: 最初から再生 / ${animationSpeed.toFixed(2)}x`);
+      animationIsPlaying = true;
+      updateAnimationButtons();
+      setAnimationStatus(`ANIMATION: 最初から再生 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
+    }
+
+    function stopAnimation(){
+      if (!activeAction){
+        setAnimationStatus("ANIMATION: 停止できるアニメーションがありません");
+        return;
+      }
+      activeAction.stop();
+      activeAction.reset();
+      activeAction.paused = true;
+      animationsEnabled = false;
+      animationIsPlaying = false;
+      updateAnimationButtons();
+      setAnimationStatus(`ANIMATION: 停止 / ${getActiveAnimationName()}`);
     }
 
     function setAnimationSpeed(value){
       animationSpeed = Math.max(0.01, Math.min(2.0, Number(value) || DEFAULT_ANIMATION_SPEED));
-      if (animationSpeedInput) animationSpeedInput.value = animationSpeed.toFixed(2);
-      setAnimationStatus(`ANIMATION SPEED: ${animationSpeed.toFixed(2)}x`);
+      updateAnimationButtons();
+      setAnimationStatus(`ANIMATION SPEED: ${animationSpeed.toFixed(2)}x / ${getActiveAnimationName()}${animationIsPlaying ? " / 再生中" : " / 一時停止"}`);
     }
 
     function toggleAnimationLoop(){
@@ -1931,9 +2018,12 @@
     clearModelBtn.addEventListener("click", clearCurrentModelSafe);
     animationSelect.addEventListener("change", () => selectAnimation(animationSelect.value));
     animationSpeedInput.addEventListener("change", () => setAnimationSpeed(animationSpeedInput.value));
+    animationSpeedRange.addEventListener("input", () => setAnimationSpeed(animationSpeedRange.value));
+    animToggleBtn.addEventListener("click", togglePlayPauseAnimation);
     animPlayBtn.addEventListener("click", playAnimation);
     animPauseBtn.addEventListener("click", pauseAnimation);
     animRestartBtn.addEventListener("click", restartAnimation);
+    animStopBtn.addEventListener("click", stopAnimation);
     animLoopBtn.addEventListener("click", toggleAnimationLoop);
     animSpeedDownBtn.addEventListener("click", () => setAnimationSpeed(animationSpeed - 0.05));
     animSpeedUpBtn.addEventListener("click", () => setAnimationSpeed(animationSpeed + 0.05));
