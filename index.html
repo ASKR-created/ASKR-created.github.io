@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Animation Speed Safe v11</title>
+  <title>SF 3D Viewer - Animation Speed 0.80 Safe v12</title>
 
   <script type="importmap">
   {
@@ -246,7 +246,7 @@
     <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / ANIMATION SPEED SAFE v11</div>
+        <div class="brand-title">SF 3D VIEWER / ANIMATION SPEED 0.80 SAFE v12</div>
         <div class="brand-sub">側面PDFの下端を地面PDFの外周上端へ接続。側面はA4横向き基準。</div>
       </div>
       <div class="digital">
@@ -289,7 +289,7 @@
           </div>
           <div class="mini-field">
             <label>速度</label>
-            <input id="animationSpeedInput" type="number" min="0.01" max="2" step="0.01" value="0.25">
+            <input id="animationSpeedInput" type="number" min="0.01" max="2" step="0.01" value="0.80">
           </div>
         </div>
         <div class="button-grid">
@@ -302,17 +302,18 @@
         </div>
         <div class="button-grid four">
           <button class="btn" id="animSpeed010Btn"><span>0.10x</span></button>
-          <button class="btn lime" id="animSpeed025Btn"><span>0.25x</span></button>
+          <button class="btn" id="animSpeed025Btn"><span>0.25x</span></button>
           <button class="btn" id="animSpeed050Btn"><span>0.50x</span></button>
+          <button class="btn lime" id="animSpeed080Btn"><span>0.80x</span></button>
           <button class="btn magenta" id="animSpeed100Btn"><span>1.00x</span></button>
         </div>
-        <div class="help">初期速度を0.25xに下げています。速い場合は0.10x、Blenderと同じ速さに戻す場合は1.00xを押してください。アニメーション付きGLBは、GLB本体を直接移動・拡大せず、外側の親Groupで中央寄せ・地面吸着します。</div>
+        <div class="help">初期速度を0.80xに設定しています。速い場合は0.50xや0.25x、Blenderと同じ速さに戻す場合は1.00xを押してください。アニメーション付きGLBは、GLB本体を直接移動・拡大せず、外側の親Groupで中央寄せ・地面吸着します。</div>
       </div>
     </section>
 
     <section class="drawer right wide" id="planDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MULTI PDF PLAN v11</div>
+        <div class="drawer-title">MULTI PDF PLAN v12</div>
         <button class="close" data-close="planDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -492,6 +493,7 @@
     const animSpeed010Btn = document.getElementById("animSpeed010Btn");
     const animSpeed025Btn = document.getElementById("animSpeed025Btn");
     const animSpeed050Btn = document.getElementById("animSpeed050Btn");
+    const animSpeed080Btn = document.getElementById("animSpeed080Btn");
     const animSpeed100Btn = document.getElementById("animSpeed100Btn");
 
     const planSearchInput = document.getElementById("planSearchInput");
@@ -561,7 +563,7 @@
     let activeAction = null;
     let activeAnimationIndex = 0;
     let animationsEnabled = true;
-    const DEFAULT_ANIMATION_SPEED = 0.25;
+    const DEFAULT_ANIMATION_SPEED = 0.80;
     let animationSpeed = DEFAULT_ANIMATION_SPEED;
     let animationLoop = true;
     let currentSize = 2;
@@ -953,7 +955,7 @@
       animationsEnabled = true;
       animationSpeed = DEFAULT_ANIMATION_SPEED;
       if (animationSpeedInput) animationSpeedInput.value = DEFAULT_ANIMATION_SPEED.toFixed(2);
-      setAnimationStatus(`ANIMATION: ${animationClips.length}件 / 再生中 / 親Group補正ON / 低速初期値`);
+      setAnimationStatus(`ANIMATION: ${animationClips.length}件 / 再生中 / 親Group補正ON / 0.80x初期値`);
     }
 
     function selectAnimation(index){
@@ -1938,6 +1940,7 @@
     animSpeed010Btn.addEventListener("click", () => setAnimationSpeed(0.10));
     animSpeed025Btn.addEventListener("click", () => setAnimationSpeed(0.25));
     animSpeed050Btn.addEventListener("click", () => setAnimationSpeed(0.50));
+    animSpeed080Btn.addEventListener("click", () => setAnimationSpeed(0.80));
     animSpeed100Btn.addEventListener("click", () => setAnimationSpeed(1.00));
 
     addFloorBtn.addEventListener("click", () => addPlanFromPath("floor"));
