@@ -245,6 +245,49 @@
       box-shadow:0 0 12px rgba(166,255,45,.10);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     }
 
+
+
+    .xr-hud{
+      position:absolute;
+      left:50%;
+      bottom:70px;
+      transform:translateX(-50%);
+      z-index:40;
+      width:min(760px, calc(100vw - 18px));
+      display:none;
+      grid-template-columns:1.6fr repeat(4, 1fr);
+      gap:6px;
+      padding:7px;
+      border:1px solid rgba(34,248,255,.42);
+      background:rgba(2,8,18,.74);
+      box-shadow:0 0 18px rgba(34,248,255,.18), 0 0 34px rgba(255,45,235,.10);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      pointer-events:auto;
+    }
+    .xr-hud.open{display:grid;}
+    .xr-status{
+      display:flex;
+      align-items:center;
+      min-height:34px;
+      border:1px solid rgba(166,255,45,.28);
+      background:rgba(166,255,45,.045);
+      color:var(--lime);
+      padding:0 8px;
+      font-size:11px;
+      font-family:Consolas,"Courier New",monospace;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    @media (max-width:900px){
+      .xr-hud{
+        bottom:58px;
+        grid-template-columns:1fr 1fr;
+      }
+      .xr-status{grid-column:1 / -1;}
+    }
+
     @media (max-width:900px){
       .top-bar{top:6px;left:6px;right:6px;height:48px;grid-template-columns:1fr}
       .digital{display:none}
@@ -277,11 +320,19 @@
       exposure="1.0"
     ></model-viewer>
 
+    <div class="xr-hud" id="xrHud">
+      <div class="xr-status" id="xrStatusText">AR準備中：床をカメラで写してください</div>
+      <button class="btn lime" id="xrPlaceBtn"><span>ここに配置</span></button>
+      <button class="btn" id="xrPlayPauseBtn"><span>再生/一時停止</span></button>
+      <button class="btn" id="xrRestartBtn"><span>最初から</span></button>
+      <button class="btn magenta" id="xrEndBtn"><span>AR終了</span></button>
+    </div>
+
     <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF AR VIEWER / MODEL + ANIMATION v20</div>
-        <div class="brand-sub">AR起動前プレビューにv19相当機能を反映。GLB/GLTFはAR起動対応。速度0.80x。</div>
+        <div class="brand-title">SF AR VIEWER / WEBXR PLANE PDF v21</div>
+        <div class="brand-sub">カメラARで平面認識→PDF床/モデルを配置。アニメーション再生対応。速度0.80x。</div>
       </div>
       <div class="digital">
         <div class="label">SYSTEM DATE</div>
@@ -291,7 +342,7 @@
 
     <section class="drawer left" id="modelDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MODEL / ANIMATION / AR v20</div>
+        <div class="drawer-title">MODEL / ANIMATION / AR v21</div>
         <button class="close" data-close="modelDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -311,11 +362,12 @@
           <button class="btn" id="showGroundBtn"><span>基準表示</span></button>
           <button class="btn" id="showModelUrlBtn"><span>モデルURL表示</span></button>
           <button class="btn magenta" id="clearModelBtn"><span>モデルクリア</span></button>
-          <button class="btn lime" id="openArBtn"><span>AR起動</span></button>
+          <button class="btn lime" id="openArBtn"><span>通常AR起動</span></button>
+          <button class="btn magenta" id="openCameraArBtn"><span>カメラAR配置</span></button>
           <button class="btn" id="showArUrlBtn"><span>AR用URL表示</span></button>
         </div>
 
-        <div class="ar-note">AR起動はGLB/GLTFのみ対応です。プレビュー側のPDF床・側面・Action選択UI・全Action完了までループ制御は、端末のQuick Look/Scene Viewerにはそのまま渡せません。GLBに格納済みのアニメーションは端末側仕様で再生されます。</div>
+        <div class="ar-note">通常AR起動はGLB/GLTFのみ対応です。カメラAR配置はWebXR対応端末で、平面認識後に現在のモデル・PDF床・側面をブラウザ内ARとして配置します。</div>
         <div class="help">全体ループONでも、個別Actionはループしません。すべてのアニメーションが終わってから全体を再スタートします。</div>
         <div class="readout" id="animationStatusText">ANIMATION: 未検出</div>
         <div class="mini-input-row">
@@ -366,7 +418,7 @@
 
     <section class="drawer right wide" id="planDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MULTI PDF PLAN / AR PREVIEW v20</div>
+        <div class="drawer-title">MULTI PDF PLAN / WEBXR AR v21</div>
         <button class="close" data-close="planDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -452,7 +504,7 @@
           <button class="btn magenta" id="clearLayersBtn"><span>全PDF削除</span></button>
         </div>
         <div class="layer-list" id="planLayerList"><div class="empty">PDFレイヤー未配置。地面または側面に追加してください。</div></div>
-        <div class="readout" id="planStatusText">側面PDFは地面PDFの外周上端に吸着します。側面追加時はA4横向きに正規化し、横幅は地面PDFの辺幅に合わせます。</div>
+        <div class="readout" id="planStatusText">PDF地面を配置後、「カメラAR配置」で平面認識し、PDF床とモデルを実空間へ配置できます。</div>
       </div>
     </section>
 
@@ -477,11 +529,12 @@
       <button class="btn" id="infoBtn"><span>情報収納</span></button>
       <button class="btn" id="resetViewBtn"><span>視点リセット</span></button>
       <button class="btn" id="toggleGridBtn"><span>グリッド</span></button>
-      <button class="btn lime" id="trayArBtn"><span>AR起動</span></button>
+      <button class="btn lime" id="trayArBtn"><span>通常AR</span></button>
+      <button class="btn magenta" id="trayCameraArBtn"><span>カメラAR</span></button>
       <button class="btn magenta" id="closePanelsBtn"><span>パネル収納</span></button>
     </div>
 
-    <div class="viewer-only-note">AR起動前プレビューでモデル検索・アニメーション操作・PDF調整に対応。AR起動はGLB/GLTFのみ。</div>
+    <div class="viewer-only-note">WebXR対応端末ではカメラARで平面認識→PDF床/モデル配置。非対応端末は通常AR起動。</div>
     <div class="statusbar" id="statusText">SYSTEM READY</div>
   </div>
 
@@ -532,6 +585,7 @@
     const resetViewBtn = document.getElementById("resetViewBtn");
     const toggleGridBtn = document.getElementById("toggleGridBtn");
     const trayArBtn = document.getElementById("trayArBtn");
+    const trayCameraArBtn = document.getElementById("trayCameraArBtn");
     const closePanelsBtn = document.getElementById("closePanelsBtn");
 
     const modelSearchInput = document.getElementById("modelSearchInput");
@@ -545,7 +599,14 @@
     const showModelUrlBtn = document.getElementById("showModelUrlBtn");
     const clearModelBtn = document.getElementById("clearModelBtn");
     const openArBtn = document.getElementById("openArBtn");
+    const openCameraArBtn = document.getElementById("openCameraArBtn");
     const showArUrlBtn = document.getElementById("showArUrlBtn");
+    const xrHud = document.getElementById("xrHud");
+    const xrStatusText = document.getElementById("xrStatusText");
+    const xrPlaceBtn = document.getElementById("xrPlaceBtn");
+    const xrPlayPauseBtn = document.getElementById("xrPlayPauseBtn");
+    const xrRestartBtn = document.getElementById("xrRestartBtn");
+    const xrEndBtn = document.getElementById("xrEndBtn");
     const animationStatusText = document.getElementById("animationStatusText");
     const animationSelect = document.getElementById("animationSelect");
     const animationSpeedInput = document.getElementById("animationSpeedInput");
@@ -656,6 +717,13 @@
 
     const A4_LANDSCAPE_ASPECT = 297 / 210;
 
+    let xrSession = null;
+    let xrReferenceSpace = null;
+    let xrViewerSpace = null;
+    let xrHitTestSource = null;
+    let xrReticleReady = false;
+    let xrPlacementDone = false;
+
     const params = new URLSearchParams(location.search);
     const initialFile = params.get("file") ? decodeURIComponent(params.get("file")) : "";
 
@@ -675,6 +743,7 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
+    renderer.xr.enabled = true;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -710,9 +779,21 @@
     groundMarker.visible = false;
     scene.add(groundMarker);
 
+    const arPlacementRoot = new THREE.Group();
+    arPlacementRoot.name = "WEBXR_AR_PLACEMENT_ROOT";
+    scene.add(arPlacementRoot);
+
     const pdfRoot = new THREE.Group();
     pdfRoot.name = "MULTI_PDF_ROOT";
-    scene.add(pdfRoot);
+    arPlacementRoot.add(pdfRoot);
+
+    const xrReticle = new THREE.Mesh(
+      new THREE.RingGeometry(0.18, 0.24, 32).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: 0xa6ff2d, transparent:true, opacity:0.95 })
+    );
+    xrReticle.matrixAutoUpdate = false;
+    xrReticle.visible = false;
+    scene.add(xrReticle);
 
     function setStatus(text){ statusText.textContent = text; console.log("[3D VIEWER]", text); }
     function setPlanStatus(text){ planStatusText.textContent = text; setStatus(text); }
@@ -976,7 +1057,7 @@
         return;
       }
 
-      const arPageUrl = location.origin + location.pathname + "?v=20260604_0012_ar_v20&file=" + encodeURIComponent(path);
+      const arPageUrl = location.origin + location.pathname + "?v=20260604_0013_ar_v21&file=" + encodeURIComponent(path);
       prompt("ARビューアーURL / モデル直接URL", arPageUrl + "\n" + getPublicAssetUrl(path));
     }
 
@@ -1007,6 +1088,137 @@
         console.error(err);
         alert("AR起動に失敗しました。\n\n" + err.message + "\n\n端末側がGLB/GLTFのAR表示に対応しているか確認してください。");
       }
+    }
+
+
+    function hasArContentForWebXR(){
+      return !!currentObject || planLayers.length > 0;
+    }
+
+    function setXrHudOpen(open){
+      xrHud.classList.toggle("open", !!open);
+    }
+
+    function setXrStatus(text){
+      xrStatusText.textContent = text;
+      setStatus(text);
+    }
+
+    async function startCameraArPlanePlacement(){
+      if (!hasArContentForWebXR()){
+        alert("先にモデルまたはPDF図面を配置してください。\n\nPDFを地面に追加してから『カメラAR配置』を押すと、平面認識後にPDF床を置けます。");
+        return;
+      }
+
+      if (!navigator.xr){
+        alert("このブラウザはWebXR ARに対応していません。\n\nAndroid ChromeなどのWebXR対応ブラウザで試してください。iPhoneの場合は通常AR起動を使いますが、PDF床や操作UIはQuick Lookへ渡せません。");
+        return;
+      }
+
+      const supported = await navigator.xr.isSessionSupported("immersive-ar").catch(() => false);
+      if (!supported){
+        alert("この端末/ブラウザでは immersive-ar が利用できません。\n\n通常AR起動を使うか、WebXR対応端末で確認してください。");
+        return;
+      }
+
+      try{
+        const sessionInit = {
+          requiredFeatures:["hit-test"],
+          optionalFeatures:["local-floor", "dom-overlay"],
+          domOverlay:{ root: document.body }
+        };
+
+        xrSession = await navigator.xr.requestSession("immersive-ar", sessionInit);
+        renderer.xr.setReferenceSpaceType("local-floor");
+        await renderer.xr.setSession(xrSession);
+
+        xrReferenceSpace = await xrSession.requestReferenceSpace("local-floor").catch(() => xrSession.requestReferenceSpace("local"));
+        xrViewerSpace = await xrSession.requestReferenceSpace("viewer");
+        xrHitTestSource = await xrSession.requestHitTestSource({ space: xrViewerSpace });
+
+        xrReticle.visible = false;
+        xrReticleReady = false;
+        xrPlacementDone = false;
+        arPlacementRoot.visible = false;
+        grid.visible = false;
+        groundMarker.visible = false;
+        closeDrawers();
+        setXrHudOpen(true);
+        setXrStatus("AR開始：床や机など平らな面をカメラに写してください");
+
+        xrSession.addEventListener("select", placeArContentAtReticle);
+        xrSession.addEventListener("end", onCameraArEnded);
+      }catch(err){
+        console.error(err);
+        setXrHudOpen(false);
+        xrSession = null;
+        alert("カメラAR配置の開始に失敗しました。\n\n" + err.message);
+      }
+    }
+
+    function updateWebXrHitTest(frame){
+      if (!xrSession || !xrHitTestSource || !frame) return;
+
+      const referenceSpace = xrReferenceSpace || renderer.xr.getReferenceSpace();
+      if (!referenceSpace) return;
+
+      const hits = frame.getHitTestResults(xrHitTestSource);
+      if (hits.length > 0){
+        const pose = hits[0].getPose(referenceSpace);
+        if (pose){
+          xrReticle.visible = true;
+          xrReticle.matrix.fromArray(pose.transform.matrix);
+          xrReticleReady = true;
+          if (!xrPlacementDone) xrStatusText.textContent = "平面認識OK：タップまたは『ここに配置』でPDF/モデルを置きます";
+        }
+      } else {
+        xrReticle.visible = false;
+        xrReticleReady = false;
+        if (!xrPlacementDone) xrStatusText.textContent = "平面を探しています：床や机をゆっくり写してください";
+      }
+    }
+
+    function placeArContentAtReticle(){
+      if (!xrSession){
+        startCameraArPlanePlacement();
+        return;
+      }
+
+      if (!xrReticleReady || !xrReticle.visible){
+        setXrStatus("まだ平面を認識していません。床や机を写してください");
+        return;
+      }
+
+      const pos = new THREE.Vector3().setFromMatrixPosition(xrReticle.matrix);
+      arPlacementRoot.position.copy(pos);
+      arPlacementRoot.quaternion.identity();
+      arPlacementRoot.visible = true;
+      xrPlacementDone = true;
+      setXrStatus("配置完了：アニメーション再生/一時停止も使えます");
+      if (animationClips.length > 0 && !animationsEnabled){
+        playAnimation();
+      }
+    }
+
+    async function endCameraArPlacement(){
+      if (xrSession){
+        await xrSession.end().catch(() => {});
+      }
+    }
+
+    function onCameraArEnded(){
+      xrReticle.visible = false;
+      xrReticleReady = false;
+      xrPlacementDone = false;
+      arPlacementRoot.visible = true;
+      grid.visible = true;
+      setXrHudOpen(false);
+      xrHitTestSource?.cancel?.();
+      xrHitTestSource = null;
+      xrReferenceSpace = null;
+      xrViewerSpace = null;
+      xrSession = null;
+      setStatus("CAMERA AR ENDED");
     }
 
     function clearCurrentModelSafe(){
@@ -1681,7 +1893,7 @@
 
     function clearCurrentModel(){
       if (currentObject){
-        scene.remove(currentObject);
+        if (currentObject.parent) currentObject.parent.remove(currentObject);
         disposeObject(currentObject);
       }
       currentObject = null;
@@ -1737,7 +1949,7 @@
       wrapper.add(obj);
 
       currentObject = wrapper;
-      scene.add(currentObject);
+      arPlacementRoot.add(currentObject);
 
       let box = new THREE.Box3().setFromObject(currentObject);
       let size = new THREE.Vector3();
@@ -2532,12 +2744,16 @@
       renderer.setSize(w, h, false);
     }
 
-    function animate(){
-      requestAnimationFrame(animate);
+    function renderFrame(timestamp, frame){
       const delta = clock.getDelta();
       if (mixer && animationsEnabled) mixer.update(delta);
-      controls.update();
+      if (frame) updateWebXrHitTest(frame);
+      if (!renderer.xr.isPresenting) controls.update();
       renderer.render(scene, camera);
+    }
+
+    function animate(){
+      renderer.setAnimationLoop(renderFrame);
     }
 
     document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", closeDrawers));
@@ -2552,8 +2768,14 @@
       setStatus(grid.visible ? "GRID ON" : "GRID OFF");
     });
     trayArBtn.addEventListener("click", launchNativeAr);
+    trayCameraArBtn.addEventListener("click", startCameraArPlanePlacement);
     openArBtn.addEventListener("click", launchNativeAr);
+    openCameraArBtn.addEventListener("click", startCameraArPlanePlacement);
     showArUrlBtn.addEventListener("click", showArUrl);
+    xrPlaceBtn.addEventListener("click", placeArContentAtReticle);
+    xrPlayPauseBtn.addEventListener("click", togglePlayPauseAnimation);
+    xrRestartBtn.addEventListener("click", restartAnimation);
+    xrEndBtn.addEventListener("click", endCameraArPlacement);
 
     modelSearchInput.addEventListener("input", renderModelList);
     planSearchInput.addEventListener("input", renderPlanList);
