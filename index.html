@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Multi Action Animation v17</title>
+  <title>SF 3D Viewer - Multi Action Animation v18</title>
 
   <script type="importmap">
   {
@@ -246,8 +246,8 @@
     <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / MULTI ACTION ANIMATION v17</div>
-        <div class="brand-sub">複数Actionを同時再生。Blenderで分かれたActionをまとめて動かす。速度0.80x。</div>
+        <div class="brand-title">SF 3D VIEWER / MULTI ACTION ANIMATION v18</div>
+        <div class="brand-sub">モデル一覧取得を修正。リポジトリ全体検索で models/ と モデル/ を検出。速度0.80x。</div>
       </div>
       <div class="digital">
         <div class="label">SYSTEM DATE</div>
@@ -257,7 +257,7 @@
 
     <section class="drawer left" id="modelDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MODEL / ANIMATION v14</div>
+        <div class="drawer-title">MODEL / ANIMATION v18</div>
         <button class="close" data-close="modelDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -323,13 +323,13 @@
           <button class="btn lime" id="animSpeed080Btn"><span>0.80x</span></button>
           <button class="btn magenta" id="animSpeed100Btn"><span>1.00x</span></button>
         </div>
-        <div class="help">キーフレーム崩れ対策として、v17では複数Actionを同時ブレンドせず「統合再生」を標準にしています。全Action同時は崩れる場合があるため確認用です。初期速度は0.80xです。</div>
+        <div class="help">キーフレーム崩れ対策として、v18では複数Actionを同時ブレンドせず「統合再生」を標準にしています。全Action同時は崩れる場合があるため確認用です。初期速度は0.80xです。</div>
       </div>
     </section>
 
     <section class="drawer right wide" id="planDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MULTI PDF PLAN v17</div>
+        <div class="drawer-title">MULTI PDF PLAN v18</div>
         <button class="close" data-close="planDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -442,7 +442,7 @@
       <button class="btn magenta" id="closePanelsBtn"><span>パネル収納</span></button>
     </div>
 
-    <div class="viewer-only-note">側面PDFは地面端へ吸着。必要に応じて位置調整X/Y/Zで微調整できます。</div>
+    <div class="viewer-only-note">モデル一覧が空になる問題を修正。手入力パス・日本語フォルダ・全体検索に対応。</div>
     <div class="statusbar" id="statusText">SYSTEM READY</div>
   </div>
 
@@ -462,8 +462,14 @@
     const GITHUB_REPO = "ASKR-created.github.io";
     const GITHUB_REFS = ["main", "master"];
 
-    const MODEL_ROOTS = ["models", "モデル"];
+    const MODEL_ROOTS = ["models", "Models", "model", "Model", "モデル", "モデルデータ", "model_data"];
     const PLAN_ROOTS = ["plans", "図面", "PDF", "pdf"];
+    const MODEL_FALLBACK_FILES = [
+      "モデル/鉄筋/鉄筋.glb",
+      "models/鉄筋/鉄筋.glb",
+      "models/01.glb",
+      "モデル/01.glb"
+    ];
     const MODEL_EXTENSIONS = [".obj", ".fbx", ".glb", ".gltf"];
     const PLAN_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
 
@@ -761,6 +767,98 @@
       return {items:[], ref:"", error:lastError};
     }
 
+    async function fetchGitHubTree(ref){
+      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/git/trees/${encodeURIComponent(ref)}?recursive=1&_=${Date.now()}`;
+      const res = await fetch(url, {
+        headers: {"Accept":"application/vnd.github+json"},
+        cache: "no-store"
+      });
+      if (!res.ok) throw new Error(`GitHub Tree API ${res.status}: ${ref}`);
+      return await res.json();
+    }
+
+    async function scanRepoTreeAll(allowedExts, label){
+      let lastError = null;
+
+      for (const ref of GITHUB_REFS){
+        try{
+          const treeData = await fetchGitHubTree(ref);
+          const bucket = [];
+          const items = Array.isArray(treeData.tree) ? treeData.tree : [];
+
+          for (const item of items){
+            if (item.type !== "blob") continue;
+            const path = item.path || "";
+            const ext = getExt(path);
+            const record = {
+              name:getBaseName(path),
+              path,
+              ext,
+              size:item.size || 0
+            };
+            fileMap.set(path.toLowerCase(), record);
+            if (allowedExts.includes(ext)){
+              bucket.push(record);
+            }
+          }
+
+          if (bucket.length > 0){
+            return {
+              items:bucket.sort((a,b)=>a.path.localeCompare(b.path,"ja")),
+              ref,
+              mode:"tree"
+            };
+          }
+        }catch(err){
+          lastError = err;
+          console.warn(`${label} tree scan skipped:`, ref, err.message);
+        }
+      }
+
+      return {items:[], ref:"", mode:"tree", error:lastError};
+    }
+
+    async function findFallbackModels(){
+      const found = [];
+      for (const path of MODEL_FALLBACK_FILES){
+        try{
+          const ok = await assetExists(path);
+          if (ok){
+            const record = {
+              name:getBaseName(path),
+              path,
+              ext:getExt(path),
+              size:0
+            };
+            found.push(record);
+            fileMap.set(path.toLowerCase(), record);
+          }
+        }catch(err){
+          console.warn("fallback model skipped:", path, err.message);
+        }
+      }
+
+      const map = new Map();
+      found.forEach(item => map.set(item.path.toLowerCase(), item));
+      return Array.from(map.values()).sort((a,b)=>a.path.localeCompare(b.path,"ja"));
+    }
+
+    function normalizeInputPath(path){
+      let value = String(path || "").trim();
+      if (!value) return "";
+      try{ value = decodeURIComponent(value); }catch(err){}
+      value = value.replace(/^https?:\/\/[^/]+\//i, "");
+      value = value.replace(/^\/+/, "");
+      value = value.replace(/\\/g, "/");
+      return value;
+    }
+
+    function findModelRecordByPath(path){
+      const normalized = normalizeInputPath(path);
+      const lower = normalized.toLowerCase();
+      return allModels.find(m => normalizeInputPath(m.path).toLowerCase() === lower) || null;
+    }
+
     async function findFallbackPlans(){
       const found = [];
       for (const path of PLAN_FALLBACK_FILES){
@@ -777,15 +875,18 @@
     }
 
     async function assetExists(path){
-      const url = toAssetUrl(path);
+      const normalizedPath = normalizeInputPath(path);
+      const url = toAssetUrl(normalizedPath);
+      const checkUrl = url + (url.includes("?") ? "&" : "?") + "asset_check=" + Date.now();
+
       try{
-        const res = await fetch(url + (url.includes("?") ? "&" : "?") + "asset_check=" + Date.now(), {
-          method:"HEAD",
-          cache:"no-store"
-        });
-        return res.ok;
+        const head = await fetch(checkUrl, { method:"HEAD", cache:"no-store" });
+        if (head.ok) return true;
+        // 一部環境でHEADが正しく返らない場合があるため、GETでも確認する。
+        const get = await fetch(checkUrl, { method:"GET", cache:"no-store" });
+        return get.ok;
       }catch(err){
-        console.warn("asset check failed:", path, err.message);
+        console.warn("asset check failed:", normalizedPath, err.message);
         return false;
       }
     }
@@ -797,7 +898,7 @@
     }
 
     function showModelUrl(){
-      const path = modelPathInput.value.trim() || (selectedModel ? selectedModel.path : "");
+      const path = normalizeInputPath(modelPathInput.value.trim() || (selectedModel ? selectedModel.path : ""));
       if (!path){
         alert("先にモデルを選択するか、手入力パスを入れてください。");
         return;
@@ -816,21 +917,44 @@
     }
 
     async function loadModelList(){
-      modelList.innerHTML = `<div class="empty">models/ または モデル/ を走査中...</div>`;
+      modelList.innerHTML = `<div class="empty">models/・モデル/・リポジトリ全体を走査中...</div>`;
       setStatus("SCANNING MODEL FOLDERS ...");
-      const result = await scanRoots(MODEL_ROOTS, MODEL_EXTENSIONS, "model");
+
+      let result = await scanRoots(MODEL_ROOTS, MODEL_EXTENSIONS, "model");
       allModels = result.items;
+
+      if (allModels.length === 0){
+        setStatus("MODEL ROOT SCAN EMPTY / TRYING REPOSITORY TREE ...");
+        result = await scanRepoTreeAll(MODEL_EXTENSIONS, "model");
+        allModels = result.items;
+      }
+
+      if (allModels.length === 0){
+        setStatus("MODEL TREE SCAN EMPTY / TRYING DIRECT FALLBACK ...");
+        allModels = await findFallbackModels();
+      }
+
       renderModelList();
 
       if (allModels.length > 0){
-        setStatus(`MODEL / ANIMATION ${allModels.length} / ${result.ref} / モデルを選択してください`);
+        setStatus(`MODEL / ANIMATION ${allModels.length} / ${result.ref || "fallback"} / ${result.mode || "contents"} / モデルを選択してください`);
         modelStateInput.value = "モデルを選択";
         if (initialFile){
           selectModelPath(initialFile);
         }
       } else {
-        modelList.innerHTML = `<div class="empty">モデルが見つかりません。<br>対応フォルダ：models/ または モデル/<br>対応形式：OBJ / FBX / GLB / GLTF</div>`;
-        setStatus("MODEL / ANIMATION EMPTY");
+        modelList.innerHTML = `
+          <div class="empty">
+            モデルが見つかりません。<br>
+            今回は models/ と モデル/ だけでなく、リポジトリ全体検索も実行しました。<br><br>
+            手入力で実際の配置を指定してください。<br>
+            例：モデル/鉄筋/鉄筋.glb<br>
+            例：models/鉄筋/鉄筋.glb<br><br>
+            対応形式：OBJ / FBX / GLB / GLTF
+          </div>
+        `;
+        modelStateInput.value = "一覧なし / 手入力可";
+        setStatus("MODEL / ANIMATION EMPTY / USE MANUAL PATH");
       }
     }
 
@@ -838,8 +962,14 @@
       planList.innerHTML = `<div class="empty">plans/、図面/、PDF/ を走査中...</div>`;
       setPlanStatus("SCANNING PLAN FOLDERS ...");
 
-      const result = await scanRoots(PLAN_ROOTS, PLAN_EXTENSIONS, "plan");
+      let result = await scanRoots(PLAN_ROOTS, PLAN_EXTENSIONS, "plan");
       allPlans = result.items;
+
+      if (allPlans.length === 0){
+        setPlanStatus("PDF root scan empty / repository tree を確認中...");
+        result = await scanRepoTreeAll(PLAN_EXTENSIONS, "plan");
+        allPlans = result.items;
+      }
 
       if (allPlans.length === 0){
         setPlanStatus("GitHub API一覧が空です。直接参照を確認中...");
@@ -961,7 +1091,7 @@
       if (animToggleBtn){
         animToggleBtn.innerHTML = "<span>統合再生</span>";
       }
-      setAnimationStatus("ANIMATION: 未検出 / v17全体ループ制御");
+      setAnimationStatus("ANIMATION: 未検出 / v18全体ループ制御");
     }
 
     function refreshAnimationSelect(){
@@ -1464,17 +1594,20 @@
     }
 
     function selectModelPath(path){
-      const ext = getExt(path);
+      const normalizedPath = normalizeInputPath(path);
+      const ext = getExt(normalizedPath);
       if (!MODEL_EXTENSIONS.includes(ext)){
-        alert("OBJ / FBX / GLB / GLTF を指定してください。");
+        alert("OBJ / FBX / GLB / GLTF を指定してください。
+
+例：モデル/鉄筋/鉄筋.glb");
         return;
       }
-      const found = allModels.find(m => m.path === path);
+      const found = findModelRecordByPath(normalizedPath);
       if (found){
         selectModel(found);
         return;
       }
-      selectModel({name:getBaseName(path), path, ext, size:0});
+      selectModel({name:getBaseName(normalizedPath), path:normalizedPath, ext, size:0});
     }
 
     function snapModelToGround(){
@@ -1527,21 +1660,21 @@
       box.getSize(size);
       currentSize = Math.max(size.x, size.y, size.z) || 2;
 
-      // v14: モデル補正後の外側Rootに対してAnimationMixerを作る。
+      // v18: モデル補正後の外側Rootに対してAnimationMixerを作る。
       // これにより、GLB本体のキーフレームとビューアー側の中央寄せ補正が競合しにくくなる。
       setupAnimations(currentObject, clips || []);
 
       resetView();
       modelStateInput.value = animationClips.length > 0 ? "読込完了 / アニメあり" : "読込完了";
-      setStatus(`MODEL LOADED: ${selectedModel ? selectedModel.path : ""} / ANIMATION ROOT v14`);
+      setStatus(`MODEL LOADED: ${selectedModel ? selectedModel.path : ""} / ANIMATION ROOT v18`);
     }
 
     async function loadSelectedModel(model){
       setStatus(`CHECKING MODEL: ${model.path}`);
 
-      const path = model.path;
+      const path = normalizeInputPath(model.path);
       const url = toAssetUrl(path);
-      const ext = model.ext;
+      const ext = model.ext || getExt(path);
 
       const exists = await assetExists(path);
       if (!exists){
@@ -1552,7 +1685,8 @@
           path + "\n\n" +
           "直接URL：\n" + getPublicAssetUrl(path) + "\n\n" +
           "GitHub上に同じ場所・同じ名前でファイルがあるか確認してください。\n" +
-          "例：models/01.glb が無い場合は、実際の配置に合わせて モデル/鉄筋/鉄筋.glb などを指定します。"
+          "例：models/01.glb が無い場合は、実際の配置に合わせて モデル/鉄筋/鉄筋.glb などを指定します。
+日本語フォルダも使用できます。"
         );
         return;
       }
