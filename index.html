@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Animation Controls v13</title>
+  <title>SF 3D Viewer - Animation Force Play v14</title>
 
   <script type="importmap">
   {
@@ -246,8 +246,8 @@
     <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / ANIMATION CONTROL v13</div>
-        <div class="brand-sub">側面PDFの下端を地面PDFの外周上端へ接続。側面はA4横向き基準。</div>
+        <div class="brand-title">SF 3D VIEWER / ANIMATION FORCE PLAY v14</div>
+        <div class="brand-sub">再生しないGLB対策。強制再生・全アニメ再生・速度0.80x。</div>
       </div>
       <div class="digital">
         <div class="label">SYSTEM DATE</div>
@@ -257,7 +257,7 @@
 
     <section class="drawer left" id="modelDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MODEL / ANIMATION v13</div>
+        <div class="drawer-title">MODEL / ANIMATION v14</div>
         <button class="close" data-close="modelDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -309,6 +309,8 @@
           <button class="btn" id="animRestartBtn"><span>最初から</span></button>
           <button class="btn" id="animLoopBtn"><span>ループON</span></button>
           <button class="btn" id="animStopBtn"><span>停止</span></button>
+          <button class="btn magenta" id="animForceBtn"><span>強制再生</span></button>
+          <button class="btn magenta" id="animPlayAllBtn"><span>全アニメ再生</span></button>
           <button class="btn" id="animSpeedDownBtn"><span>速度-0.05</span></button>
           <button class="btn" id="animSpeedUpBtn"><span>速度+0.05</span></button>
         </div>
@@ -319,13 +321,13 @@
           <button class="btn lime" id="animSpeed080Btn"><span>0.80x</span></button>
           <button class="btn magenta" id="animSpeed100Btn"><span>1.00x</span></button>
         </div>
-        <div class="help">再生/一時停止ボタンで切替できます。速度はスライダー・数値入力・プリセットボタンで調整できます。初期速度は0.80xです。</div>
+        <div class="help">再生しない場合は「強制再生」または「全アニメ再生」を押してください。v14ではAnimationMixerを外側Rootへ接続し直しています。初期速度は0.80xです。</div>
       </div>
     </section>
 
     <section class="drawer right wide" id="planDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MULTI PDF PLAN v13</div>
+        <div class="drawer-title">MULTI PDF PLAN v14</div>
         <button class="close" data-close="planDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -504,6 +506,8 @@
     const animRestartBtn = document.getElementById("animRestartBtn");
     const animLoopBtn = document.getElementById("animLoopBtn");
     const animStopBtn = document.getElementById("animStopBtn");
+    const animForceBtn = document.getElementById("animForceBtn");
+    const animPlayAllBtn = document.getElementById("animPlayAllBtn");
     const animSpeedDownBtn = document.getElementById("animSpeedDownBtn");
     const animSpeedUpBtn = document.getElementById("animSpeedUpBtn");
     const animSpeed010Btn = document.getElementById("animSpeed010Btn");
@@ -580,6 +584,7 @@
     let activeAnimationIndex = 0;
     let animationsEnabled = true;
     let animationIsPlaying = false;
+    let playAllAnimations = false;
     const DEFAULT_ANIMATION_SPEED = 0.80;
     let animationSpeed = DEFAULT_ANIMATION_SPEED;
     let animationLoop = true;
@@ -914,6 +919,7 @@
       activeAnimationIndex = 0;
       animationsEnabled = true;
       animationIsPlaying = false;
+      playAllAnimations = false;
       animationSpeed = DEFAULT_ANIMATION_SPEED;
       animationLoop = true;
 
@@ -973,21 +979,27 @@
     function setupAnimations(root, clips){
       resetAnimationState();
       animationRoot = root;
-      animationClips = clips || [];
+      animationClips = (clips || []).filter(Boolean);
 
       if (!animationRoot || animationClips.length === 0){
-        setAnimationStatus("ANIMATION: なし / 静止モデル");
+        setAnimationStatus("ANIMATION: なし / 静止モデル またはGLB内にアニメーション未格納");
         updateAnimationButtons();
         return;
       }
 
+      // v14: MixerのRootは、補正後の外側Groupにする。
+      // GLB本体を直接移動・拡大縮小しても、Root探索が外れにくいようにする。
       mixer = new THREE.AnimationMixer(animationRoot);
-      animationActions = animationClips.map(clip => {
-        const action = mixer.clipAction(clip);
+      mixer.timeScale = animationSpeed;
+
+      animationActions = animationClips.map((clip, index) => {
+        const action = mixer.clipAction(clip, animationRoot);
         action.clampWhenFinished = false;
         action.enabled = true;
         action.paused = false;
-        action.setLoop(THREE.LoopRepeat, Infinity);
+        action.setEffectiveWeight(1);
+        action.setEffectiveTimeScale(1);
+        action.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce, animationLoop ? Infinity : 1);
         return action;
       });
 
@@ -996,33 +1008,41 @@
       refreshAnimationSelect();
 
       animationSpeed = DEFAULT_ANIMATION_SPEED;
+      if (mixer) mixer.timeScale = animationSpeed;
       animationsEnabled = true;
-      animationIsPlaying = true;
+      animationIsPlaying = false;
+      playAllAnimations = false;
 
-      if (activeAction){
-        activeAction.reset().play();
-      }
+      // 初期状態で一度だけ強制再生する。
+      forcePlayAnimation(false);
 
       updateAnimationButtons();
-      setAnimationStatus(`ANIMATION: ${animationClips.length}件 / 再生中 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
+      setAnimationStatus(`ANIMATION: ${animationClips.length}件 / v14準備完了 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
     }
 
     function selectAnimation(index){
       if (!animationActions.length) return;
       const safeIndex = Math.max(0, Math.min(animationActions.length - 1, Number(index) || 0));
 
-      if (activeAction){
-        activeAction.stop();
+      for (const action of animationActions){
+        action.stop();
+        action.paused = false;
+        action.enabled = true;
       }
 
+      playAllAnimations = false;
       activeAnimationIndex = safeIndex;
       activeAction = animationActions[activeAnimationIndex];
       if (animationSelect) animationSelect.value = String(activeAnimationIndex);
 
       if (activeAction){
-        activeAction.reset().play();
+        activeAction.reset();
         activeAction.paused = false;
+        activeAction.enabled = true;
+        activeAction.setEffectiveWeight(1);
+        activeAction.play();
       }
+      if (mixer) mixer.timeScale = animationSpeed;
       animationsEnabled = true;
       animationIsPlaying = true;
       updateAnimationButtons();
@@ -1031,24 +1051,77 @@
 
     function playAnimation(){
       if (!activeAction){
-        setAnimationStatus("ANIMATION: 再生できるアニメーションがありません");
+        setAnimationStatus("ANIMATION: 再生できるアニメーションがありません。GLB書き出し時にAnimationがONか確認してください。");
         return;
+      }
+      playAllAnimations = false;
+      for (const action of animationActions){
+        if (action !== activeAction) action.stop();
       }
       activeAction.enabled = true;
       activeAction.paused = false;
+      activeAction.setEffectiveWeight(1);
+      activeAction.setEffectiveTimeScale(1);
       if (!activeAction.isRunning()) activeAction.play();
+      if (mixer) mixer.timeScale = animationSpeed;
       animationsEnabled = true;
       animationIsPlaying = true;
       updateAnimationButtons();
       setAnimationStatus(`ANIMATION: 再生中 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
     }
 
-    function pauseAnimation(){
+    function forcePlayAnimation(showStatus = true){
       if (!activeAction){
+        setAnimationStatus("ANIMATION: 強制再生できるアニメーションがありません");
+        return;
+      }
+      playAllAnimations = false;
+      if (mixer){
+        mixer.stopAllAction();
+        mixer.timeScale = animationSpeed;
+      }
+      activeAction.enabled = true;
+      activeAction.paused = false;
+      activeAction.setEffectiveWeight(1);
+      activeAction.setEffectiveTimeScale(1);
+      activeAction.reset();
+      activeAction.play();
+      animationsEnabled = true;
+      animationIsPlaying = true;
+      updateAnimationButtons();
+      if (showStatus) setAnimationStatus(`ANIMATION: 強制再生 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
+    }
+
+    function playAllAnimationActions(){
+      if (!animationActions.length){
+        setAnimationStatus("ANIMATION: 全アニメ再生できるアニメーションがありません");
+        return;
+      }
+      if (mixer) mixer.timeScale = animationSpeed;
+      playAllAnimations = true;
+      animationActions.forEach((action, index) => {
+        action.enabled = true;
+        action.paused = false;
+        action.setEffectiveWeight(1);
+        action.setEffectiveTimeScale(1);
+        action.reset();
+        action.play();
+      });
+      activeAction = animationActions[activeAnimationIndex] || animationActions[0];
+      animationsEnabled = true;
+      animationIsPlaying = true;
+      updateAnimationButtons();
+      setAnimationStatus(`ANIMATION: 全${animationActions.length}件を強制再生 / ${animationSpeed.toFixed(2)}x`);
+    }
+
+    function pauseAnimation(){
+      if (!animationActions.length){
         setAnimationStatus("ANIMATION: 一時停止できるアニメーションがありません");
         return;
       }
-      activeAction.paused = true;
+      for (const action of animationActions){
+        action.paused = true;
+      }
       animationsEnabled = false;
       animationIsPlaying = false;
       updateAnimationButtons();
@@ -1059,7 +1132,7 @@
       if (animationIsPlaying){
         pauseAnimation();
       } else {
-        playAnimation();
+        forcePlayAnimation(true);
       }
     }
 
@@ -1068,22 +1141,20 @@
         setAnimationStatus("ANIMATION: 再生できるアニメーションがありません");
         return;
       }
-      activeAction.reset().play();
-      activeAction.paused = false;
-      animationsEnabled = true;
-      animationIsPlaying = true;
-      updateAnimationButtons();
+      forcePlayAnimation(true);
       setAnimationStatus(`ANIMATION: 最初から再生 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
     }
 
     function stopAnimation(){
-      if (!activeAction){
+      if (!animationActions.length){
         setAnimationStatus("ANIMATION: 停止できるアニメーションがありません");
         return;
       }
-      activeAction.stop();
-      activeAction.reset();
-      activeAction.paused = true;
+      if (mixer) mixer.stopAllAction();
+      for (const action of animationActions){
+        action.paused = true;
+      }
+      playAllAnimations = false;
       animationsEnabled = false;
       animationIsPlaying = false;
       updateAnimationButtons();
@@ -1092,6 +1163,7 @@
 
     function setAnimationSpeed(value){
       animationSpeed = Math.max(0.01, Math.min(2.0, Number(value) || DEFAULT_ANIMATION_SPEED));
+      if (mixer) mixer.timeScale = animationSpeed;
       updateAnimationButtons();
       setAnimationStatus(`ANIMATION SPEED: ${animationSpeed.toFixed(2)}x / ${getActiveAnimationName()}${animationIsPlaying ? " / 再生中" : " / 一時停止"}`);
     }
@@ -1172,7 +1244,7 @@
       setStatus("MODEL SNAPPED TO GROUND Y=0");
     }
 
-    function normalizeAndAddObject(obj){
+    function normalizeAndAddObject(obj, clips = []){
       // アニメーション付きGLBのキーフレームを壊さないため、
       // GLB本体には position / scale 補正を直接かけない。
       // 外側の親Groupだけを移動・拡大縮小する。
@@ -1206,9 +1278,13 @@
       box.getSize(size);
       currentSize = Math.max(size.x, size.y, size.z) || 2;
 
+      // v14: モデル補正後の外側Rootに対してAnimationMixerを作る。
+      // これにより、GLB本体のキーフレームとビューアー側の中央寄せ補正が競合しにくくなる。
+      setupAnimations(currentObject, clips || []);
+
       resetView();
       modelStateInput.value = animationClips.length > 0 ? "読込完了 / アニメあり" : "読込完了";
-      setStatus(`MODEL LOADED: ${selectedModel ? selectedModel.path : ""} / ANIMATION SAFE ROOT`);
+      setStatus(`MODEL LOADED: ${selectedModel ? selectedModel.path : ""} / ANIMATION ROOT v14`);
     }
 
     async function loadSelectedModel(model){
@@ -1240,8 +1316,7 @@
           const loader = new GLTFLoader();
           const gltf = await loader.loadAsync(url);
           const obj = gltf.scene || gltf.scenes[0];
-          setupAnimations(obj, gltf.animations || []);
-          normalizeAndAddObject(obj);
+          normalizeAndAddObject(obj, gltf.animations || []);
           return;
         }
 
@@ -1256,16 +1331,14 @@
             objLoader.setMaterials(materials);
           }
           const obj = await objLoader.loadAsync(url);
-          setupAnimations(null, []);
-          normalizeAndAddObject(obj);
+          normalizeAndAddObject(obj, []);
           return;
         }
 
         if (ext === ".fbx"){
           const loader = new FBXLoader();
           const obj = await loader.loadAsync(url);
-          setupAnimations(obj, obj.animations || []);
-          normalizeAndAddObject(obj);
+          normalizeAndAddObject(obj, obj.animations || []);
           return;
         }
 
@@ -1977,7 +2050,7 @@
     function animate(){
       requestAnimationFrame(animate);
       const delta = clock.getDelta();
-      if (mixer && animationsEnabled) mixer.update(delta * animationSpeed);
+      if (mixer && animationsEnabled) mixer.update(delta);
       controls.update();
       renderer.render(scene, camera);
     }
@@ -2024,6 +2097,8 @@
     animPauseBtn.addEventListener("click", pauseAnimation);
     animRestartBtn.addEventListener("click", restartAnimation);
     animStopBtn.addEventListener("click", stopAnimation);
+    animForceBtn.addEventListener("click", () => forcePlayAnimation(true));
+    animPlayAllBtn.addEventListener("click", playAllAnimationActions);
     animLoopBtn.addEventListener("click", toggleAnimationLoop);
     animSpeedDownBtn.addEventListener("click", () => setAnimationSpeed(animationSpeed - 0.05));
     animSpeedUpBtn.addEventListener("click", () => setAnimationSpeed(animationSpeed + 0.05));
