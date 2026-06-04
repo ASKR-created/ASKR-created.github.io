@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Multi Action Animation v16</title>
+  <title>SF 3D Viewer - Multi Action Animation v17</title>
 
   <script type="importmap">
   {
@@ -246,7 +246,7 @@
     <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / MULTI ACTION ANIMATION v16</div>
+        <div class="brand-title">SF 3D VIEWER / MULTI ACTION ANIMATION v17</div>
         <div class="brand-sub">複数Actionを同時再生。Blenderで分かれたActionをまとめて動かす。速度0.80x。</div>
       </div>
       <div class="digital">
@@ -279,6 +279,7 @@
           <button class="btn magenta" id="clearModelBtn"><span>モデルクリア</span></button>
         </div>
 
+        <div class="help">全体ループONでも、個別Actionはループしません。すべてのアニメーションが終わってから全体を再スタートします。</div>
         <div class="readout" id="animationStatusText">ANIMATION: 未検出</div>
         <div class="mini-input-row">
           <div class="mini-field">
@@ -307,7 +308,7 @@
           <button class="btn lime" id="animPlayBtn"><span>統合再生</span></button>
           <button class="btn" id="animPauseBtn"><span>一時停止</span></button>
           <button class="btn" id="animRestartBtn"><span>最初から</span></button>
-          <button class="btn" id="animLoopBtn"><span>ループON</span></button>
+          <button class="btn" id="animLoopBtn"><span>全体ループON</span></button>
           <button class="btn" id="animStopBtn"><span>停止</span></button>
           <button class="btn magenta" id="animForceBtn"><span>選択のみ再生</span></button>
           <button class="btn magenta" id="animPlayAllBtn"><span>全Action同時※</span></button>
@@ -322,13 +323,13 @@
           <button class="btn lime" id="animSpeed080Btn"><span>0.80x</span></button>
           <button class="btn magenta" id="animSpeed100Btn"><span>1.00x</span></button>
         </div>
-        <div class="help">キーフレーム崩れ対策として、v16では複数Actionを同時ブレンドせず「統合再生」を標準にしています。全Action同時は崩れる場合があるため確認用です。初期速度は0.80xです。</div>
+        <div class="help">キーフレーム崩れ対策として、v17では複数Actionを同時ブレンドせず「統合再生」を標準にしています。全Action同時は崩れる場合があるため確認用です。初期速度は0.80xです。</div>
       </div>
     </section>
 
     <section class="drawer right wide" id="planDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MULTI PDF PLAN v16</div>
+        <div class="drawer-title">MULTI PDF PLAN v17</div>
         <button class="close" data-close="planDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -594,6 +595,10 @@
     const DEFAULT_ANIMATION_SPEED = 0.80;
     let animationSpeed = DEFAULT_ANIMATION_SPEED;
     let animationLoop = true;
+    let animationExpectedActions = [];
+    let animationFinishedActions = new Set();
+    let animationLoopRestartLock = false;
+    let animationCompletionMode = "none";
     let currentSize = 2;
 
     let planLayers = [];
@@ -933,6 +938,10 @@
       multiActionMode = true;
       animationSpeed = DEFAULT_ANIMATION_SPEED;
       animationLoop = true;
+      animationExpectedActions = [];
+      animationFinishedActions = new Set();
+      animationLoopRestartLock = false;
+      animationCompletionMode = "none";
 
       if (animationSelect){
         animationSelect.innerHTML = `<option value="">未検出</option>`;
@@ -947,12 +956,12 @@
         animationSpeedReadout.value = `${DEFAULT_ANIMATION_SPEED.toFixed(2)}x`;
       }
       if (animLoopBtn){
-        animLoopBtn.innerHTML = "<span>ループON</span>";
+        animLoopBtn.innerHTML = "<span>全体ループON</span>";
       }
       if (animToggleBtn){
         animToggleBtn.innerHTML = "<span>統合再生</span>";
       }
-      setAnimationStatus("ANIMATION: 未検出 / v16統合再生");
+      setAnimationStatus("ANIMATION: 未検出 / v17全体ループ制御");
     }
 
     function refreshAnimationSelect(){
@@ -1101,6 +1110,72 @@
       );
     }
 
+    function configureActionPlayOnce(action){
+      if (!action) return;
+      action.enabled = true;
+      action.paused = false;
+      action.clampWhenFinished = true;
+      action.setEffectiveWeight(1);
+      action.setEffectiveTimeScale(1);
+      // 重要：個別Actionは絶対に単独ループさせない。
+      // 全Actionが終わった後だけ、handleAnimationFinished側で全体を再スタートする。
+      action.setLoop(THREE.LoopOnce, 1);
+    }
+
+    function prepareAnimationCompletionWatch(actions, mode){
+      animationExpectedActions = (actions || []).filter(Boolean);
+      animationFinishedActions = new Set();
+      animationCompletionMode = mode || "none";
+      animationLoopRestartLock = false;
+    }
+
+    function getAnimationCompletionLabel(){
+      if (multiActionMode) return "統合Action";
+      if (playAllAnimations) return `全${animationExpectedActions.length}Action`;
+      return getActiveAnimationName();
+    }
+
+    function handleAnimationFinished(event){
+      const action = event && event.action;
+      if (!action || !animationIsPlaying) return;
+      if (!animationExpectedActions.includes(action)) return;
+
+      animationFinishedActions.add(action);
+      const finishedCount = animationFinishedActions.size;
+      const totalCount = animationExpectedActions.length || 1;
+
+      if (finishedCount < totalCount){
+        setAnimationStatus(`ANIMATION: ${finishedCount}/${totalCount}Action完了 / 全Action完了までループ禁止`);
+        return;
+      }
+
+      animationIsPlaying = false;
+      animationsEnabled = false;
+      updateAnimationButtons();
+
+      if (!animationLoop){
+        setAnimationStatus(`ANIMATION: 完了 / ${getAnimationCompletionLabel()} / ループOFF`);
+        return;
+      }
+
+      if (animationLoopRestartLock) return;
+      animationLoopRestartLock = true;
+      setAnimationStatus(`ANIMATION: 全Action完了 → 全体ループ再開 / ${animationSpeed.toFixed(2)}x`);
+
+      setTimeout(() => {
+        animationLoopRestartLock = false;
+        if (!mixer || !animationLoop) return;
+
+        if (multiActionMode && mergedAnimationAction){
+          playMergedAnimation(false);
+        } else if (playAllAnimations){
+          playAllAnimationActions(false);
+        } else if (activeAction){
+          forcePlayAnimation(false);
+        }
+      }, 0);
+    }
+
     function setupAnimations(root, clips){
       resetAnimationState();
       animationRoot = root;
@@ -1114,27 +1189,28 @@
 
       mixer = new THREE.AnimationMixer(animationRoot);
       mixer.timeScale = animationSpeed;
+      mixer.addEventListener("finished", handleAnimationFinished);
 
       animationActions = animationClips.map((clip) => {
         const action = mixer.clipAction(clip, animationRoot);
-        action.clampWhenFinished = false;
+        action.clampWhenFinished = true;
         action.enabled = true;
         action.paused = false;
         action.setEffectiveWeight(1);
         action.setEffectiveTimeScale(1);
-        action.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce, animationLoop ? Infinity : 1);
+        action.setLoop(THREE.LoopOnce, 1);
         return action;
       });
 
       mergedAnimationClip = buildMergedAnimationClip(animationClips);
       mergedAnimationAction = mergedAnimationClip ? mixer.clipAction(mergedAnimationClip, animationRoot) : null;
       if (mergedAnimationAction){
-        mergedAnimationAction.clampWhenFinished = false;
+        mergedAnimationAction.clampWhenFinished = true;
         mergedAnimationAction.enabled = true;
         mergedAnimationAction.paused = false;
         mergedAnimationAction.setEffectiveWeight(1);
         mergedAnimationAction.setEffectiveTimeScale(1);
-        mergedAnimationAction.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce, animationLoop ? Infinity : 1);
+        mergedAnimationAction.setLoop(THREE.LoopOnce, 1);
       }
 
       activeAnimationIndex = 0;
@@ -1151,7 +1227,7 @@
       playMergedAnimation(false);
 
       updateAnimationButtons();
-      setAnimationStatus(`ANIMATION: ${animationClips.length}Actionを統合再生 / 重複トラック整理 ${mergedDuplicateTrackCount}件 / ${animationSpeed.toFixed(2)}x`);
+      setAnimationStatus(`ANIMATION: ${animationClips.length}Actionを統合再生 / 全体ループ制御 / ${animationSpeed.toFixed(2)}x`);
     }
 
     function selectAnimation(index){
@@ -1184,18 +1260,15 @@
       }
       multiActionMode = true;
       playAllAnimations = false;
-      mergedAnimationAction.enabled = true;
-      mergedAnimationAction.paused = false;
-      mergedAnimationAction.setEffectiveWeight(1);
-      mergedAnimationAction.setEffectiveTimeScale(1);
-      mergedAnimationAction.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce, animationLoop ? Infinity : 1);
+      configureActionPlayOnce(mergedAnimationAction);
+      prepareAnimationCompletionWatch([mergedAnimationAction], "merged");
       mergedAnimationAction.reset();
       mergedAnimationAction.play();
       animationsEnabled = true;
       animationIsPlaying = true;
       if (animationSelect) animationSelect.value = "merged";
       updateAnimationButtons();
-      if (showStatus) setAnimationStatus(`ANIMATION: 統合再生 / ${mergedTrackCount}トラック / 重複整理${mergedDuplicateTrackCount}件 / ${animationSpeed.toFixed(2)}x`);
+      if (showStatus) setAnimationStatus(`ANIMATION: 統合再生 / 個別ループ禁止 / 全体${animationLoop ? "ループON" : "ループOFF"} / ${animationSpeed.toFixed(2)}x`);
     }
 
     function playAnimation(){
@@ -1217,17 +1290,14 @@
         mixer.stopAllAction();
         mixer.timeScale = animationSpeed;
       }
-      activeAction.enabled = true;
-      activeAction.paused = false;
-      activeAction.setEffectiveWeight(1);
-      activeAction.setEffectiveTimeScale(1);
-      activeAction.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce, animationLoop ? Infinity : 1);
+      configureActionPlayOnce(activeAction);
+      prepareAnimationCompletionWatch([activeAction], "selected");
       activeAction.reset();
       activeAction.play();
       animationsEnabled = true;
       animationIsPlaying = true;
       updateAnimationButtons();
-      if (showStatus) setAnimationStatus(`ANIMATION: 選択のみ再生 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
+      if (showStatus) setAnimationStatus(`ANIMATION: 選択のみ再生 / 個別LoopOnce / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
     }
 
     function playAllAnimationActions(showStatus = true){
@@ -1241,12 +1311,9 @@
       }
       multiActionMode = false;
       playAllAnimations = true;
+      prepareAnimationCompletionWatch(animationActions, "all");
       animationActions.forEach((action) => {
-        action.enabled = true;
-        action.paused = false;
-        action.setEffectiveWeight(1);
-        action.setEffectiveTimeScale(1);
-        action.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce, animationLoop ? Infinity : 1);
+        configureActionPlayOnce(action);
         action.reset();
         action.play();
       });
@@ -1254,7 +1321,7 @@
       animationsEnabled = true;
       animationIsPlaying = true;
       updateAnimationButtons();
-      if (showStatus) setAnimationStatus(`ANIMATION: 全${animationActions.length}Action同時再生 ※キーフレームが崩れる場合あり / ${animationSpeed.toFixed(2)}x`);
+      if (showStatus) setAnimationStatus(`ANIMATION: 全${animationActions.length}Action同時再生 / 全Action完了までループ禁止 / ${animationSpeed.toFixed(2)}x`);
     }
 
     function pauseAnimation(){
@@ -1268,6 +1335,7 @@
       }
       animationsEnabled = false;
       animationIsPlaying = false;
+      animationLoopRestartLock = false;
       updateAnimationButtons();
       setAnimationStatus(`ANIMATION: 一時停止 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
     }
@@ -1292,7 +1360,7 @@
         setAnimationStatus(`ANIMATION: 統合Actionを最初から再生 / ${animationSpeed.toFixed(2)}x`);
       } else if (playAllAnimations){
         playAllAnimationActions(true);
-        setAnimationStatus(`ANIMATION: 全Action同時を最初から再生 ※キーフレームが崩れる場合あり / ${animationSpeed.toFixed(2)}x`);
+        setAnimationStatus(`ANIMATION: 全Action同時を最初から再生 / 個別ループ禁止 / ${animationSpeed.toFixed(2)}x`);
       } else {
         forcePlayAnimation(true);
         setAnimationStatus(`ANIMATION: 選択のみ最初から再生 / ${getActiveAnimationName()} / ${animationSpeed.toFixed(2)}x`);
@@ -1305,6 +1373,9 @@
         return;
       }
       mixer.stopAllAction();
+      animationExpectedActions = [];
+      animationFinishedActions = new Set();
+      animationLoopRestartLock = false;
       if (mergedAnimationAction) mergedAnimationAction.paused = true;
       for (const action of animationActions){
         action.paused = true;
@@ -1312,6 +1383,7 @@
       playAllAnimations = false;
       animationsEnabled = false;
       animationIsPlaying = false;
+      animationLoopRestartLock = false;
       updateAnimationButtons();
       setAnimationStatus(`ANIMATION: 停止 / ${getActiveAnimationName()}`);
     }
@@ -1325,18 +1397,21 @@
 
     function toggleAnimationLoop(){
       animationLoop = !animationLoop;
+      // ここではAction自体のLoop設定は変更しない。
+      // 個別Actionは常にLoopOnce、全Action完了後だけ全体を再スタートする。
       if (mergedAnimationAction){
-        mergedAnimationAction.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce, animationLoop ? Infinity : 1);
-        mergedAnimationAction.clampWhenFinished = !animationLoop;
+        configureActionPlayOnce(mergedAnimationAction);
       }
       for (const action of animationActions){
-        action.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce, animationLoop ? Infinity : 1);
-        action.clampWhenFinished = !animationLoop;
+        configureActionPlayOnce(action);
       }
       if (animLoopBtn){
-        animLoopBtn.innerHTML = animationLoop ? "<span>ループON</span>" : "<span>ループOFF</span>";
+        animLoopBtn.innerHTML = animationLoop ? "<span>全体ループON</span>" : "<span>全体ループOFF</span>";
       }
-      setAnimationStatus(animationLoop ? "ANIMATION LOOP: ON" : "ANIMATION LOOP: OFF");
+      setAnimationStatus(animationLoop
+        ? "ANIMATION LOOP: 全体ループON / 全Action完了まで個別ループ禁止"
+        : "ANIMATION LOOP: OFF / 1回再生で停止"
+      );
     }
 
     function toggleMultiActionMode(){
