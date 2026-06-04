@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Multi Action Animation v18</title>
+  <title>SF 3D Viewer - Multi Action Animation v19</title>
 
   <script type="importmap">
   {
@@ -246,7 +246,7 @@
     <div class="top-bar">
       <div class="brand">
         <div class="brand-line"></div>
-        <div class="brand-title">SF 3D VIEWER / MULTI ACTION ANIMATION v18</div>
+        <div class="brand-title">SF 3D VIEWER / MULTI ACTION ANIMATION v19</div>
         <div class="brand-sub">モデル一覧取得を修正。リポジトリ全体検索で models/ と モデル/ を検出。速度0.80x。</div>
       </div>
       <div class="digital">
@@ -257,7 +257,7 @@
 
     <section class="drawer left" id="modelDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MODEL / ANIMATION v18</div>
+        <div class="drawer-title">MODEL / ANIMATION v19</div>
         <button class="close" data-close="modelDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -323,13 +323,13 @@
           <button class="btn lime" id="animSpeed080Btn"><span>0.80x</span></button>
           <button class="btn magenta" id="animSpeed100Btn"><span>1.00x</span></button>
         </div>
-        <div class="help">キーフレーム崩れ対策として、v18では複数Actionを同時ブレンドせず「統合再生」を標準にしています。全Action同時は崩れる場合があるため確認用です。初期速度は0.80xです。</div>
+        <div class="help">キーフレーム崩れ対策として、v19では複数Actionを同時ブレンドせず「統合再生」を標準にしています。全Action同時は崩れる場合があるため確認用です。初期速度は0.80xです。</div>
       </div>
     </section>
 
     <section class="drawer right wide" id="planDrawer">
       <div class="drawer-head">
-        <div class="drawer-title">MULTI PDF PLAN v18</div>
+        <div class="drawer-title">MULTI PDF PLAN v19</div>
         <button class="close" data-close="planDrawer">×</button>
       </div>
       <div class="drawer-body">
@@ -1091,7 +1091,7 @@
       if (animToggleBtn){
         animToggleBtn.innerHTML = "<span>統合再生</span>";
       }
-      setAnimationStatus("ANIMATION: 未検出 / v18全体ループ制御");
+      setAnimationStatus("ANIMATION: 未検出 / v19全体ループ制御");
     }
 
     function refreshAnimationSelect(){
@@ -1597,9 +1597,7 @@
       const normalizedPath = normalizeInputPath(path);
       const ext = getExt(normalizedPath);
       if (!MODEL_EXTENSIONS.includes(ext)){
-        alert("OBJ / FBX / GLB / GLTF を指定してください。
-
-例：モデル/鉄筋/鉄筋.glb");
+        alert("OBJ / FBX / GLB / GLTF を指定してください。\n\n例：モデル/鉄筋/鉄筋.glb");
         return;
       }
       const found = findModelRecordByPath(normalizedPath);
@@ -1660,13 +1658,13 @@
       box.getSize(size);
       currentSize = Math.max(size.x, size.y, size.z) || 2;
 
-      // v18: モデル補正後の外側Rootに対してAnimationMixerを作る。
+      // v19: モデル補正後の外側Rootに対してAnimationMixerを作る。
       // これにより、GLB本体のキーフレームとビューアー側の中央寄せ補正が競合しにくくなる。
       setupAnimations(currentObject, clips || []);
 
       resetView();
       modelStateInput.value = animationClips.length > 0 ? "読込完了 / アニメあり" : "読込完了";
-      setStatus(`MODEL LOADED: ${selectedModel ? selectedModel.path : ""} / ANIMATION ROOT v18`);
+      setStatus(`MODEL LOADED: ${selectedModel ? selectedModel.path : ""} / ANIMATION ROOT v19`);
     }
 
     async function loadSelectedModel(model){
@@ -1685,8 +1683,7 @@
           path + "\n\n" +
           "直接URL：\n" + getPublicAssetUrl(path) + "\n\n" +
           "GitHub上に同じ場所・同じ名前でファイルがあるか確認してください。\n" +
-          "例：models/01.glb が無い場合は、実際の配置に合わせて モデル/鉄筋/鉄筋.glb などを指定します。
-日本語フォルダも使用できます。"
+          "例：models/01.glb が無い場合は、実際の配置に合わせて モデル/鉄筋/鉄筋.glb などを指定します。\n日本語フォルダも使用できます。"
         );
         return;
       }
