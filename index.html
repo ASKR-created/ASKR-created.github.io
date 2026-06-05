@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v39 Solid Model Stable Scale</title>
+  <title>SF 3D Viewer - Teaching Contest v40 PDF White OFF</title>
 
   <script type="importmap">
   {
@@ -477,8 +477,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v39</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / 線シアン化OFF / ソリッド表示 / 表示倍率安定化</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v40</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF白背景透過OFF / 線シアン化OFF / ソリッド表示</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -623,7 +623,7 @@
 
         <label>PDF視認性</label>
         <div class="grid2">
-          <button class="btn lime" id="pdfTransparentBtn">白背景透過ON</button>
+          <button class="btn" id="pdfTransparentBtn">白背景透過OFF</button>
           <button class="btn" id="pdfLineColorBtn">線シアン化OFF</button>
         </div>
 
@@ -781,7 +781,7 @@
     let modelSolidMode = true;
     let modelVisibilityEnhanced = true;
     let modelEdgesEnhanced = true;
-    let pdfWhiteTransparent = true;
+    let pdfWhiteTransparent = false;
     let pdfLineCyan = false;
     let viewDistanceAtSet = 1;
     let viewMagnificationAtSet = 185;
@@ -1752,7 +1752,7 @@
       const currentDistance = camera.position.distanceTo(controls.target);
       if (!currentDistance || currentDistance <= 0 || !viewDistanceAtSet || viewDistanceAtSet <= 0) return;
 
-      // v39:
+      // v40:
       // 表示倍率は「最後に設定した倍率」を基準に、ホイール/ピンチで変化した距離だけ補正する。
       // シーンサイズやPDFサイズに引っ張られないので、初期185%が185%として安定表示される。
       const mag = viewMagnificationAtSet * (viewDistanceAtSet / currentDistance);
@@ -1809,7 +1809,7 @@
       const mag = clampViewMagnification(viewMagnificationInput.value);
       viewMagnification = mag;
 
-      // v39:
+      // v40:
       // fitView直後の「実カメラ距離」を、指定した表示倍率そのものとして基準化する。
       // 表示倍率はカメラ距離の変化にだけ追従し、シーンサイズには左右されない。
       const baseAxisDistance = maxDim * 1.15;
@@ -1842,7 +1842,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0017_v39");
+      url.searchParams.set("v", "20260605_0018_v40");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -2005,7 +2005,7 @@
 
     window.addEventListener("resize", resize);
 
-    // v39: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
+    // v40: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
     controls.addEventListener("change", updateRealtimeViewMagnification);
     renderer.domElement.addEventListener("wheel", () => {
       requestAnimationFrame(updateRealtimeViewMagnification);
