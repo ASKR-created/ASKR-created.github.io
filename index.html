@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v28 PDF Scale</title>
+  <title>SF 3D Viewer - Teaching Contest v29 Animation Finish Fix</title>
 
   <script type="importmap">
   {
@@ -432,8 +432,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v28</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / サイドバー収納バー対応 / PDF縮尺変更</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v29</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / サイドバー収納バー対応 / PDF縮尺変更 / アニメーション停止修正</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -675,6 +675,10 @@
     let animSpeed = 0.8;
     let animElapsed = 0;
     let animDuration = 0;
+    let activeRunActions = [];
+    let finishedRunActions = new Set();
+    let mixerFinishedHandlerAttached = false;
+    let runSerial = 0;
 
     let pdfLayer = null;
 
@@ -920,6 +924,8 @@
       mixer = null;
       clips = [];
       actions = [];
+      activeRunActions = [];
+      finishedRunActions = new Set();
       isPlaying = false;
       playPauseBtn.textContent = "再生";
       updateAnimationSelect();
@@ -974,6 +980,7 @@
             return action;
           });
           animDuration = Math.max(...clips.map(c => c.duration || 0), 0);
+          attachMixerFinishedHandler();
         }
 
         updateAnimationSelect();
@@ -1000,9 +1007,53 @@
       });
     }
 
+    function attachMixerFinishedHandler(){
+      if (!mixer || mixerFinishedHandlerAttached) return;
+
+      mixer.addEventListener("finished", event => {
+        if (!isPlaying || activeRunActions.length === 0) return;
+
+        const finishedAction = event.action;
+        if (!activeRunActions.includes(finishedAction)) return;
+
+        finishedRunActions.add(finishedAction);
+
+        // 全Action選択時は、短いActionだけで止めず、今回再生対象のActionがすべて完了するまで待つ。
+        if (finishedRunActions.size >= activeRunActions.length){
+          if (loopEnabled){
+            restartAnimation();
+          } else {
+            isPlaying = false;
+            playPauseBtn.textContent = "再生";
+            setObjectStatus("ANIMATION COMPLETE");
+          }
+        }
+      });
+
+      mixerFinishedHandlerAttached = true;
+    }
+
+    function getSelectedAnimationActions(){
+      if (actions.length === 0) return [];
+
+      const selected = animationSelect.value;
+      if (selected === "__ALL__"){
+        return actions.filter(Boolean);
+      }
+
+      const one = actions[parseInt(selected, 10)];
+      return one ? [one] : [];
+    }
+
     function playAnimation(restart=false){
       if (!mixer || actions.length === 0){
         setObjectStatus("アニメーションなし");
+        return;
+      }
+
+      const targets = getSelectedAnimationActions();
+      if (targets.length === 0){
+        setObjectStatus("再生対象Actionなし");
         return;
       }
 
@@ -1011,28 +1062,36 @@
         animElapsed = 0;
       }
 
-      const selected = animationSelect.value;
-      const targets = selected === "__ALL__" ? actions : [actions[parseInt(selected,10)]].filter(Boolean);
+      runSerial += 1;
+      activeRunActions = targets;
+      finishedRunActions = new Set();
 
-      if (restart || !isPlaying){
-        for (const action of targets){
-          action.enabled = true;
-          action.paused = false;
+      // 選択対象外のActionは停止。
+      // 全Action選択時は全Actionを同時に1回だけ再生。
+      for (const action of actions){
+        if (!targets.includes(action)){
+          action.stop();
+          action.enabled = false;
+          continue;
+        }
+
+        action.enabled = true;
+        action.paused = false;
+        action.setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = true;
+
+        if (restart || action.time >= action.getClip().duration || !isPlaying){
           action.reset();
-          action.setEffectiveTimeScale(1);
-          action.setEffectiveWeight(1);
-          action.play();
         }
-      } else {
-        for (const action of targets){
-          action.paused = false;
-          action.play();
-        }
+
+        action.setEffectiveTimeScale(1);
+        action.setEffectiveWeight(1);
+        action.play();
       }
 
       isPlaying = true;
       playPauseBtn.textContent = "一時停止";
-      setObjectStatus("ANIMATION PLAY");
+      setObjectStatus(targets.length > 1 ? `ANIMATION PLAY: 全Action ${targets.length}` : "ANIMATION PLAY");
     }
 
     function pauseAnimation(){
@@ -1286,7 +1345,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0006_v28");
+      url.searchParams.set("v", "20260605_0007_v29");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -1305,21 +1364,10 @@
       const delta = clock.getDelta();
 
       if (mixer && isPlaying){
+        // 途中停止の原因になっていた手動の経過時間判定をやめ、
+        // AnimationMixerのfinishedイベントで「対象Actionが全部完了したか」を判定する。
         mixer.update(delta * animSpeed);
         animElapsed += delta * animSpeed;
-
-        const selected = animationSelect.value;
-        const duration = selected === "__ALL__"
-          ? animDuration
-          : (clips[parseInt(selected,10)] ? clips[parseInt(selected,10)].duration : animDuration);
-
-        if (duration > 0 && animElapsed >= duration){
-          if (loopEnabled){
-            restartAnimation();
-          } else {
-            pauseAnimation();
-          }
-        }
       }
 
       controls.update();
