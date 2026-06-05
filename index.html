@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v31 Two PDF Floor Side</title>
+  <title>SF 3D Viewer - Teaching Contest v32 View Magnification</title>
 
   <script type="importmap">
   {
@@ -432,8 +432,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v31</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF 2枚同時配置 / 床＋側面 / 初期142.857%</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v32</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF 2枚同時配置 / 床＋側面 / 表示倍率設定</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -496,11 +496,31 @@
           <button class="btn" id="rotYPlusBtn">Y +90°</button>
         </div>
 
+        <label>3Dビューアー表示倍率 %</label>
+        <input id="viewMagnificationInput" type="number" min="10" max="500" step="5" value="150">
+
+        <div class="grid3">
+          <button class="btn" id="viewMag100Btn">100%</button>
+          <button class="btn lime" id="viewMag150Btn">150%</button>
+          <button class="btn" id="viewMag200Btn">200%</button>
+        </div>
+
         <div class="grid2">
+          <button class="btn lime" id="applyViewMagnificationBtn">表示倍率反映</button>
           <button class="btn" id="fitViewBtn">全体表示</button>
+        </div>
+
+        <div class="grid2">
+          <button class="btn" id="nearViewBtn">近く</button>
+          <button class="btn" id="farViewBtn">遠く</button>
+        </div>
+
+        <div class="grid2">
+          <button class="btn" id="viewMagResetBtn">倍率初期化</button>
           <button class="btn magenta" id="clearModelBtn">モデル消去</button>
         </div>
 
+        <div class="status" id="viewMagnificationStatus">表示倍率: 150%</div>
         <div class="status" id="objectStatus">OBJECT READY</div>
       </div>
     </aside>
@@ -632,6 +652,15 @@
     const modelRotYInput = document.getElementById("modelRotYInput");
     const rotYMinusBtn = document.getElementById("rotYMinusBtn");
     const rotYPlusBtn = document.getElementById("rotYPlusBtn");
+    const viewMagnificationInput = document.getElementById("viewMagnificationInput");
+    const viewMag100Btn = document.getElementById("viewMag100Btn");
+    const viewMag150Btn = document.getElementById("viewMag150Btn");
+    const viewMag200Btn = document.getElementById("viewMag200Btn");
+    const applyViewMagnificationBtn = document.getElementById("applyViewMagnificationBtn");
+    const nearViewBtn = document.getElementById("nearViewBtn");
+    const farViewBtn = document.getElementById("farViewBtn");
+    const viewMagResetBtn = document.getElementById("viewMagResetBtn");
+    const viewMagnificationStatus = document.getElementById("viewMagnificationStatus");
     const fitViewBtn = document.getElementById("fitViewBtn");
     const clearModelBtn = document.getElementById("clearModelBtn");
     const objectStatus = document.getElementById("objectStatus");
@@ -671,6 +700,7 @@
     let modelBaseScale = 1;
     let modelUserScale = 1;
     let modelSize = 2;
+    let viewMagnification = 150;
     let mixer = null;
     let clips = [];
     let actions = [];
@@ -1444,6 +1474,26 @@
       setPdfStatus(`PDF反映: ${pdfLayers.length}枚 / ${percent}% / opacity ${opacity}`);
     }
 
+
+    function clampViewMagnification(value){
+      return Math.max(10, Math.min(500, Number(value) || 150));
+    }
+
+    function setViewMagnification(value, doFit=true){
+      viewMagnification = clampViewMagnification(value);
+      viewMagnificationInput.value = String(Math.round(viewMagnification * 1000) / 1000);
+      viewMagnificationStatus.textContent = `表示倍率: ${viewMagnification}%`;
+      setObjectStatus(`3D表示倍率: ${viewMagnification}%`);
+
+      if (doFit){
+        fitView();
+      }
+    }
+
+    function changeViewMagnification(delta){
+      setViewMagnification(clampViewMagnification(viewMagnificationInput.value) + delta, true);
+    }
+
     function fitView(){
       const box = new THREE.Box3();
       if (modelWrapper) box.expandByObject(modelWrapper);
@@ -1452,7 +1502,7 @@
       }
 
       if (box.isEmpty()){
-        camera.position.set(2.6,1.7,2.6);
+        camera.position.set(1.8,1.2,1.8);
         controls.target.set(0,0,0);
         controls.update();
         return;
@@ -1464,9 +1514,12 @@
       box.getCenter(center);
 
       const maxDim = Math.max(size.x,size.y,size.z) || 2;
-      // v31: 初期カメラが遠すぎたため、3Dモデルに近い距離へ調整。
-      // 以前: maxDim * 1.8
-      const dist = maxDim * 1.15;
+      // 表示倍率が大きいほどカメラを近づける。
+      // 100% = 標準、150% = 近め、200% = さらに近め。
+      const mag = clampViewMagnification(viewMagnificationInput.value);
+      viewMagnification = mag;
+      if (viewMagnificationStatus) viewMagnificationStatus.textContent = `表示倍率: ${mag}%`;
+      const dist = maxDim * 1.15 * (100 / mag);
 
       controls.target.copy(center);
       camera.position.set(center.x + dist, center.y + dist * 0.48, center.z + dist);
@@ -1487,7 +1540,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0009_v31");
+      url.searchParams.set("v", "20260605_0010_v32");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -1539,6 +1592,14 @@
       modelRotYInput.value = String((parseFloat(modelRotYInput.value) || 0) + 90);
       applyModelTransform();
     });
+    viewMagnificationInput.addEventListener("change", () => setViewMagnification(viewMagnificationInput.value, true));
+    applyViewMagnificationBtn.addEventListener("click", () => setViewMagnification(viewMagnificationInput.value, true));
+    viewMag100Btn.addEventListener("click", () => setViewMagnification(100, true));
+    viewMag150Btn.addEventListener("click", () => setViewMagnification(150, true));
+    viewMag200Btn.addEventListener("click", () => setViewMagnification(200, true));
+    nearViewBtn.addEventListener("click", () => changeViewMagnification(25));
+    farViewBtn.addEventListener("click", () => changeViewMagnification(-25));
+    viewMagResetBtn.addEventListener("click", () => setViewMagnification(150, true));
     fitViewBtn.addEventListener("click", fitView);
     clearModelBtn.addEventListener("click", clearModel);
 
@@ -1590,6 +1651,7 @@
 
     if (initialRoot) rootInput.value = initialRoot;
 
+    setViewMagnification(150, false);
     resize();
     animate();
     loadReferenceRoot();
