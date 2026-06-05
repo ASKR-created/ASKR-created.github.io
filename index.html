@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v36 Initial View 185</title>
+  <title>SF 3D Viewer - Teaching Contest v37 Correct View Scale</title>
 
   <script type="importmap">
   {
@@ -477,8 +477,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v36</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / 初期表示倍率185% / 表示倍率リアルタイム更新 / PDF初期28.571%</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v37</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / 表示倍率計算修正 / 初期185% / PDF初期28.571%</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -1561,6 +1561,9 @@
       const currentDistance = camera.position.distanceTo(controls.target);
       if (!currentDistance || currentDistance <= 0) return;
 
+      // v37:
+      // 表示倍率は「100%時の実カメラ距離 ÷ 現在の実カメラ距離」で計算する。
+      // 以前は x/y/z の斜め距離を考慮していなかったため、表示倍率が実際より小さく出ていた。
       const mag = 100 * fitViewBaseDistance / currentDistance;
       updateViewMagnificationHud(mag, "REALTIME");
     }
@@ -1591,10 +1594,10 @@
       }
 
       if (box.isEmpty()){
-        fitViewBaseDistance = 2.5;
         camera.position.set(1.8,1.2,1.8);
         controls.target.set(0,0,0);
         controls.update();
+        fitViewBaseDistance = camera.position.distanceTo(controls.target) * (realtimeViewMagnification / 100);
         updateRealtimeViewMagnification();
         return;
       }
@@ -1610,9 +1613,15 @@
       const mag = clampViewMagnification(viewMagnificationInput.value);
       viewMagnification = mag;
 
-      // 100%時の基準距離を記録し、以後のマウスホイール/ピンチズームでリアルタイム倍率を算出する。
-      fitViewBaseDistance = maxDim * 1.15;
-      const dist = fitViewBaseDistance * (100 / mag);
+      // v37:
+      // カメラは target から x=dist, y=0.48dist, z=dist の斜め方向に置く。
+      // 実際の距離は dist ではなく dist * sqrt(1 + 0.48^2 + 1)。
+      // その実距離を100%時の基準として保存しないと、表示倍率が大きくズレる。
+      const baseAxisDistance = maxDim * 1.15;
+      const viewVectorFactor = Math.sqrt(1 + 0.48 * 0.48 + 1);
+      fitViewBaseDistance = baseAxisDistance * viewVectorFactor;
+
+      const dist = baseAxisDistance * (100 / mag);
 
       controls.target.copy(center);
       camera.position.set(center.x + dist, center.y + dist * 0.48, center.z + dist);
@@ -1634,7 +1643,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0014_v36");
+      url.searchParams.set("v", "20260605_0015_v37");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -1744,7 +1753,7 @@
 
     window.addEventListener("resize", resize);
 
-    // v36: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
+    // v37: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
     controls.addEventListener("change", updateRealtimeViewMagnification);
     renderer.domElement.addEventListener("wheel", () => {
       requestAnimationFrame(updateRealtimeViewMagnification);
