@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v24</title>
+  <title>SF 3D Viewer - Teaching Contest v25 Sidebar Storage</title>
 
   <script type="importmap">
   {
@@ -99,7 +99,7 @@
 
     .refbar-head{
       display:grid;
-      grid-template-columns:1fr auto auto;
+      grid-template-columns:1fr auto auto auto auto auto;
       gap:8px;
       align-items:center;
       padding:8px 12px;
@@ -166,6 +166,20 @@
 
     .side.left{left:10px}
     .side.right{right:10px}
+    .side.closed{
+      display:none;
+    }
+
+    .storage-on{
+      border-color:rgba(166,255,45,.62)!important;
+      color:var(--lime)!important;
+      box-shadow:0 0 16px rgba(166,255,45,.16)!important;
+    }
+
+    .viewer-focus .side{
+      display:none;
+    }
+
 
     .side-head{
       display:flex;
@@ -328,7 +342,7 @@
       #viewer{position:relative;height:48vh;min-height:360px;border:1px solid var(--line);margin-top:8px}
       .refbar,.side,.playbar{position:relative;top:auto;left:auto;right:auto;bottom:auto;width:auto;margin:0 0 8px}
       .refbar{clip-path:none}
-      .refbar-body{grid-template-columns:1fr;align-items:stretch}
+      .refbar-head{grid-template-columns:1fr 1fr;align-items:stretch}.refbar-head>div:first-child{grid-column:1/-1}.refbar-body{grid-template-columns:1fr;align-items:stretch}
       .side{max-height:none}
       .playbar{grid-template-columns:1fr 1fr;align-items:stretch}
       .playbar .speedbox{grid-column:1/-1;min-width:0}
@@ -344,10 +358,13 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v24</div>
-          <div class="subtitle">参照フォルダ → チャプター選択 → GLBとPDFを同時読込</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v25</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / 左右サイドバー収納対応</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
+        <button class="btn" id="toggleObjectSideBtn">OBJECT収納</button>
+        <button class="btn" id="togglePdfSideBtn">PDF収納</button>
+        <button class="btn magenta" id="viewerFocusBtn">表示優先</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
       </div>
 
@@ -368,7 +385,7 @@
       </div>
     </section>
 
-    <aside class="side left">
+    <aside class="side left" id="objectSide">
       <div class="side-head">OBJECT OPERATION</div>
       <div class="side-body">
         <div class="chapter-card">
@@ -402,7 +419,7 @@
       </div>
     </aside>
 
-    <aside class="side right">
+    <aside class="side right" id="pdfSide">
       <div class="side-head">PDF OPERATION</div>
       <div class="side-body">
         <div class="info-row"><div class="k">PDF</div><div class="v" id="pdfNameText">未読込</div></div>
@@ -489,6 +506,11 @@
 
     const refbar = document.getElementById("refbar");
     const collapseRefBtn = document.getElementById("collapseRefBtn");
+    const toggleObjectSideBtn = document.getElementById("toggleObjectSideBtn");
+    const togglePdfSideBtn = document.getElementById("togglePdfSideBtn");
+    const viewerFocusBtn = document.getElementById("viewerFocusBtn");
+    const objectSide = document.getElementById("objectSide");
+    const pdfSide = document.getElementById("pdfSide");
     const scanBtn = document.getElementById("scanBtn");
     const autoRootBtn = document.getElementById("autoRootBtn");
     const rootInput = document.getElementById("rootInput");
@@ -1111,7 +1133,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0002_v24");
+      url.searchParams.set("v", "20260605_0003_v25");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -1151,10 +1173,47 @@
       renderer.render(scene,camera);
     }
 
+    
+    function updateSideStorageButtons(){
+      const objectClosed = objectSide.classList.contains("closed");
+      const pdfClosed = pdfSide.classList.contains("closed");
+      const focusMode = document.getElementById("app").classList.contains("viewer-focus");
+
+      toggleObjectSideBtn.textContent = objectClosed || focusMode ? "OBJECT展開" : "OBJECT収納";
+      togglePdfSideBtn.textContent = pdfClosed || focusMode ? "PDF展開" : "PDF収納";
+      viewerFocusBtn.textContent = focusMode ? "操作パネル復帰" : "表示優先";
+
+      toggleObjectSideBtn.classList.toggle("storage-on", objectClosed || focusMode);
+      togglePdfSideBtn.classList.toggle("storage-on", pdfClosed || focusMode);
+      viewerFocusBtn.classList.toggle("storage-on", focusMode);
+    }
+
+    function toggleObjectSidebar(){
+      document.getElementById("app").classList.remove("viewer-focus");
+      objectSide.classList.toggle("closed");
+      updateSideStorageButtons();
+    }
+
+    function togglePdfSidebar(){
+      document.getElementById("app").classList.remove("viewer-focus");
+      pdfSide.classList.toggle("closed");
+      updateSideStorageButtons();
+    }
+
+    function toggleViewerFocus(){
+      const app = document.getElementById("app");
+      app.classList.toggle("viewer-focus");
+      updateSideStorageButtons();
+    }
+
     collapseRefBtn.addEventListener("click", () => {
       refbar.classList.toggle("collapsed");
       collapseRefBtn.textContent = refbar.classList.contains("collapsed") ? "参照フォルダ展開" : "参照フォルダ収納";
     });
+
+    toggleObjectSideBtn.addEventListener("click", toggleObjectSidebar);
+    togglePdfSideBtn.addEventListener("click", togglePdfSidebar);
+    viewerFocusBtn.addEventListener("click", toggleViewerFocus);
 
     scanBtn.addEventListener("click", loadReferenceRoot);
     autoRootBtn.addEventListener("click", autoDetectRoot);
@@ -1216,6 +1275,7 @@
 
     if (initialRoot) rootInput.value = initialRoot;
 
+    updateSideStorageButtons();
     resize();
     animate();
     loadReferenceRoot();
