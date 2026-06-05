@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v35 Layout Realtime HUD</title>
+  <title>SF 3D Viewer - Teaching Contest v36 Initial View 185</title>
 
   <script type="importmap">
   {
@@ -477,8 +477,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v35</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / ボタン重なり修正 / 表示倍率リアルタイム更新 / PDF初期28.571%</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v36</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / 初期表示倍率185% / 表示倍率リアルタイム更新 / PDF初期28.571%</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -502,7 +502,7 @@
     </section>
 
     <div class="view-hud" id="viewMagnificationHud">
-      現在表示倍率 150%
+      現在表示倍率 185%
       <div class="hud-sub">3D VIEW SCALE</div>
     </div>
 
@@ -547,11 +547,11 @@
         </div>
 
         <label>3Dビューアー表示倍率 %</label>
-        <input id="viewMagnificationInput" type="number" min="10" max="500" step="5" value="150">
+        <input id="viewMagnificationInput" type="number" min="10" max="500" step="5" value="185">
 
         <div class="grid3">
           <button class="btn" id="viewMag100Btn">100%</button>
-          <button class="btn lime" id="viewMag150Btn">150%</button>
+          <button class="btn lime" id="viewMag185Btn">185%</button>
           <button class="btn" id="viewMag200Btn">200%</button>
         </div>
 
@@ -570,7 +570,7 @@
           <button class="btn magenta" id="clearModelBtn">モデル消去</button>
         </div>
 
-        <div class="status" id="viewMagnificationStatus">表示倍率: 150%</div>
+        <div class="status" id="viewMagnificationStatus">表示倍率: 185%</div>
         <div class="status" id="objectStatus">OBJECT READY</div>
       </div>
     </aside>
@@ -704,7 +704,7 @@
     const rotYPlusBtn = document.getElementById("rotYPlusBtn");
     const viewMagnificationInput = document.getElementById("viewMagnificationInput");
     const viewMag100Btn = document.getElementById("viewMag100Btn");
-    const viewMag150Btn = document.getElementById("viewMag150Btn");
+    const viewMag185Btn = document.getElementById("viewMag185Btn");
     const viewMag200Btn = document.getElementById("viewMag200Btn");
     const applyViewMagnificationBtn = document.getElementById("applyViewMagnificationBtn");
     const nearViewBtn = document.getElementById("nearViewBtn");
@@ -751,9 +751,9 @@
     let modelBaseScale = 1;
     let modelUserScale = 1;
     let modelSize = 2;
-    let viewMagnification = 150;
+    let viewMagnification = 185;
     let fitViewBaseDistance = 1;
-    let realtimeViewMagnification = 150;
+    let realtimeViewMagnification = 185;
     let lastHudText = "";
     let mixer = null;
     let clips = [];
@@ -1566,7 +1566,7 @@
     }
 
     function clampViewMagnification(value){
-      return Math.max(10, Math.min(500, Number(value) || 150));
+      return Math.max(10, Math.min(500, Number(value) || 185));
     }
 
     function setViewMagnification(value, doFit=true){
@@ -1606,7 +1606,7 @@
 
       const maxDim = Math.max(size.x,size.y,size.z) || 2;
       // 表示倍率が大きいほどカメラを近づける。
-      // 100% = 標準、150% = 近め、200% = さらに近め。
+      // 100% = 標準、185% = 初期近め、200% = さらに近め。
       const mag = clampViewMagnification(viewMagnificationInput.value);
       viewMagnification = mag;
 
@@ -1634,7 +1634,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0013_v35");
+      url.searchParams.set("v", "20260605_0014_v36");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -1690,11 +1690,11 @@
     viewMagnificationInput.addEventListener("change", () => setViewMagnification(viewMagnificationInput.value, true));
     applyViewMagnificationBtn.addEventListener("click", () => setViewMagnification(viewMagnificationInput.value, true));
     viewMag100Btn.addEventListener("click", () => setViewMagnification(100, true));
-    viewMag150Btn.addEventListener("click", () => setViewMagnification(150, true));
+    viewMag185Btn.addEventListener("click", () => setViewMagnification(185, true));
     viewMag200Btn.addEventListener("click", () => setViewMagnification(200, true));
     nearViewBtn.addEventListener("click", () => changeViewMagnification(25));
     farViewBtn.addEventListener("click", () => changeViewMagnification(-25));
-    viewMagResetBtn.addEventListener("click", () => setViewMagnification(150, true));
+    viewMagResetBtn.addEventListener("click", () => setViewMagnification(185, true));
     fitViewBtn.addEventListener("click", fitView);
     clearModelBtn.addEventListener("click", clearModel);
 
@@ -1744,7 +1744,7 @@
 
     window.addEventListener("resize", resize);
 
-    // v35: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
+    // v36: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
     controls.addEventListener("change", updateRealtimeViewMagnification);
     renderer.domElement.addEventListener("wheel", () => {
       requestAnimationFrame(updateRealtimeViewMagnification);
@@ -1761,8 +1761,8 @@
 
     if (initialRoot) rootInput.value = initialRoot;
 
-    setViewMagnification(150, false);
-    updateViewMagnificationHud(150, "READY");
+    setViewMagnification(185, false);
+    updateViewMagnificationHud(185, "READY");
     resize();
     animate();
     loadReferenceRoot();
