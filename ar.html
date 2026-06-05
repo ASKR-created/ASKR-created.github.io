@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Teaching Contest v26 CSS Sidebar Storage</title>
+  <title>SF AR Viewer - Teaching Contest v28 PDF Scale</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -142,7 +142,7 @@
 
     .refbar-head{
       display:grid;
-      grid-template-columns:1fr auto auto auto auto auto;
+      grid-template-columns:1fr auto auto;
       gap:8px;
       align-items:center;
       padding:8px 12px;
@@ -187,9 +187,34 @@
       display:none;
     }
 
+
+    .side-storage-bar{
+      position:absolute;
+      top:76px;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:23;
+      width:min(760px,calc(100vw - 20px));
+      min-height:44px;
+      border:1px solid rgba(34,248,255,.34);
+      background:rgba(4,10,20,.84);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:8px;
+      padding:6px;
+    }
+
+    .side-storage-bar .storage-label{
+      min-height:32px;
+      font-size:12px;
+    }
+
     .side{
       position:absolute;
-      top:124px;
+      top:128px;
       bottom:86px;
       width:min(340px,calc(50vw - 18px));
       z-index:12;
@@ -338,6 +363,7 @@
       border:1px solid rgba(34,248,255,.35);
       margin-top:8px;
       opacity:.85;
+      transform-origin:top left;
     }
 
     .ar-button{
@@ -362,7 +388,7 @@
       html,body{overflow:auto;height:auto}
       #app{position:relative;height:auto;min-height:100vh;overflow:visible;padding:8px}
       model-viewer{position:relative;height:50vh;min-height:360px;border:1px solid var(--line);margin-top:8px}
-      .refbar,.side,.playbar{position:relative;top:auto;left:auto;right:auto;bottom:auto;width:auto;margin:0 0 8px}
+      .refbar,.side,.side-storage-bar,.playbar{position:relative;top:auto;left:auto;right:auto;bottom:auto;width:auto;margin:0 0 8px;transform:none}
       .refbar{clip-path:none}
       .refbar-head{grid-template-columns:1fr 1fr;align-items:stretch}.refbar-head>div:first-child{grid-column:1/-1}.refbar-body{grid-template-columns:1fr;align-items:stretch}
       .playbar{grid-template-columns:1fr 1fr;align-items:stretch}
@@ -397,13 +423,10 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">SF AR VIEWER / TEACHING CONTEST v26</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / CSSサイドバー収納</div>
+          <div class="title">SF AR VIEWER / TEACHING CONTEST v28</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / サイドバー収納バー対応 / PDF縮尺変更</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
-        <label class="storage-label object" for="hideObjectSide"><span class="opened">OBJECT収納</span><span class="closed">OBJECT展開</span></label>
-        <label class="storage-label pdf" for="hidePdfSide"><span class="opened">PDF収納</span><span class="closed">PDF展開</span></label>
-        <label class="storage-label focus" for="focusViewer"><span class="opened">表示優先</span><span class="closed">操作復帰</span></label>
         <button class="btn lime" id="scanBtn">参照読込</button>
       </div>
 
@@ -422,6 +445,21 @@
         <button class="btn" id="prevChapterBtn">前CH</button>
         <button class="btn" id="nextChapterBtn">次CH</button>
       </div>
+    </section>
+
+    <section class="side-storage-bar" id="sideStorageBar">
+      <label class="storage-label object" for="hideObjectSide">
+        <span class="opened">左サイドバー収納</span>
+        <span class="closed">左サイドバー展開</span>
+      </label>
+      <label class="storage-label pdf" for="hidePdfSide">
+        <span class="opened">右サイドバー収納</span>
+        <span class="closed">右サイドバー展開</span>
+      </label>
+      <label class="storage-label focus" for="focusViewer">
+        <span class="opened">表示優先</span>
+        <span class="closed">操作パネル復帰</span>
+      </label>
     </section>
 
     <aside class="side left" id="objectSide">
@@ -449,6 +487,25 @@
       <div class="side-body">
         <div class="info-row"><div class="k">PDF</div><div class="v" id="pdfPathText">未読込</div></div>
         <img id="pdfPreview" class="pdf-preview" alt="PDF preview">
+
+        <div class="status" id="pdfScaleReadout">縮尺換算: 未設定</div>
+
+        <div class="grid2">
+          <div>
+            <label>取り込んだPDFの縮尺 1/</label>
+            <input id="pdfCurrentScaleInput" type="number" min="1" step="1" value="100">
+          </div>
+          <div>
+            <label>変更したい縮尺 1/</label>
+            <input id="pdfTargetScaleInput" type="number" min="1" step="1" value="50">
+          </div>
+        </div>
+
+        <div class="grid2">
+          <button class="btn lime" id="applyPdfScaleBtn">縮尺反映</button>
+          <button class="btn" id="resetPdfScaleBtn">縮尺初期化</button>
+        </div>
+
         <div class="status" id="pdfStatus">PDF READY</div>
         <div class="status">PDFはAR起動前の確認用です。実ARへ渡すのはGLB/GLTFモデルです。</div>
       </div>
@@ -507,6 +564,11 @@
     const modelPathText = document.getElementById("modelPathText");
     const pdfPathText = document.getElementById("pdfPathText");
     const pdfPreview = document.getElementById("pdfPreview");
+    const pdfScaleReadout = document.getElementById("pdfScaleReadout");
+    const pdfCurrentScaleInput = document.getElementById("pdfCurrentScaleInput");
+    const pdfTargetScaleInput = document.getElementById("pdfTargetScaleInput");
+    const applyPdfScaleBtn = document.getElementById("applyPdfScaleBtn");
+    const resetPdfScaleBtn = document.getElementById("resetPdfScaleBtn");
     const objectStatus = document.getElementById("objectStatus");
     const pdfStatus = document.getElementById("pdfStatus");
     const arStartBtn = document.getElementById("arStartBtn");
@@ -731,6 +793,49 @@
       }
     }
 
+
+    function formatScaleNumber(value){
+      const n = Number(value) || 0;
+      if (Math.abs(n - Math.round(n)) < 0.000001) return String(Math.round(n));
+      return n.toFixed(3).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+    }
+
+    function updatePdfScaleReadout(currentScale, targetScale, percent){
+      if (!pdfScaleReadout) return;
+      if (!currentScale || !targetScale || !percent){
+        pdfScaleReadout.textContent = "縮尺換算: 未設定";
+        return;
+      }
+
+      pdfScaleReadout.textContent =
+        `縮尺換算: 1/${formatScaleNumber(currentScale)} → 1/${formatScaleNumber(targetScale)} = プレビュー倍率 ${formatScaleNumber(percent)}%`;
+    }
+
+    function applyPdfScaleConversion(){
+      const currentScale = parseFloat(pdfCurrentScaleInput.value) || 0;
+      const targetScale = parseFloat(pdfTargetScaleInput.value) || 0;
+
+      if (currentScale <= 0 || targetScale <= 0){
+        alert("縮尺は 100 や 50 のように、1/○ の分母だけ入力してください。");
+        return;
+      }
+
+      const percent = Math.max(1, Math.min(5000, 100 * currentScale / targetScale));
+      pdfPreview.style.transform = `scale(${percent / 100})`;
+      pdfPreview.style.marginBottom = `${Math.max(0, percent - 100) * 0.25}px`;
+      updatePdfScaleReadout(currentScale, targetScale, percent);
+      setPdfStatus(`縮尺反映: 1/${formatScaleNumber(currentScale)} → 1/${formatScaleNumber(targetScale)} / プレビュー倍率 ${formatScaleNumber(percent)}%`);
+    }
+
+    function resetPdfScaleConversion(){
+      pdfCurrentScaleInput.value = "100";
+      pdfTargetScaleInput.value = "50";
+      pdfPreview.style.transform = "scale(1)";
+      pdfPreview.style.marginBottom = "0";
+      updatePdfScaleReadout(0, 0, 0);
+      setPdfStatus("縮尺初期化: プレビュー倍率 100%");
+    }
+
     function changeChapter(delta){
       if (chapters.length === 0) return;
       let next = currentChapterIndex + delta;
@@ -783,7 +888,7 @@
     function open3D(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
-      url.searchParams.set("v", "20260605_0004_v26");
+      url.searchParams.set("v", "20260605_0006_v28");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -864,6 +969,11 @@
       isPaused = false;
       playPauseBtn.textContent = "一時停止";
     });
+
+    applyPdfScaleBtn.addEventListener("click", applyPdfScaleConversion);
+    resetPdfScaleBtn.addEventListener("click", resetPdfScaleConversion);
+    pdfCurrentScaleInput.addEventListener("change", applyPdfScaleConversion);
+    pdfTargetScaleInput.addEventListener("change", applyPdfScaleConversion);
 
     back3dBtn.addEventListener("click", open3D);
 
