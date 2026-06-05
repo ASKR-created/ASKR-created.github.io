@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Teaching Contest v28 PDF Scale</title>
+  <title>SF AR Viewer - Teaching Contest v29 Animation Finish Fix</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -423,8 +423,8 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">SF AR VIEWER / TEACHING CONTEST v28</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / サイドバー収納バー対応 / PDF縮尺変更</div>
+          <div class="title">SF AR VIEWER / TEACHING CONTEST v29</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / サイドバー収納バー対応 / PDF縮尺変更 / アニメーション停止修正</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -888,7 +888,7 @@
     function open3D(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
-      url.searchParams.set("v", "20260605_0006_v28");
+      url.searchParams.set("v", "20260605_0007_v29");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -897,6 +897,12 @@
     viewer.addEventListener("load", () => {
       refreshAnimations();
       setObjectStatus("読込完了: " + currentModel);
+    });
+
+    viewer.addEventListener("finished", () => {
+      isPaused = true;
+      playPauseBtn.textContent = "再生";
+      setObjectStatus("ANIMATION COMPLETE");
     });
 
     viewer.addEventListener("error", () => {
