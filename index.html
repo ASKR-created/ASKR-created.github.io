@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v29 Animation Finish Fix</title>
+  <title>SF 3D Viewer - Teaching Contest v30 PDF 142 Camera Near</title>
 
   <script type="importmap">
   {
@@ -432,8 +432,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v29</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / サイドバー収納バー対応 / PDF縮尺変更 / アニメーション停止修正</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v30</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF初期142.857% / 初期カメラ近め</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -517,18 +517,18 @@
         </select>
 
         <label>PDFサイズ %</label>
-        <input id="pdfPercentInput" type="number" step="1" value="100">
+        <input id="pdfPercentInput" type="number" step="0.001" value="142.857">
 
         <div class="status" id="pdfScaleReadout">縮尺換算: 未設定</div>
 
         <div class="grid2">
           <div>
             <label>取り込んだPDFの縮尺 1/</label>
-            <input id="pdfCurrentScaleInput" type="number" min="1" step="1" value="100">
+            <input id="pdfCurrentScaleInput" type="number" min="1" step="1" value="20">
           </div>
           <div>
             <label>変更したい縮尺 1/</label>
-            <input id="pdfTargetScaleInput" type="number" min="1" step="1" value="50">
+            <input id="pdfTargetScaleInput" type="number" min="1" step="1" value="14">
           </div>
         </div>
 
@@ -1220,8 +1220,9 @@
         };
 
         pdfNameText.textContent = getBaseName(path);
+        updatePdfScaleReadout(parseFloat(pdfCurrentScaleInput.value) || 20, parseFloat(pdfTargetScaleInput.value) || 14, parseFloat(pdfPercentInput.value) || 142.857);
         applyPdfTransform();
-        setPdfStatus("PDF読込完了: " + path);
+        setPdfStatus("PDF読込完了: " + path + " / 初期PDFサイズ 142.857%");
       }catch(err){
         console.error(err);
         setPdfStatus("PDF LOAD ERROR");
@@ -1268,14 +1269,14 @@
     }
 
     function resetPdfScaleConversion(){
-      pdfCurrentScaleInput.value = "100";
-      pdfTargetScaleInput.value = "50";
-      pdfPercentInput.value = "100";
-      updatePdfScaleReadout(0, 0, 0);
+      pdfCurrentScaleInput.value = "20";
+      pdfTargetScaleInput.value = "14";
+      pdfPercentInput.value = "142.857";
+      updatePdfScaleReadout(20, 14, 142.857);
 
       applyPdfTransform();
       fitView();
-      setPdfStatus("縮尺初期化: PDFサイズ 100%");
+      setPdfStatus("縮尺初期化: 1/20 → 1/14 / PDFサイズ 142.857%");
     }
 
     function applyPdfTransform(){
@@ -1312,7 +1313,7 @@
       if (pdfLayer && pdfLayer.group.visible) box.expandByObject(pdfLayer.group);
 
       if (box.isEmpty()){
-        camera.position.set(4,3,5);
+        camera.position.set(2.6,1.7,2.6);
         controls.target.set(0,0,0);
         controls.update();
         return;
@@ -1324,10 +1325,12 @@
       box.getCenter(center);
 
       const maxDim = Math.max(size.x,size.y,size.z) || 2;
-      const dist = maxDim * 1.8;
+      // v30: 初期カメラが遠すぎたため、3Dモデルに近い距離へ調整。
+      // 以前: maxDim * 1.8
+      const dist = maxDim * 1.15;
 
       controls.target.copy(center);
-      camera.position.set(center.x + dist, center.y + dist * 0.7, center.z + dist);
+      camera.position.set(center.x + dist, center.y + dist * 0.48, center.z + dist);
       camera.near = Math.max(0.001, maxDim / 1000);
       camera.far = Math.max(1000, maxDim * 1000);
       camera.updateProjectionMatrix();
@@ -1345,7 +1348,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0007_v29");
+      url.searchParams.set("v", "20260605_0008_v30");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
