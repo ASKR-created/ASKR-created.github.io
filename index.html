@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v33 View HUD PDF 28</title>
+  <title>SF 3D Viewer - Teaching Contest v34 Realtime View HUD</title>
 
   <script type="importmap">
   {
@@ -466,8 +466,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v33</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / 表示倍率HUD / PDF初期28.571%</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v34</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / 表示倍率HUDリアルタイム更新 / PDF初期28.571%</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -736,6 +736,9 @@
     let modelUserScale = 1;
     let modelSize = 2;
     let viewMagnification = 150;
+    let fitViewBaseDistance = 1;
+    let realtimeViewMagnification = 150;
+    let lastHudText = "";
     let mixer = null;
     let clips = [];
     let actions = [];
@@ -1510,18 +1513,50 @@
     }
 
 
+    function formatViewMagnification(value){
+      const n = Number(value) || 0;
+      if (n >= 100) return String(Math.round(n));
+      return n.toFixed(1).replace(/\.0$/, "");
+    }
+
+    function updateViewMagnificationHud(value, modeText="REALTIME"){
+      const safeValue = Math.max(1, Math.min(9999, Number(value) || 150));
+      realtimeViewMagnification = safeValue;
+
+      const text = `表示倍率 ${formatViewMagnification(safeValue)}%`;
+      if (viewMagnificationHud && lastHudText !== text + modeText){
+        viewMagnificationHud.innerHTML = `${text}<div class="hud-sub">3D VIEW SCALE / ${modeText}</div>`;
+        lastHudText = text + modeText;
+      }
+
+      if (viewMagnificationStatus){
+        viewMagnificationStatus.textContent = `表示倍率: ${formatViewMagnification(safeValue)}%`;
+      }
+
+      // 入力欄もズーム操作に追従。ただし、ユーザーが入力中のときは上書きしない。
+      if (viewMagnificationInput && document.activeElement !== viewMagnificationInput){
+        viewMagnificationInput.value = formatViewMagnification(safeValue);
+      }
+    }
+
+    function updateRealtimeViewMagnification(){
+      if (!camera || !controls || !fitViewBaseDistance || fitViewBaseDistance <= 0) return;
+
+      const currentDistance = camera.position.distanceTo(controls.target);
+      if (!currentDistance || currentDistance <= 0) return;
+
+      const mag = 100 * fitViewBaseDistance / currentDistance;
+      updateViewMagnificationHud(mag, "REALTIME");
+    }
+
     function clampViewMagnification(value){
       return Math.max(10, Math.min(500, Number(value) || 150));
     }
 
     function setViewMagnification(value, doFit=true){
       viewMagnification = clampViewMagnification(value);
-      viewMagnificationInput.value = String(Math.round(viewMagnification * 1000) / 1000);
-      viewMagnificationStatus.textContent = `表示倍率: ${viewMagnification}%`;
-      if (viewMagnificationHud){
-        viewMagnificationHud.innerHTML = `表示倍率 ${viewMagnification}%<div class="hud-sub">3D VIEW SCALE</div>`;
-      }
-      setObjectStatus(`3D表示倍率: ${viewMagnification}%`);
+      updateViewMagnificationHud(viewMagnification, "SET");
+      setObjectStatus(`3D表示倍率: ${formatViewMagnification(viewMagnification)}%`);
 
       if (doFit){
         fitView();
@@ -1540,9 +1575,11 @@
       }
 
       if (box.isEmpty()){
+        fitViewBaseDistance = 2.5;
         camera.position.set(1.8,1.2,1.8);
         controls.target.set(0,0,0);
         controls.update();
+        updateRealtimeViewMagnification();
         return;
       }
 
@@ -1556,14 +1593,14 @@
       // 100% = 標準、150% = 近め、200% = さらに近め。
       const mag = clampViewMagnification(viewMagnificationInput.value);
       viewMagnification = mag;
-      if (viewMagnificationStatus) viewMagnificationStatus.textContent = `表示倍率: ${mag}%`;
-      if (viewMagnificationHud){
-        viewMagnificationHud.innerHTML = `表示倍率 ${mag}%<div class="hud-sub">3D VIEW SCALE</div>`;
-      }
-      const dist = maxDim * 1.15 * (100 / mag);
+
+      // 100%時の基準距離を記録し、以後のマウスホイール/ピンチズームでリアルタイム倍率を算出する。
+      fitViewBaseDistance = maxDim * 1.15;
+      const dist = fitViewBaseDistance * (100 / mag);
 
       controls.target.copy(center);
       camera.position.set(center.x + dist, center.y + dist * 0.48, center.z + dist);
+      updateViewMagnificationHud(mag, "SET");
       camera.near = Math.max(0.001, maxDim / 1000);
       camera.far = Math.max(1000, maxDim * 1000);
       camera.updateProjectionMatrix();
@@ -1581,7 +1618,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0011_v33");
+      url.searchParams.set("v", "20260605_0012_v34");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -1607,6 +1644,7 @@
       }
 
       controls.update();
+      updateRealtimeViewMagnification();
       renderer.render(scene,camera);
     }
 
@@ -1693,6 +1731,7 @@
     if (initialRoot) rootInput.value = initialRoot;
 
     setViewMagnification(150, false);
+    updateViewMagnificationHud(150, "READY");
     resize();
     animate();
     loadReferenceRoot();
