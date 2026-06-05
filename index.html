@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v32 View Magnification</title>
+  <title>SF 3D Viewer - Teaching Contest v33 View HUD PDF 28</title>
 
   <script type="importmap">
   {
@@ -141,6 +141,36 @@
       height:100%;
       display:block;
       z-index:1;
+    }
+
+
+    .view-hud{
+      position:absolute;
+      top:86px;
+      right:18px;
+      z-index:24;
+      min-width:170px;
+      border:1px solid rgba(166,255,45,.58);
+      background:rgba(4,10,20,.82);
+      color:var(--lime);
+      box-shadow:0 0 18px rgba(166,255,45,.18),0 0 24px rgba(34,248,255,.08);
+      padding:8px 12px;
+      font-family:Consolas,"MS UI Gothic",monospace;
+      font-size:13px;
+      font-weight:bold;
+      letter-spacing:.08em;
+      text-align:center;
+      pointer-events:none;
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+    }
+
+    .view-hud .hud-sub{
+      margin-top:3px;
+      color:var(--sub);
+      font-size:10px;
+      letter-spacing:.04em;
+      font-weight:normal;
     }
 
     .refbar{
@@ -411,7 +441,7 @@
       html,body{overflow:auto;height:auto}
       #app{position:relative;height:auto;min-height:100vh;overflow:visible;padding:8px}
       #viewer{position:relative;height:48vh;min-height:360px;border:1px solid var(--line);margin-top:8px}
-      .refbar,.side,.side-storage-bar,.playbar{position:relative;top:auto;left:auto;right:auto;bottom:auto;width:auto;margin:0 0 8px;transform:none}
+      .refbar,.side,.side-storage-bar,.view-hud,.playbar{position:relative;top:auto;left:auto;right:auto;bottom:auto;width:auto;margin:0 0 8px;transform:none}
       .refbar{clip-path:none}
       .refbar-head{grid-template-columns:1fr 1fr;align-items:stretch}.refbar-head>div:first-child{grid-column:1/-1}.refbar-body{grid-template-columns:1fr;align-items:stretch}
       .side{max-height:none}
@@ -427,13 +457,17 @@
     <input class="storage-check" type="checkbox" id="hidePdfSide">
     <input class="storage-check" type="checkbox" id="focusViewer">
     <canvas id="viewer"></canvas>
+    <div class="view-hud" id="viewMagnificationHud">
+      表示倍率 150%
+      <div class="hud-sub">3D VIEW SCALE</div>
+    </div>
 
     <section class="refbar" id="refbar">
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v32</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF 2枚同時配置 / 床＋側面 / 表示倍率設定</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v33</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / 表示倍率HUD / PDF初期28.571%</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -540,7 +574,7 @@
         </select>
 
         <label>PDFサイズ %</label>
-        <input id="pdfPercentInput" type="number" step="0.001" value="142.857">
+        <input id="pdfPercentInput" type="number" step="0.001" value="28.571">
 
         <div class="status" id="pdfScaleReadout">縮尺換算: 未設定</div>
 
@@ -551,7 +585,7 @@
           </div>
           <div>
             <label>変更したい縮尺 1/</label>
-            <input id="pdfTargetScaleInput" type="number" min="1" step="1" value="14">
+            <input id="pdfTargetScaleInput" type="number" min="1" step="1" value="70">
           </div>
         </div>
 
@@ -661,6 +695,7 @@
     const farViewBtn = document.getElementById("farViewBtn");
     const viewMagResetBtn = document.getElementById("viewMagResetBtn");
     const viewMagnificationStatus = document.getElementById("viewMagnificationStatus");
+    const viewMagnificationHud = document.getElementById("viewMagnificationHud");
     const fitViewBtn = document.getElementById("fitViewBtn");
     const clearModelBtn = document.getElementById("clearModelBtn");
     const objectStatus = document.getElementById("objectStatus");
@@ -1296,9 +1331,9 @@
       }
 
       await Promise.all(jobs);
-      updatePdfScaleReadout(parseFloat(pdfCurrentScaleInput.value) || 20, parseFloat(pdfTargetScaleInput.value) || 14, parseFloat(pdfPercentInput.value) || 142.857);
+      updatePdfScaleReadout(parseFloat(pdfCurrentScaleInput.value) || 20, parseFloat(pdfTargetScaleInput.value) || 70, parseFloat(pdfPercentInput.value) || 28.571);
       applyPdfTransform();
-      setPdfStatus(`PDF読込完了: ${pdfLayers.length}枚 / 床 ${chapter.floorPdf ? getBaseName(chapter.floorPdf) : "なし"} / 側面 ${chapter.sidePdf ? getBaseName(chapter.sidePdf) : "なし"}`);
+      setPdfStatus(`PDF読込完了: ${pdfLayers.length}枚 / 初期PDFサイズ28.571% / 床 ${chapter.floorPdf ? getBaseName(chapter.floorPdf) : "なし"} / 側面 ${chapter.sidePdf ? getBaseName(chapter.sidePdf) : "なし"}`);
     }
 
     async function loadPdf(path, placement="floor"){
@@ -1388,13 +1423,13 @@
 
     function resetPdfScaleConversion(){
       pdfCurrentScaleInput.value = "20";
-      pdfTargetScaleInput.value = "14";
-      pdfPercentInput.value = "142.857";
-      updatePdfScaleReadout(20, 14, 142.857);
+      pdfTargetScaleInput.value = "70";
+      pdfPercentInput.value = "28.571";
+      updatePdfScaleReadout(20, 70, 28.571);
 
       applyPdfTransform();
       fitView();
-      setPdfStatus("縮尺初期化: 1/20 → 1/14 / PDFサイズ 142.857%");
+      setPdfStatus("縮尺初期化: 1/20 → 1/70 / PDFサイズ 28.571%");
     }
 
     function getPdfOperationTargets(){
@@ -1411,7 +1446,7 @@
     }
 
     function applyPdfLayerTransform(layer){
-      const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 142.857);
+      const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 28.571);
       const opacity = Math.max(0.05, Math.min(1, parseFloat(pdfOpacityInput.value) || 0.65));
 
       const baseWidth = Math.max(2.5, modelSize * 3.5);
@@ -1469,7 +1504,7 @@
         }
       }
 
-      const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 142.857);
+      const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 28.571);
       const opacity = Math.max(0.05, Math.min(1, parseFloat(pdfOpacityInput.value) || 0.65));
       setPdfStatus(`PDF反映: ${pdfLayers.length}枚 / ${percent}% / opacity ${opacity}`);
     }
@@ -1483,6 +1518,9 @@
       viewMagnification = clampViewMagnification(value);
       viewMagnificationInput.value = String(Math.round(viewMagnification * 1000) / 1000);
       viewMagnificationStatus.textContent = `表示倍率: ${viewMagnification}%`;
+      if (viewMagnificationHud){
+        viewMagnificationHud.innerHTML = `表示倍率 ${viewMagnification}%<div class="hud-sub">3D VIEW SCALE</div>`;
+      }
       setObjectStatus(`3D表示倍率: ${viewMagnification}%`);
 
       if (doFit){
@@ -1519,6 +1557,9 @@
       const mag = clampViewMagnification(viewMagnificationInput.value);
       viewMagnification = mag;
       if (viewMagnificationStatus) viewMagnificationStatus.textContent = `表示倍率: ${mag}%`;
+      if (viewMagnificationHud){
+        viewMagnificationHud.innerHTML = `表示倍率 ${mag}%<div class="hud-sub">3D VIEW SCALE</div>`;
+      }
       const dist = maxDim * 1.15 * (100 / mag);
 
       controls.target.copy(center);
@@ -1540,7 +1581,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0010_v32");
+      url.searchParams.set("v", "20260605_0011_v33");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
