@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Teaching Contest v25 Sidebar Storage</title>
+  <title>SF AR Viewer - Teaching Contest v26 CSS Sidebar Storage</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -53,6 +53,66 @@
       width:100%;
       height:100%;
       overflow:hidden;
+    }
+
+    .storage-check{
+      position:absolute;
+      opacity:0;
+      pointer-events:none;
+      width:0;
+      height:0;
+    }
+
+    .storage-label{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:38px;
+      border:1px solid rgba(34,248,255,.40);
+      background:linear-gradient(180deg,rgba(15,28,58,.94),rgba(3,8,18,.94));
+      color:var(--text);
+      font-weight:bold;
+      cursor:pointer;
+      letter-spacing:.04em;
+      padding:0 12px;
+      white-space:nowrap;
+      user-select:none;
+    }
+
+    .storage-label:hover{
+      border-color:var(--cyan);
+      box-shadow:0 0 14px rgba(34,248,255,.22);
+    }
+
+    .storage-label .closed{
+      display:none;
+    }
+
+    #hideObjectSide:checked ~ .refbar .storage-label.object,
+    #hidePdfSide:checked ~ .refbar .storage-label.pdf,
+    #focusViewer:checked ~ .refbar .storage-label.focus{
+      border-color:rgba(166,255,45,.62)!important;
+      color:var(--lime)!important;
+      box-shadow:0 0 16px rgba(166,255,45,.16)!important;
+    }
+
+    #hideObjectSide:checked ~ .refbar .storage-label.object .opened,
+    #hidePdfSide:checked ~ .refbar .storage-label.pdf .opened,
+    #focusViewer:checked ~ .refbar .storage-label.focus .opened{
+      display:none;
+    }
+
+    #hideObjectSide:checked ~ .refbar .storage-label.object .closed,
+    #hidePdfSide:checked ~ .refbar .storage-label.pdf .closed,
+    #focusViewer:checked ~ .refbar .storage-label.focus .closed{
+      display:inline;
+    }
+
+    #hideObjectSide:checked ~ #objectSide,
+    #hidePdfSide:checked ~ #pdfSide,
+    #focusViewer:checked ~ #objectSide,
+    #focusViewer:checked ~ #pdfSide{
+      display:none!important;
     }
 
     model-viewer{
@@ -145,20 +205,6 @@
 
     .side.left{left:10px}
     .side.right{right:10px}
-    .side.closed{
-      display:none;
-    }
-
-    .storage-on{
-      border-color:rgba(166,255,45,.62)!important;
-      color:var(--lime)!important;
-      box-shadow:0 0 16px rgba(166,255,45,.16)!important;
-    }
-
-    .viewer-focus .side{
-      display:none;
-    }
-
 
     .side-head{
       padding:10px 12px;
@@ -328,6 +374,9 @@
 </head>
 <body>
   <div id="app">
+    <input class="storage-check" type="checkbox" id="hideObjectSide">
+    <input class="storage-check" type="checkbox" id="hidePdfSide">
+    <input class="storage-check" type="checkbox" id="focusViewer">
     <model-viewer
       id="viewer"
       camera-controls
@@ -348,13 +397,13 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">SF AR VIEWER / TEACHING CONTEST v25</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / 左右サイドバー収納対応</div>
+          <div class="title">SF AR VIEWER / TEACHING CONTEST v26</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / CSSサイドバー収納</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
-        <button class="btn" id="toggleObjectSideBtn">OBJECT収納</button>
-        <button class="btn" id="togglePdfSideBtn">PDF収納</button>
-        <button class="btn magenta" id="viewerFocusBtn">表示優先</button>
+        <label class="storage-label object" for="hideObjectSide"><span class="opened">OBJECT収納</span><span class="closed">OBJECT展開</span></label>
+        <label class="storage-label pdf" for="hidePdfSide"><span class="opened">PDF収納</span><span class="closed">PDF展開</span></label>
+        <label class="storage-label focus" for="focusViewer"><span class="opened">表示優先</span><span class="closed">操作復帰</span></label>
         <button class="btn lime" id="scanBtn">参照読込</button>
       </div>
 
@@ -448,11 +497,6 @@
     const viewer = document.getElementById("viewer");
     const refbar = document.getElementById("refbar");
     const collapseRefBtn = document.getElementById("collapseRefBtn");
-    const toggleObjectSideBtn = document.getElementById("toggleObjectSideBtn");
-    const togglePdfSideBtn = document.getElementById("togglePdfSideBtn");
-    const viewerFocusBtn = document.getElementById("viewerFocusBtn");
-    const objectSide = document.getElementById("objectSide");
-    const pdfSide = document.getElementById("pdfSide");
     const scanBtn = document.getElementById("scanBtn");
     const autoRootBtn = document.getElementById("autoRootBtn");
     const rootInput = document.getElementById("rootInput");
@@ -739,7 +783,7 @@
     function open3D(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
-      url.searchParams.set("v", "20260605_0003_v25");
+      url.searchParams.set("v", "20260605_0004_v26");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -758,47 +802,10 @@
       setObjectStatus("AR STATUS: " + event.detail.status);
     });
 
-    
-    function updateSideStorageButtons(){
-      const objectClosed = objectSide.classList.contains("closed");
-      const pdfClosed = pdfSide.classList.contains("closed");
-      const focusMode = document.getElementById("app").classList.contains("viewer-focus");
-
-      toggleObjectSideBtn.textContent = objectClosed || focusMode ? "OBJECT展開" : "OBJECT収納";
-      togglePdfSideBtn.textContent = pdfClosed || focusMode ? "PDF展開" : "PDF収納";
-      viewerFocusBtn.textContent = focusMode ? "操作パネル復帰" : "表示優先";
-
-      toggleObjectSideBtn.classList.toggle("storage-on", objectClosed || focusMode);
-      togglePdfSideBtn.classList.toggle("storage-on", pdfClosed || focusMode);
-      viewerFocusBtn.classList.toggle("storage-on", focusMode);
-    }
-
-    function toggleObjectSidebar(){
-      document.getElementById("app").classList.remove("viewer-focus");
-      objectSide.classList.toggle("closed");
-      updateSideStorageButtons();
-    }
-
-    function togglePdfSidebar(){
-      document.getElementById("app").classList.remove("viewer-focus");
-      pdfSide.classList.toggle("closed");
-      updateSideStorageButtons();
-    }
-
-    function toggleViewerFocus(){
-      const app = document.getElementById("app");
-      app.classList.toggle("viewer-focus");
-      updateSideStorageButtons();
-    }
-
     collapseRefBtn.addEventListener("click", () => {
       refbar.classList.toggle("collapsed");
       collapseRefBtn.textContent = refbar.classList.contains("collapsed") ? "参照フォルダ展開" : "参照フォルダ収納";
     });
-
-    toggleObjectSideBtn.addEventListener("click", toggleObjectSidebar);
-    togglePdfSideBtn.addEventListener("click", togglePdfSidebar);
-    viewerFocusBtn.addEventListener("click", toggleViewerFocus);
 
     scanBtn.addEventListener("click", loadReferenceRoot);
     autoRootBtn.addEventListener("click", autoDetectRoot);
@@ -860,7 +867,6 @@
 
     back3dBtn.addEventListener("click", open3D);
 
-    updateSideStorageButtons();
     if (initialRoot) rootInput.value = initialRoot;
     loadReferenceRoot();
   </script>
