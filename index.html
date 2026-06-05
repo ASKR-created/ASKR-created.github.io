@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v30 PDF 142 Camera Near</title>
+  <title>SF 3D Viewer - Teaching Contest v31 Two PDF Floor Side</title>
 
   <script type="importmap">
   {
@@ -432,8 +432,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v30</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF初期142.857% / 初期カメラ近め</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v31</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF 2枚同時配置 / 床＋側面 / 初期142.857%</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -508,12 +508,15 @@
     <aside class="side right" id="pdfSide">
       <div class="side-head">PDF OPERATION</div>
       <div class="side-body">
-        <div class="info-row"><div class="k">PDF</div><div class="v" id="pdfNameText">未読込</div></div>
+        <div class="info-row"><div class="k">床PDF</div><div class="v" id="pdfFloorNameText">未読込</div></div>
+        <div class="info-row"><div class="k">側面PDF</div><div class="v" id="pdfSideNameText">未読込</div></div>
 
-        <label>PDF配置</label>
+        <label>PDF配置モード</label>
         <select id="pdfPlacementSelect">
-          <option value="floor">地面</option>
-          <option value="side">側面</option>
+          <option value="auto">自動：1枚目=床 / 2枚目=側面</option>
+          <option value="floor">床PDFのみ操作</option>
+          <option value="side">側面PDFのみ操作</option>
+          <option value="both">床＋側面を両方操作</option>
         </select>
 
         <label>PDFサイズ %</label>
@@ -557,7 +560,7 @@
         </div>
 
         <div class="status" id="pdfStatus">PDF READY</div>
-        <div class="mini">PDFはチャプター内の最初のPDFを自動読込します。例：teaching-contest/CH01/01.ベース筋.pdf</div>
+        <div class="mini">PDFが2つある場合は、床PDFと側面PDFとして同時配置します。名前に「平面/floor/床」があれば床、「側面/立面/side/wall」があれば側面を優先します。</div>
       </div>
     </aside>
 
@@ -620,7 +623,8 @@
     const chapterNameText = document.getElementById("chapterNameText");
     const modelPathText = document.getElementById("modelPathText");
     const pdfPathText = document.getElementById("pdfPathText");
-    const pdfNameText = document.getElementById("pdfNameText");
+    const pdfFloorNameText = document.getElementById("pdfFloorNameText");
+    const pdfSideNameText = document.getElementById("pdfSideNameText");
 
     const modelScaleInput = document.getElementById("modelScaleInput");
     const applyModelScaleBtn = document.getElementById("applyModelScaleBtn");
@@ -680,7 +684,7 @@
     let mixerFinishedHandlerAttached = false;
     let runSerial = 0;
 
-    let pdfLayer = null;
+    let pdfLayers = [];
 
     const params = new URLSearchParams(location.search);
     const initialRoot = params.get("root") ? decodeURIComponent(params.get("root")) : "";
@@ -773,18 +777,62 @@
       return await res.json();
     }
 
+    function pdfRoleScore(path, role){
+      const name = getBaseName(path).toLowerCase();
+
+      if (role === "floor"){
+        if (name.includes("平面") || name.includes("床") || name.includes("floor") || name.includes("ground") || name.includes("plan")) return 100;
+        if (name.includes("base") || name.includes("ベース")) return 50;
+        return 0;
+      }
+
+      if (role === "side"){
+        if (name.includes("側面") || name.includes("立面") || name.includes("壁") || name.includes("side") || name.includes("wall") || name.includes("elevation")) return 100;
+        return 0;
+      }
+
+      return 0;
+    }
+
+    function chooseFloorAndSidePdfs(pdfFiles){
+      const pdfs = [...pdfFiles].sort((a,b) => a.path.localeCompare(b.path, "ja"));
+      if (pdfs.length === 0) return { floorPdf:"", sidePdf:"", pdfs:[] };
+
+      let floor = pdfs[0];
+      let side = pdfs.length >= 2 ? pdfs[1] : null;
+
+      const floorCandidate = [...pdfs].sort((a,b) => pdfRoleScore(b.path, "floor") - pdfRoleScore(a.path, "floor"))[0];
+      if (floorCandidate && pdfRoleScore(floorCandidate.path, "floor") > 0) floor = floorCandidate;
+
+      const sideCandidate = [...pdfs]
+        .filter(p => p.path !== floor.path)
+        .sort((a,b) => pdfRoleScore(b.path, "side") - pdfRoleScore(a.path, "side"))[0];
+
+      if (sideCandidate && (pdfRoleScore(sideCandidate.path, "side") > 0 || pdfs.length >= 2)) side = sideCandidate;
+
+      return {
+        floorPdf: floor ? floor.path : "",
+        sidePdf: side ? side.path : "",
+        pdfs: pdfs.map(p => p.path)
+      };
+    }
+
     async function scanChapter(chapterPath){
       const items = await fetchGitHubContents(chapterPath);
       const files = Array.isArray(items) ? items.filter(item => item.type === "file") : [];
 
       const model = files.find(f => MODEL_EXTS.includes(getExt(f.path))) || null;
-      const pdf = files.find(f => PDF_EXTS.includes(getExt(f.path))) || null;
+      const pdfFiles = files.filter(f => PDF_EXTS.includes(getExt(f.path)));
+      const chosen = chooseFloorAndSidePdfs(pdfFiles);
 
       return {
         name:getBaseName(chapterPath),
         path:chapterPath,
         model:model ? model.path : "",
-        pdf:pdf ? pdf.path : "",
+        pdf:chosen.floorPdf,
+        floorPdf:chosen.floorPdf,
+        sidePdf:chosen.sidePdf,
+        pdfs:chosen.pdfs,
         files:files.map(f => f.path)
       };
     }
@@ -868,7 +916,7 @@
         const ch = chapters[i];
         const opt = document.createElement("option");
         opt.value = String(i);
-        opt.textContent = `${ch.name} / ${ch.model ? getBaseName(ch.model) : "modelなし"} / ${ch.pdf ? getBaseName(ch.pdf) : "PDFなし"}`;
+        opt.textContent = `${ch.name} / ${ch.model ? getBaseName(ch.model) : "modelなし"} / PDF ${ch.pdfs ? ch.pdfs.length : (ch.pdf ? 1 : 0)}枚`;
         chapterSelect.appendChild(opt);
       }
     }
@@ -882,14 +930,14 @@
 
       chapterNameText.textContent = ch.name;
       modelPathText.textContent = ch.model || "未登録";
-      pdfPathText.textContent = ch.pdf || "未登録";
-      pdfNameText.textContent = ch.pdf ? getBaseName(ch.pdf) : "未読込";
+      pdfPathText.textContent = ch.pdfs && ch.pdfs.length ? ch.pdfs.join(" / ") : "未登録";
+      pdfFloorNameText.textContent = ch.floorPdf ? getBaseName(ch.floorPdf) : "未読込";
+      pdfSideNameText.textContent = ch.sidePdf ? getBaseName(ch.sidePdf) : "未読込";
 
       if (ch.model) await loadModel(ch.model);
       else clearModel();
 
-      if (ch.pdf) await loadPdf(ch.pdf);
-      else clearPdf();
+      await loadChapterPdfs(ch);
 
       updateUrlState();
       fitView();
@@ -1126,7 +1174,7 @@
       modelSize = 2.0 * modelUserScale;
       setObjectStatus(`モデル変形反映 / scale ${modelUserScale}`);
       fitView();
-      if (pdfLayer) applyPdfTransform();
+      if (pdfLayers.length > 0) applyPdfTransform();
     }
 
     function snapModelGround(){
@@ -1137,16 +1185,35 @@
       setObjectStatus("モデルを地面Y=0へ配置");
     }
 
-    function clearPdf(){
-      if (pdfLayer){
-        pdfRoot.remove(pdfLayer.group);
-        pdfLayer.texture.dispose?.();
-        pdfLayer.material.dispose?.();
-        pdfLayer.mesh.geometry.dispose?.();
+    function disposePdfLayer(layer){
+      if (!layer) return;
+
+      if (layer.group && layer.group.parent){
+        layer.group.parent.remove(layer.group);
       }
-      pdfLayer = null;
-      pdfNameText.textContent = "未読込";
-      setPdfStatus("PDF消去");
+
+      layer.texture?.dispose?.();
+      layer.material?.dispose?.();
+      layer.mesh?.geometry?.dispose?.();
+    }
+
+    function clearPdf(placement="all"){
+      const targets = placement === "all"
+        ? [...pdfLayers]
+        : pdfLayers.filter(layer => layer.placement === placement);
+
+      for (const layer of targets){
+        disposePdfLayer(layer);
+      }
+
+      pdfLayers = placement === "all"
+        ? []
+        : pdfLayers.filter(layer => layer.placement !== placement);
+
+      if (placement === "all" || placement === "floor") pdfFloorNameText.textContent = "未読込";
+      if (placement === "all" || placement === "side") pdfSideNameText.textContent = "未読込";
+
+      setPdfStatus(placement === "all" ? "PDF消去" : `${placement} PDF消去`);
     }
 
     async function renderPdfToCanvas(path){
@@ -1186,11 +1253,29 @@
       return canvas2d;
     }
 
-    async function loadPdf(path){
-      clearPdf();
+    async function loadChapterPdfs(chapter){
+      clearPdf("all");
+
+      const jobs = [];
+      if (chapter.floorPdf) jobs.push(loadPdf(chapter.floorPdf, "floor"));
+      if (chapter.sidePdf && chapter.sidePdf !== chapter.floorPdf) jobs.push(loadPdf(chapter.sidePdf, "side"));
+
+      if (jobs.length === 0){
+        setPdfStatus("このチャプターにPDFはありません。");
+        return;
+      }
+
+      await Promise.all(jobs);
+      updatePdfScaleReadout(parseFloat(pdfCurrentScaleInput.value) || 20, parseFloat(pdfTargetScaleInput.value) || 14, parseFloat(pdfPercentInput.value) || 142.857);
+      applyPdfTransform();
+      setPdfStatus(`PDF読込完了: ${pdfLayers.length}枚 / 床 ${chapter.floorPdf ? getBaseName(chapter.floorPdf) : "なし"} / 側面 ${chapter.sidePdf ? getBaseName(chapter.sidePdf) : "なし"}`);
+    }
+
+    async function loadPdf(path, placement="floor"){
+      clearPdf(placement);
 
       try{
-        setPdfStatus("PDF LOADING: " + path);
+        setPdfStatus(`${placement} PDF LOADING: ${path}`);
         const canvas2d = await renderPdfToCanvas(path);
         const texture = new THREE.CanvasTexture(canvas2d);
         texture.colorSpace = THREE.SRGBColorSpace;
@@ -1209,8 +1294,9 @@
         group.add(mesh);
         pdfRoot.add(group);
 
-        pdfLayer = {
+        const layer = {
           path,
+          placement,
           aspect: canvas2d.width / Math.max(1, canvas2d.height),
           texture,
           material,
@@ -1219,14 +1305,17 @@
           visible:true
         };
 
-        pdfNameText.textContent = getBaseName(path);
-        updatePdfScaleReadout(parseFloat(pdfCurrentScaleInput.value) || 20, parseFloat(pdfTargetScaleInput.value) || 14, parseFloat(pdfPercentInput.value) || 142.857);
-        applyPdfTransform();
-        setPdfStatus("PDF読込完了: " + path + " / 初期PDFサイズ 142.857%");
+        pdfLayers.push(layer);
+
+        if (placement === "floor") pdfFloorNameText.textContent = getBaseName(path);
+        if (placement === "side") pdfSideNameText.textContent = getBaseName(path);
+
+        return layer;
       }catch(err){
         console.error(err);
         setPdfStatus("PDF LOAD ERROR");
         alert("PDFの読み込みに失敗しました。\n\n" + path + "\n\n" + err.message);
+        return null;
       }
     }
 
@@ -1257,8 +1346,7 @@
         return;
       }
 
-      // 例：取り込んだPDFが1/100、変更したい縮尺が1/50なら 100/50=2倍 → 200%
-      // 例：取り込んだPDFが1/50、変更したい縮尺が1/100なら 50/100=0.5倍 → 50%
+      // 例：取り込んだPDFが1/20、変更したい縮尺が1/14なら 20/14=1.42857倍 → 142.857%
       const percent = Math.max(1, Math.min(5000, 100 * currentScale / targetScale));
       pdfPercentInput.value = formatScaleNumber(percent);
       updatePdfScaleReadout(currentScale, targetScale, percent);
@@ -1279,38 +1367,89 @@
       setPdfStatus("縮尺初期化: 1/20 → 1/14 / PDFサイズ 142.857%");
     }
 
-    function applyPdfTransform(){
-      if (!pdfLayer) return;
+    function getPdfOperationTargets(){
+      const mode = pdfPlacementSelect.value;
+      if (mode === "floor") return pdfLayers.filter(layer => layer.placement === "floor");
+      if (mode === "side") return pdfLayers.filter(layer => layer.placement === "side");
+      return pdfLayers;
+    }
 
-      const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 100);
+    function getFloorDimensions(){
+      const floor = pdfLayers.find(layer => layer.placement === "floor");
+      if (!floor) return null;
+      return { width: floor.width || 1, height: floor.height || 1 };
+    }
+
+    function applyPdfLayerTransform(layer){
+      const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 142.857);
       const opacity = Math.max(0.05, Math.min(1, parseFloat(pdfOpacityInput.value) || 0.65));
-      const width = Math.max(2.5, modelSize * 3.5) * percent / 100;
-      const height = width / Math.max(0.001, pdfLayer.aspect);
 
-      pdfLayer.mesh.geometry.dispose();
-      pdfLayer.mesh.geometry = new THREE.PlaneGeometry(width, height);
-      pdfLayer.material.opacity = opacity;
-      pdfLayer.group.visible = pdfLayer.visible;
+      const baseWidth = Math.max(2.5, modelSize * 3.5);
+      const floorDimensions = getFloorDimensions();
+
+      let width = baseWidth * percent / 100;
+      if (layer.placement === "side" && floorDimensions){
+        width = floorDimensions.width;
+      }
+
+      const height = width / Math.max(0.001, layer.aspect);
+
+      layer.mesh.geometry.dispose();
+      layer.mesh.geometry = new THREE.PlaneGeometry(width, height);
+      layer.material.opacity = opacity;
+      layer.group.visible = layer.visible;
 
       const x = parseFloat(pdfXInput.value) || 0;
       const y = parseFloat(pdfYInput.value) || 0;
       const z = parseFloat(pdfZInput.value) || 0;
 
-      if (pdfPlacementSelect.value === "floor"){
-        pdfLayer.group.position.set(x, -0.01 + y, z);
-        pdfLayer.group.rotation.set(-Math.PI/2, 0, 0);
+      if (layer.placement === "floor"){
+        layer.group.position.set(x, -0.01 + y, z);
+        layer.group.rotation.set(-Math.PI/2, 0, 0);
       } else {
-        pdfLayer.group.position.set(x, height/2 + y, -height/2 + z);
-        pdfLayer.group.rotation.set(0, 0, 0);
+        const floorEdgeZ = floorDimensions ? (-floorDimensions.height / 2) : (-height / 2);
+        layer.group.position.set(x, height/2 + y, floorEdgeZ + z);
+        layer.group.rotation.set(0, 0, 0);
       }
 
-      setPdfStatus(`PDF反映: ${pdfPlacementSelect.value} / ${percent}% / opacity ${opacity}`);
+      layer.width = width;
+      layer.height = height;
+    }
+
+    function applyPdfTransform(){
+      if (pdfLayers.length === 0) return;
+
+      const targets = getPdfOperationTargets();
+      const targetSet = new Set(targets);
+
+      // 床寸法を先に決めるため、床は常に反映する。
+      for (const layer of pdfLayers.filter(layer => layer.placement === "floor")){
+        if (targetSet.has(layer) || pdfPlacementSelect.value === "auto" || pdfPlacementSelect.value === "both"){
+          applyPdfLayerTransform(layer);
+        } else {
+          applyPdfLayerTransform(layer);
+        }
+      }
+
+      for (const layer of pdfLayers.filter(layer => layer.placement === "side")){
+        if (targetSet.has(layer) || pdfPlacementSelect.value === "auto" || pdfPlacementSelect.value === "both"){
+          applyPdfLayerTransform(layer);
+        } else {
+          applyPdfLayerTransform(layer);
+        }
+      }
+
+      const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 142.857);
+      const opacity = Math.max(0.05, Math.min(1, parseFloat(pdfOpacityInput.value) || 0.65));
+      setPdfStatus(`PDF反映: ${pdfLayers.length}枚 / ${percent}% / opacity ${opacity}`);
     }
 
     function fitView(){
       const box = new THREE.Box3();
       if (modelWrapper) box.expandByObject(modelWrapper);
-      if (pdfLayer && pdfLayer.group.visible) box.expandByObject(pdfLayer.group);
+      for (const layer of pdfLayers){
+        if (layer.group && layer.group.visible) box.expandByObject(layer.group);
+      }
 
       if (box.isEmpty()){
         camera.position.set(2.6,1.7,2.6);
@@ -1325,7 +1464,7 @@
       box.getCenter(center);
 
       const maxDim = Math.max(size.x,size.y,size.z) || 2;
-      // v30: 初期カメラが遠すぎたため、3Dモデルに近い距離へ調整。
+      // v31: 初期カメラが遠すぎたため、3Dモデルに近い距離へ調整。
       // 以前: maxDim * 1.8
       const dist = maxDim * 1.15;
 
@@ -1348,7 +1487,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0008_v30");
+      url.searchParams.set("v", "20260605_0009_v31");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -1415,11 +1554,16 @@
       applyPdfTransform();
     });
     togglePdfBtn.addEventListener("click", () => {
-      if (!pdfLayer) return;
-      pdfLayer.visible = !pdfLayer.visible;
-      pdfLayer.group.visible = pdfLayer.visible;
+      const targets = getPdfOperationTargets();
+      if (targets.length === 0) return;
+      const anyVisible = targets.some(layer => layer.visible);
+      for (const layer of targets){
+        layer.visible = !anyVisible;
+        layer.group.visible = layer.visible;
+      }
+      setPdfStatus(anyVisible ? "選択PDFを非表示" : "選択PDFを表示");
     });
-    clearPdfBtn.addEventListener("click", clearPdf);
+    clearPdfBtn.addEventListener("click", () => clearPdf("all"));
     pdfPlacementSelect.addEventListener("change", () => { applyPdfTransform(); fitView(); });
 
     playPauseBtn.addEventListener("click", () => {
