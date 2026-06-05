@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v38 Visibility Scale Fix</title>
+  <title>SF 3D Viewer - Teaching Contest v39 Solid Model Stable Scale</title>
 
   <script type="importmap">
   {
@@ -477,8 +477,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v38</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / 表示倍率基準修正 / PDF透過 / モデル視認性強化</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v39</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / 線シアン化OFF / ソリッド表示 / 表示倍率安定化</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -502,7 +502,7 @@
     </section>
 
     <div class="view-hud" id="viewMagnificationHud">
-      現在現在表示倍率 185%
+      現在表示倍率 185%
       <div class="hud-sub">3D VIEW SCALE</div>
     </div>
 
@@ -572,8 +572,13 @@
 
         <label>モデル視認性</label>
         <div class="grid2">
+          <button class="btn lime" id="modelSolidBtn">ソリッド表示ON</button>
           <button class="btn lime" id="modelVisibilityBtn">視認性強調ON</button>
+        </div>
+
+        <div class="grid2">
           <button class="btn lime" id="modelEdgeBtn">エッジ強調ON</button>
+          <button class="btn" id="modelOriginalBtn">元材質に近く</button>
         </div>
 
         <div class="status" id="viewMagnificationStatus">表示倍率: 185%</div>
@@ -619,7 +624,7 @@
         <label>PDF視認性</label>
         <div class="grid2">
           <button class="btn lime" id="pdfTransparentBtn">白背景透過ON</button>
-          <button class="btn lime" id="pdfLineColorBtn">線シアン化ON</button>
+          <button class="btn" id="pdfLineColorBtn">線シアン化OFF</button>
         </div>
 
         <label>透明度</label>
@@ -722,8 +727,10 @@
     const nearViewBtn = document.getElementById("nearViewBtn");
     const farViewBtn = document.getElementById("farViewBtn");
     const viewMagResetBtn = document.getElementById("viewMagResetBtn");
+    const modelSolidBtn = document.getElementById("modelSolidBtn");
     const modelVisibilityBtn = document.getElementById("modelVisibilityBtn");
     const modelEdgeBtn = document.getElementById("modelEdgeBtn");
+    const modelOriginalBtn = document.getElementById("modelOriginalBtn");
     const viewMagnificationStatus = document.getElementById("viewMagnificationStatus");
     const viewMagnificationHud = document.getElementById("viewMagnificationHud");
     const fitViewBtn = document.getElementById("fitViewBtn");
@@ -771,10 +778,13 @@
     let fitViewBaseDistance = 1;
     let realtimeViewMagnification = 185;
     let lastHudText = "";
+    let modelSolidMode = true;
     let modelVisibilityEnhanced = true;
     let modelEdgesEnhanced = true;
     let pdfWhiteTransparent = true;
-    let pdfLineCyan = true;
+    let pdfLineCyan = false;
+    let viewDistanceAtSet = 1;
+    let viewMagnificationAtSet = 185;
     let mixer = null;
     let clips = [];
     let actions = [];
@@ -1055,16 +1065,50 @@
     }
 
 
+    function makeViewerSolidMaterial(originalMaterial){
+      const baseColor = new THREE.Color(0xcfefff);
+
+      if (originalMaterial && originalMaterial.color){
+        baseColor.copy(originalMaterial.color).lerp(new THREE.Color(0x8fdcff), 0.45);
+      }
+
+      const material = new THREE.MeshStandardMaterial({
+        color: baseColor,
+        roughness: 0.82,
+        metalness: 0.18,
+        transparent: false,
+        opacity: 1.0,
+        side: THREE.DoubleSide,
+        emissive: new THREE.Color(0x06131a),
+        emissiveIntensity: 0.28
+      });
+
+      if (originalMaterial && originalMaterial.map){
+        material.map = originalMaterial.map;
+      }
+
+      return material;
+    }
+
     function enhanceModelVisibility(root){
       if (!root) return;
 
       root.traverse(obj => {
         if (!obj.isMesh || !obj.material) return;
 
-        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        if (!obj.userData.originalViewerMaterial){
+          obj.userData.originalViewerMaterial = obj.material;
+        }
 
-        if (modelVisibilityEnhanced){
-          const newMats = mats.map(mat => {
+        const baseMats = Array.isArray(obj.userData.originalViewerMaterial)
+          ? obj.userData.originalViewerMaterial
+          : [obj.userData.originalViewerMaterial];
+
+        if (modelSolidMode){
+          const solidMats = baseMats.map(mat => makeViewerSolidMaterial(mat));
+          obj.material = Array.isArray(obj.userData.originalViewerMaterial) ? solidMats : solidMats[0];
+        } else if (modelVisibilityEnhanced){
+          const enhancedMats = baseMats.map(mat => {
             const cloned = mat.clone();
 
             if (cloned.color){
@@ -1078,11 +1122,25 @@
               if ("emissiveIntensity" in cloned) cloned.emissiveIntensity = 0.25;
             }
 
+            cloned.transparent = false;
+            cloned.opacity = 1.0;
+            cloned.side = THREE.DoubleSide;
             cloned.needsUpdate = true;
             return cloned;
           });
 
-          obj.material = Array.isArray(obj.material) ? newMats : newMats[0];
+          obj.material = Array.isArray(obj.userData.originalViewerMaterial) ? enhancedMats : enhancedMats[0];
+        } else {
+          obj.material = obj.userData.originalViewerMaterial;
+        }
+
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const mat of mats){
+          if (!mat) continue;
+          mat.wireframe = false;
+          mat.transparent = false;
+          mat.opacity = 1.0;
+          mat.needsUpdate = true;
         }
 
         if (modelEdgesEnhanced && obj.geometry && !obj.userData.viewerEdgeLine){
@@ -1091,7 +1149,7 @@
             const edgeMat = new THREE.LineBasicMaterial({
               color:0x22f8ff,
               transparent:true,
-              opacity:0.72,
+              opacity:0.56,
               depthTest:true
             });
             const line = new THREE.LineSegments(edgeGeo, edgeMat);
@@ -1124,7 +1182,7 @@
       if (!modelScene) return;
       removeModelEdgeLines(modelScene);
       enhanceModelVisibility(modelScene);
-      setObjectStatus(`モデル視認性: ${modelVisibilityEnhanced ? "ON" : "OFF"} / エッジ: ${modelEdgesEnhanced ? "ON" : "OFF"}`);
+      setObjectStatus(`ソリッド: ${modelSolidMode ? "ON" : "OFF"} / 視認性: ${modelVisibilityEnhanced ? "ON" : "OFF"} / エッジ: ${modelEdgesEnhanced ? "ON" : "OFF"}`);
     }
 
     function clearModel(){
@@ -1689,15 +1747,15 @@
     }
 
     function updateRealtimeViewMagnification(){
-      if (!camera || !controls || !fitViewBaseDistance || fitViewBaseDistance <= 0) return;
+      if (!camera || !controls) return;
 
       const currentDistance = camera.position.distanceTo(controls.target);
-      if (!currentDistance || currentDistance <= 0) return;
+      if (!currentDistance || currentDistance <= 0 || !viewDistanceAtSet || viewDistanceAtSet <= 0) return;
 
-      // v38:
-      // 表示倍率は「100%時の実カメラ距離 ÷ 現在の実カメラ距離」で計算する。
-      // 以前は x/y/z の斜め距離を考慮していなかったため、表示倍率が実際より小さく出ていた。
-      const mag = 100 * fitViewBaseDistance / currentDistance;
+      // v39:
+      // 表示倍率は「最後に設定した倍率」を基準に、ホイール/ピンチで変化した距離だけ補正する。
+      // シーンサイズやPDFサイズに引っ張られないので、初期185%が185%として安定表示される。
+      const mag = viewMagnificationAtSet * (viewDistanceAtSet / currentDistance);
       updateViewMagnificationHud(mag, "REALTIME");
     }
 
@@ -1707,6 +1765,9 @@
 
     function setViewMagnification(value, doFit=true){
       viewMagnification = clampViewMagnification(value);
+      viewMagnificationAtSet = viewMagnification;
+      viewDistanceAtSet = camera && controls ? Math.max(0.0001, camera.position.distanceTo(controls.target)) : 1;
+
       updateViewMagnificationHud(viewMagnification, "SET");
       setObjectStatus(`3D表示倍率: ${formatViewMagnification(viewMagnification)}%`);
 
@@ -1730,8 +1791,10 @@
         camera.position.set(1.8,1.2,1.8);
         controls.target.set(0,0,0);
         controls.update();
-        fitViewBaseDistance = camera.position.distanceTo(controls.target) * (realtimeViewMagnification / 100);
-        updateRealtimeViewMagnification();
+        viewDistanceAtSet = camera.position.distanceTo(controls.target);
+        viewMagnificationAtSet = viewMagnification;
+        fitViewBaseDistance = viewDistanceAtSet * (viewMagnification / 100);
+        updateViewMagnificationHud(viewMagnification, "SET");
         return;
       }
 
@@ -1746,9 +1809,9 @@
       const mag = clampViewMagnification(viewMagnificationInput.value);
       viewMagnification = mag;
 
-      // v38:
+      // v39:
       // fitView直後の「実カメラ距離」を、指定した表示倍率そのものとして基準化する。
-      // これにより、初期185%がHUD上でも185%付近として表示される。
+      // 表示倍率はカメラ距離の変化にだけ追従し、シーンサイズには左右されない。
       const baseAxisDistance = maxDim * 1.15;
       const dist = baseAxisDistance * (100 / mag);
 
@@ -1758,6 +1821,8 @@
 
       const actualDistance = camera.position.distanceTo(controls.target);
       fitViewBaseDistance = actualDistance * (mag / 100);
+      viewDistanceAtSet = actualDistance;
+      viewMagnificationAtSet = mag;
 
       updateViewMagnificationHud(mag, "SET");
       camera.near = Math.max(0.001, maxDim / 1000);
@@ -1777,7 +1842,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0016_v38");
+      url.searchParams.set("v", "20260605_0017_v39");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -1839,10 +1904,30 @@
     farViewBtn.addEventListener("click", () => changeViewMagnification(-25));
     viewMagResetBtn.addEventListener("click", () => setViewMagnification(185, true));
     fitViewBtn.addEventListener("click", fitView);
+    modelSolidBtn.addEventListener("click", () => {
+      modelSolidMode = !modelSolidMode;
+      modelSolidBtn.textContent = modelSolidMode ? "ソリッド表示ON" : "ソリッド表示OFF";
+      modelSolidBtn.classList.toggle("lime", modelSolidMode);
+      refreshModelVisibility();
+    });
+
     modelVisibilityBtn.addEventListener("click", () => {
       modelVisibilityEnhanced = !modelVisibilityEnhanced;
       modelVisibilityBtn.textContent = modelVisibilityEnhanced ? "視認性強調ON" : "視認性強調OFF";
       modelVisibilityBtn.classList.toggle("lime", modelVisibilityEnhanced);
+      refreshModelVisibility();
+    });
+
+    modelOriginalBtn.addEventListener("click", () => {
+      modelSolidMode = false;
+      modelVisibilityEnhanced = false;
+      modelEdgesEnhanced = false;
+      modelSolidBtn.textContent = "ソリッド表示OFF";
+      modelVisibilityBtn.textContent = "視認性強調OFF";
+      modelEdgeBtn.textContent = "エッジ強調OFF";
+      modelSolidBtn.classList.toggle("lime", false);
+      modelVisibilityBtn.classList.toggle("lime", false);
+      modelEdgeBtn.classList.toggle("lime", false);
       refreshModelVisibility();
     });
 
@@ -1920,7 +2005,7 @@
 
     window.addEventListener("resize", resize);
 
-    // v38: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
+    // v39: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
     controls.addEventListener("change", updateRealtimeViewMagnification);
     renderer.domElement.addEventListener("wheel", () => {
       requestAnimationFrame(updateRealtimeViewMagnification);
@@ -1939,6 +2024,7 @@
 
     setViewMagnification(185, false);
     updateViewMagnificationHud(185, "READY");
+    modelSolidBtn.classList.toggle("lime", modelSolidMode);
     modelVisibilityBtn.classList.toggle("lime", modelVisibilityEnhanced);
     modelEdgeBtn.classList.toggle("lime", modelEdgesEnhanced);
     pdfTransparentBtn.classList.toggle("lime", pdfWhiteTransparent);
