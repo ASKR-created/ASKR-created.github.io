@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v40 PDF White OFF</title>
+  <title>SF 3D Viewer - Teaching Contest v41 PDF Real Page Scale</title>
 
   <script type="importmap">
   {
@@ -477,8 +477,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v40</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF白背景透過OFF / 線シアン化OFF / ソリッド表示</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v41</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF実寸基準 / 白背景透過OFF / 線シアン化OFF</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -591,6 +591,7 @@
       <div class="side-body">
         <div class="info-row"><div class="k">床PDF</div><div class="v" id="pdfFloorNameText">未読込</div></div>
         <div class="info-row"><div class="k">側面PDF</div><div class="v" id="pdfSideNameText">未読込</div></div>
+        <div class="info-row"><div class="k">サイズ基準</div><div class="v" id="pdfSizeBasisText">PDFページ実寸基準</div></div>
 
         <label>PDF配置モード</label>
         <select id="pdfPlacementSelect">
@@ -712,6 +713,7 @@
     const pdfPathText = document.getElementById("pdfPathText");
     const pdfFloorNameText = document.getElementById("pdfFloorNameText");
     const pdfSideNameText = document.getElementById("pdfSideNameText");
+    const pdfSizeBasisText = document.getElementById("pdfSizeBasisText");
 
     const modelScaleInput = document.getElementById("modelScaleInput");
     const applyModelScaleBtn = document.getElementById("applyModelScaleBtn");
@@ -1504,6 +1506,14 @@
         const canvas2d = document.createElement("canvas");
         canvas2d.width = Math.max(1, Math.floor(viewport.width));
         canvas2d.height = Math.max(1, Math.floor(viewport.height));
+
+        // v41:
+        // 描画後のcanvasピクセルではなく、PDF内部のページ寸法を保存する。
+        // これを使うことで、PDF同士の縮尺差が出にくくなる。
+        canvas2d._viewerPageWidth = base.width;
+        canvas2d._viewerPageHeight = base.height;
+        canvas2d._viewerSourceKind = "pdf";
+
         const ctx = canvas2d.getContext("2d", {alpha:true});
         ctx.clearRect(0,0,canvas2d.width,canvas2d.height);
         ctx.fillStyle = "#fff";
@@ -1520,6 +1530,10 @@
       const canvas2d = document.createElement("canvas");
       canvas2d.width = img.naturalWidth;
       canvas2d.height = img.naturalHeight;
+      canvas2d._viewerPageWidth = img.naturalWidth;
+      canvas2d._viewerPageHeight = img.naturalHeight;
+      canvas2d._viewerSourceKind = "image";
+
       const ctx = canvas2d.getContext("2d", {alpha:true});
       ctx.clearRect(0,0,canvas2d.width,canvas2d.height);
       ctx.fillStyle = "#fff";
@@ -1573,6 +1587,9 @@
           path,
           placement,
           aspect: canvas2d.width / Math.max(1, canvas2d.height),
+          pageWidth: canvas2d._viewerPageWidth || canvas2d.width,
+          pageHeight: canvas2d._viewerPageHeight || canvas2d.height,
+          sourceKind: canvas2d._viewerSourceKind || "unknown",
           texture,
           material,
           mesh,
@@ -1655,19 +1672,38 @@
       return { width: floor.width || 1, height: floor.height || 1 };
     }
 
+    function getPdfReferenceLayer(){
+      // 床PDFを基準にする。床PDFがない場合だけ最初のPDFを基準にする。
+      return pdfLayers.find(layer => layer.placement === "floor") || pdfLayers[0] || null;
+    }
+
+    function getPdfWorldSizeByPageScale(layer){
+      const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 28.571);
+      const baseWorldWidth = Math.max(2.5, modelSize * 3.5) * percent / 100;
+
+      const reference = getPdfReferenceLayer();
+      const refPageWidth = Math.max(1, reference ? reference.pageWidth : layer.pageWidth || 1);
+
+      // v41:
+      // 全PDFのワールドサイズを「基準PDFのページ幅」に対するページ実寸比で決める。
+      // これで同じ縮尺・同じ用紙サイズのPDFなら、同じ大きさで配置される。
+      const layerPageWidth = Math.max(1, layer.pageWidth || 1);
+      const layerPageHeight = Math.max(1, layer.pageHeight || 1);
+
+      return {
+        width: baseWorldWidth * (layerPageWidth / refPageWidth),
+        height: baseWorldWidth * (layerPageHeight / refPageWidth)
+      };
+    }
+
     function applyPdfLayerTransform(layer){
       const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 28.571);
       const opacity = Math.max(0.05, Math.min(1, parseFloat(pdfOpacityInput.value) || 0.65));
 
-      const baseWidth = Math.max(2.5, modelSize * 3.5);
+      const size = getPdfWorldSizeByPageScale(layer);
+      const width = size.width;
+      const height = size.height;
       const floorDimensions = getFloorDimensions();
-
-      let width = baseWidth * percent / 100;
-      if (layer.placement === "side" && floorDimensions){
-        width = floorDimensions.width;
-      }
-
-      const height = width / Math.max(0.001, layer.aspect);
 
       layer.mesh.geometry.dispose();
       layer.mesh.geometry = new THREE.PlaneGeometry(width, height);
@@ -1689,6 +1725,12 @@
 
       layer.width = width;
       layer.height = height;
+
+      if (pdfSizeBasisText){
+        const ref = getPdfReferenceLayer();
+        const refText = ref ? `${getBaseName(ref.path)} / ${Math.round(ref.pageWidth)}×${Math.round(ref.pageHeight)}` : "未設定";
+        pdfSizeBasisText.textContent = `PDFページ実寸基準: ${refText}`;
+      }
     }
 
     function applyPdfTransform(){
@@ -1716,7 +1758,7 @@
 
       const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 28.571);
       const opacity = Math.max(0.05, Math.min(1, parseFloat(pdfOpacityInput.value) || 0.65));
-      setPdfStatus(`PDF反映: ${pdfLayers.length}枚 / ${percent}% / opacity ${opacity}`);
+      setPdfStatus(`PDF反映: ${pdfLayers.length}枚 / 実寸基準 / ${percent}% / opacity ${opacity}`);
     }
 
 
@@ -1752,7 +1794,7 @@
       const currentDistance = camera.position.distanceTo(controls.target);
       if (!currentDistance || currentDistance <= 0 || !viewDistanceAtSet || viewDistanceAtSet <= 0) return;
 
-      // v40:
+      // v41:
       // 表示倍率は「最後に設定した倍率」を基準に、ホイール/ピンチで変化した距離だけ補正する。
       // シーンサイズやPDFサイズに引っ張られないので、初期185%が185%として安定表示される。
       const mag = viewMagnificationAtSet * (viewDistanceAtSet / currentDistance);
@@ -1809,7 +1851,7 @@
       const mag = clampViewMagnification(viewMagnificationInput.value);
       viewMagnification = mag;
 
-      // v40:
+      // v41:
       // fitView直後の「実カメラ距離」を、指定した表示倍率そのものとして基準化する。
       // 表示倍率はカメラ距離の変化にだけ追従し、シーンサイズには左右されない。
       const baseAxisDistance = maxDim * 1.15;
@@ -1842,7 +1884,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0018_v40");
+      url.searchParams.set("v", "20260605_0019_v41");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -2005,7 +2047,7 @@
 
     window.addEventListener("resize", resize);
 
-    // v40: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
+    // v41: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
     controls.addEventListener("change", updateRealtimeViewMagnification);
     renderer.domElement.addEventListener("wheel", () => {
       requestAnimationFrame(updateRealtimeViewMagnification);
