@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v42 Real Model Scale</title>
+  <title>SF 3D Viewer - Teaching Contest v43 PDF Visible Restore</title>
 
   <script type="importmap">
   {
@@ -477,8 +477,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v42</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / GLB実寸優先 / PDF実寸基準 / 縮尺統一</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v43</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF表示復旧 / GLB実寸優先 / PDF基準切替</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -597,7 +597,22 @@
       <div class="side-body">
         <div class="info-row"><div class="k">床PDF</div><div class="v" id="pdfFloorNameText">未読込</div></div>
         <div class="info-row"><div class="k">側面PDF</div><div class="v" id="pdfSideNameText">未読込</div></div>
-        <div class="info-row"><div class="k">サイズ基準</div><div class="v" id="pdfSizeBasisText">PDFページ実寸基準</div></div>
+        <div class="info-row"><div class="k">サイズ基準</div><div class="v" id="pdfSizeBasisText">表示優先：モデル表示範囲基準</div></div>
+
+        <label>PDFサイズ基準</label>
+        <select id="pdfSizeModeSelect">
+          <option value="model" selected>表示優先：モデル表示範囲に合わせる</option>
+          <option value="fixed">固定基準幅を使う</option>
+          <option value="pdf">PDFページ実寸比を使う</option>
+        </select>
+
+        <label>PDF固定基準幅</label>
+        <input id="pdfBaseWidthInput" type="number" min="0.01" step="0.01" value="6.0">
+
+        <div class="grid2">
+          <button class="btn lime" id="pdfAlwaysOnTopBtn">PDF前面表示ON</button>
+          <button class="btn" id="pdfFitVisibleBtn">PDF表示復旧</button>
+        </div>
 
         <label>PDF配置モード</label>
         <select id="pdfPlacementSelect">
@@ -720,6 +735,10 @@
     const pdfFloorNameText = document.getElementById("pdfFloorNameText");
     const pdfSideNameText = document.getElementById("pdfSideNameText");
     const pdfSizeBasisText = document.getElementById("pdfSizeBasisText");
+    const pdfSizeModeSelect = document.getElementById("pdfSizeModeSelect");
+    const pdfBaseWidthInput = document.getElementById("pdfBaseWidthInput");
+    const pdfAlwaysOnTopBtn = document.getElementById("pdfAlwaysOnTopBtn");
+    const pdfFitVisibleBtn = document.getElementById("pdfFitVisibleBtn");
 
     const modelScaleInput = document.getElementById("modelScaleInput");
     const applyModelScaleBtn = document.getElementById("applyModelScaleBtn");
@@ -795,6 +814,7 @@
     let modelEdgesEnhanced = true;
     let pdfWhiteTransparent = false;
     let pdfLineCyan = false;
+    let pdfAlwaysOnTop = true;
     let viewDistanceAtSet = 1;
     let viewMagnificationAtSet = 185;
     let mixer = null;
@@ -1257,7 +1277,7 @@
 
         const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
-        // v42:
+        // v43:
         // 以前は全モデルを「最大寸法2.0」に自動正規化していた。
         // そのためCH01/CH02で元の図面縮尺が同じでも、モデル側の見かけ寸法がズレていた。
         // 今回はデフォルトでGLB実寸を優先し、必要な時だけ自動正規化をONにする。
@@ -1529,7 +1549,7 @@
         canvas2d.width = Math.max(1, Math.floor(viewport.width));
         canvas2d.height = Math.max(1, Math.floor(viewport.height));
 
-        // v42:
+        // v43:
         // 描画後のcanvasピクセルではなく、PDF内部のページ寸法を保存する。
         // これを使うことで、PDF同士の縮尺差が出にくくなる。
         canvas2d._viewerPageWidth = base.width;
@@ -1597,10 +1617,12 @@
           transparent:true,
           opacity:parseFloat(pdfOpacityInput.value) || 0.65,
           side:THREE.DoubleSide,
-          depthWrite:false
+          depthWrite:false,
+          depthTest: !pdfAlwaysOnTop
         });
 
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1,1), material);
+        mesh.renderOrder = pdfAlwaysOnTop ? 200 : 0;
         const group = new THREE.Group();
         group.add(mesh);
         pdfRoot.add(group);
@@ -1701,24 +1723,30 @@
 
     function getPdfWorldSizeByPageScale(layer){
       const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 28.571);
-
-      // v42:
-      // PDFサイズをモデルサイズに連動させると、CHごとのモデル寸法差でPDFまで変わって見える。
-      // PDFはPDF縮尺入力に従うべきなので、固定の基準幅から算出する。
-      const PDF_BASE_WORLD_WIDTH = 6.0;
-      const baseWorldWidth = PDF_BASE_WORLD_WIDTH * percent / 100;
+      const mode = pdfSizeModeSelect ? pdfSizeModeSelect.value : "model";
 
       const reference = getPdfReferenceLayer();
       const refPageWidth = Math.max(1, reference ? reference.pageWidth : layer.pageWidth || 1);
-
-      // v42:
-      // 全PDFのワールドサイズを「基準PDFのページ幅」に対するページ実寸比で決める。
-      // これで同じ縮尺・同じ用紙サイズのPDFなら、同じ大きさで配置される。
       const layerPageWidth = Math.max(1, layer.pageWidth || 1);
       const layerPageHeight = Math.max(1, layer.pageHeight || 1);
+      const pageWidthRatio = layerPageWidth / refPageWidth;
+
+      let baseWorldWidth;
+
+      if (mode === "fixed"){
+        baseWorldWidth = Math.max(0.01, parseFloat(pdfBaseWidthInput.value) || 6.0) * percent / 100;
+      } else if (mode === "pdf"){
+        // PDFページ実寸比を使う。床PDFを基準に同じ用紙・同じ縮尺なら同じ大きさになる。
+        baseWorldWidth = 6.0 * percent / 100;
+      } else {
+        // v43 default:
+        // GLB実寸優先にするとモデル単位が大きい/小さい場合にPDFが見えなくなることがある。
+        // そのためデフォルトはモデル表示範囲からPDF幅を決め、まず画面に見えることを優先する。
+        baseWorldWidth = Math.max(2.5, modelSize * 3.5) * percent / 100;
+      }
 
       return {
-        width: baseWorldWidth * (layerPageWidth / refPageWidth),
+        width: baseWorldWidth * pageWidthRatio,
         height: baseWorldWidth * (layerPageHeight / refPageWidth)
       };
     }
@@ -1735,6 +1763,9 @@
       layer.mesh.geometry.dispose();
       layer.mesh.geometry = new THREE.PlaneGeometry(width, height);
       layer.material.opacity = opacity;
+      layer.material.depthTest = !pdfAlwaysOnTop;
+      layer.material.depthWrite = false;
+      layer.mesh.renderOrder = pdfAlwaysOnTop ? 200 : 0;
       layer.group.visible = layer.visible;
 
       const x = parseFloat(pdfXInput.value) || 0;
@@ -1742,7 +1773,8 @@
       const z = parseFloat(pdfZInput.value) || 0;
 
       if (layer.placement === "floor"){
-        layer.group.position.set(x, -0.01 + y, z);
+        // PDFが床やグリッドの下に隠れないよう、少しだけ上に浮かせる。
+        layer.group.position.set(x, 0.01 + y, z);
         layer.group.rotation.set(-Math.PI/2, 0, 0);
       } else {
         const floorEdgeZ = floorDimensions ? (-floorDimensions.height / 2) : (-height / 2);
@@ -1756,7 +1788,9 @@
       if (pdfSizeBasisText){
         const ref = getPdfReferenceLayer();
         const refText = ref ? `${getBaseName(ref.path)} / ${Math.round(ref.pageWidth)}×${Math.round(ref.pageHeight)}` : "未設定";
-        pdfSizeBasisText.textContent = `PDFページ実寸基準: ${refText}`;
+        const mode = pdfSizeModeSelect ? pdfSizeModeSelect.value : "model";
+        const modeText = mode === "model" ? "表示優先：モデル表示範囲基準" : (mode === "fixed" ? "固定基準幅" : "PDFページ実寸比");
+        pdfSizeBasisText.textContent = `${modeText}: ${refText}`;
       }
     }
 
@@ -1785,7 +1819,7 @@
 
       const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 28.571);
       const opacity = Math.max(0.05, Math.min(1, parseFloat(pdfOpacityInput.value) || 0.65));
-      setPdfStatus(`PDF反映: ${pdfLayers.length}枚 / PDF固定基準 / 実寸比 / ${percent}% / opacity ${opacity}`);
+      setPdfStatus(`PDF反映: ${pdfLayers.length}枚 / ${pdfSizeModeSelect ? pdfSizeModeSelect.value : "model"}基準 / ${percent}% / opacity ${opacity} / 前面${pdfAlwaysOnTop ? "ON" : "OFF"}`);
     }
 
 
@@ -1821,7 +1855,7 @@
       const currentDistance = camera.position.distanceTo(controls.target);
       if (!currentDistance || currentDistance <= 0 || !viewDistanceAtSet || viewDistanceAtSet <= 0) return;
 
-      // v42:
+      // v43:
       // 表示倍率は「最後に設定した倍率」を基準に、ホイール/ピンチで変化した距離だけ補正する。
       // シーンサイズやPDFサイズに引っ張られないので、初期185%が185%として安定表示される。
       const mag = viewMagnificationAtSet * (viewDistanceAtSet / currentDistance);
@@ -1878,7 +1912,7 @@
       const mag = clampViewMagnification(viewMagnificationInput.value);
       viewMagnification = mag;
 
-      // v42:
+      // v43:
       // fitView直後の「実カメラ距離」を、指定した表示倍率そのものとして基準化する。
       // 表示倍率はカメラ距離の変化にだけ追従し、シーンサイズには左右されない。
       const baseAxisDistance = maxDim * 1.15;
@@ -1911,7 +1945,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0020_v42");
+      url.searchParams.set("v", "20260605_0021_v43");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -2027,6 +2061,35 @@
     clearModelBtn.addEventListener("click", clearModel);
 
     applyPdfBtn.addEventListener("click", () => { applyPdfTransform(); fitView(); });
+
+    pdfSizeModeSelect.addEventListener("change", () => {
+      applyPdfTransform();
+      fitView();
+    });
+
+    pdfBaseWidthInput.addEventListener("change", () => {
+      applyPdfTransform();
+      fitView();
+    });
+
+    pdfAlwaysOnTopBtn.addEventListener("click", () => {
+      pdfAlwaysOnTop = !pdfAlwaysOnTop;
+      pdfAlwaysOnTopBtn.textContent = pdfAlwaysOnTop ? "PDF前面表示ON" : "PDF前面表示OFF";
+      pdfAlwaysOnTopBtn.classList.toggle("lime", pdfAlwaysOnTop);
+      applyPdfTransform();
+    });
+
+    pdfFitVisibleBtn.addEventListener("click", () => {
+      pdfSizeModeSelect.value = "model";
+      pdfAlwaysOnTop = true;
+      pdfAlwaysOnTopBtn.textContent = "PDF前面表示ON";
+      pdfAlwaysOnTopBtn.classList.toggle("lime", true);
+      pdfOpacityInput.value = "0.8";
+      applyPdfTransform();
+      fitView();
+      setPdfStatus("PDF表示復旧: 表示優先基準 / 前面表示ON / 透明度0.8");
+    });
+
     applyPdfScaleBtn.addEventListener("click", applyPdfScaleConversion);
     resetPdfScaleBtn.addEventListener("click", resetPdfScaleConversion);
 
@@ -2091,7 +2154,7 @@
 
     window.addEventListener("resize", resize);
 
-    // v42: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
+    // v43: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
     controls.addEventListener("change", updateRealtimeViewMagnification);
     renderer.domElement.addEventListener("wheel", () => {
       requestAnimationFrame(updateRealtimeViewMagnification);
@@ -2117,6 +2180,7 @@
     modelEdgeBtn.classList.toggle("lime", modelEdgesEnhanced);
     pdfTransparentBtn.classList.toggle("lime", pdfWhiteTransparent);
     pdfLineColorBtn.classList.toggle("lime", pdfLineCyan);
+    pdfAlwaysOnTopBtn.classList.toggle("lime", pdfAlwaysOnTop);
     resize();
     animate();
     loadReferenceRoot();
