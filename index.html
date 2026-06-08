@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Teaching Contest v49 Mobile CH01 Correction</title>
+  <title>SF AR Viewer - Teaching Contest v50 Simple Mobile Layout</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -466,7 +466,7 @@
         right:8px;
         bottom:8px;
         z-index:60;
-        grid-template-columns:repeat(6,1fr);
+        grid-template-columns:repeat(4,1fr);
         gap:6px;
         padding:6px;
         border:1px solid rgba(34,248,255,.34);
@@ -491,7 +491,7 @@
         bottom:76px;
         z-index:58;
         border:1px solid rgba(34,248,255,.34);
-        background:rgba(4,10,20,.91);
+        background:rgba(4,10,20,.93);
         box-shadow:var(--shadow);
         padding:8px;
         grid-template-columns:repeat(2,1fr);
@@ -535,8 +535,8 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">SF AR VIEWER / TEACHING CONTEST v49</div>
-          <div class="subtitle">スマホ最小操作バー / PDF1-20→1-70固定 / CH01基準モデル補正</div>
+          <div class="title">SF AR VIEWER / TEACHING CONTEST v50</div>
+          <div class="subtitle">スマホ4ボタン構成 / PDF1-20→1-70固定 / CH01基準モデル補正</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -651,21 +651,19 @@
     </section>
 
     <section class="mobile-quick-panel" id="mobileQuickPanel">
-      <button class="btn" id="mobileOpenRefBtn">参照/CH</button>
-      <button class="btn" id="mobileOpenObjectBtn">モデル</button>
-      <button class="btn" id="mobileOpenPdfBtn">PDF</button>
-      <button class="btn" id="mobileOpenAnimBtn">再生詳細</button>
-      <button class="btn lime" id="mobileResetViewBtn">視点リセット</button>
+      <button class="btn lime" id="mobileArBtn">AR起動</button>
+      <button class="btn" id="mobileOpenRefBtn">CH選択</button>
+      <button class="btn" id="mobileResetViewBtn">視点リセット</button>
+      <button class="btn magenta" id="mobileBack3dBtn">3Dへ戻る</button>
+      <button class="btn" id="mobileOpenObjectBtn">詳細</button>
       <button class="btn magenta" id="mobileClosePanelsBtn">閉じる</button>
     </section>
 
     <section class="mobile-dock" id="mobileDock">
-      <button class="btn" id="mobilePrevBtn">前CH</button>
+      <button class="btn" id="mobilePrevBtn">前</button>
       <button class="btn lime" id="mobilePlayBtn">再生</button>
-      <button class="btn" id="mobileNextBtn">次CH</button>
-      <button class="btn lime" id="mobileArBtn">AR</button>
-      <button class="btn" id="mobilePanelBtn">操作</button>
-      <button class="btn magenta" id="mobileBack3dBtn">3D</button>
+      <button class="btn" id="mobileNextBtn">次</button>
+      <button class="btn magenta" id="mobilePanelBtn">メニュー</button>
     </section>
   </div>
 
@@ -737,8 +735,6 @@
     const mobileBack3dBtn = document.getElementById("mobileBack3dBtn");
     const mobileOpenRefBtn = document.getElementById("mobileOpenRefBtn");
     const mobileOpenObjectBtn = document.getElementById("mobileOpenObjectBtn");
-    const mobileOpenPdfBtn = document.getElementById("mobileOpenPdfBtn");
-    const mobileOpenAnimBtn = document.getElementById("mobileOpenAnimBtn");
     const mobileResetViewBtn = document.getElementById("mobileResetViewBtn");
     const mobileClosePanelsBtn = document.getElementById("mobileClosePanelsBtn");
 
@@ -1300,8 +1296,6 @@
 
     mobileOpenRefBtn.addEventListener("click", () => openMobilePanel("ref"));
     mobileOpenObjectBtn.addEventListener("click", () => openMobilePanel("object"));
-    mobileOpenPdfBtn.addEventListener("click", () => openMobilePanel("pdf"));
-    mobileOpenAnimBtn.addEventListener("click", () => openMobilePanel("anim"));
     mobileResetViewBtn.addEventListener("click", () => {
       closeMobilePanels();
       viewer.cameraOrbit = "25deg 70deg 130%";
