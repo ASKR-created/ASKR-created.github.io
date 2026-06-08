@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v47 Model Only CH01 Correction</title>
+  <title>SF 3D Viewer - Teaching Contest v48 Mobile Minimal Layout</title>
 
   <script type="importmap">
   {
@@ -450,19 +450,172 @@
 
     .hidden{display:none!important}
 
+
+    .mobile-dock,
+    .mobile-quick-panel{
+      display:none;
+    }
+
     @media (max-width:980px){
-      html,body{overflow:auto;height:auto}
-      #app{position:relative;height:auto;min-height:100vh;overflow:visible;padding:8px}
-      #viewer{position:relative;height:48vh;min-height:360px;border:1px solid var(--line);margin-top:8px}
-      .refbar,.side,.side-storage-bar,.view-hud,.playbar{position:relative;top:auto;left:auto;right:auto;bottom:auto;width:auto;margin:0 0 8px;transform:none}
-      .side-storage-bar{grid-template-columns:1fr;right:auto}
-      .view-hud{min-width:0}
-      .refbar{clip-path:none}
-      .refbar-head{grid-template-columns:1fr 1fr;align-items:stretch}.refbar-head>div:first-child{grid-column:1/-1}.refbar-body{grid-template-columns:1fr;align-items:stretch}
-      .side{max-height:none}
-      .playbar{grid-template-columns:1fr 1fr;align-items:stretch}
-      .playbar .speedbox{grid-column:1/-1;min-width:0}
-      .title{font-size:14px}
+      html,body{
+        overflow:hidden;
+        height:100%;
+      }
+
+      #app{
+        position:fixed;
+        inset:0;
+        height:100dvh;
+        min-height:0;
+        overflow:hidden;
+        padding:0;
+        background:#02030a;
+      }
+
+      #viewer{
+        position:absolute;
+        inset:0;
+        width:100%;
+        height:100%;
+        min-height:0;
+        border:none;
+        margin:0;
+      }
+
+      .refbar,
+      .side-storage-bar,
+      .side,
+      .playbar{
+        display:none;
+      }
+
+      .refbar.mobile-open,
+      .side-storage-bar.mobile-open,
+      .side.mobile-open,
+      .playbar.mobile-open{
+        display:flex;
+        position:absolute;
+        left:8px;
+        right:8px;
+        top:72px;
+        bottom:76px;
+        width:auto;
+        max-height:none;
+        margin:0;
+        transform:none;
+        z-index:45;
+        overflow:auto;
+      }
+
+      .refbar.mobile-open{
+        display:block;
+        bottom:auto;
+        max-height:58dvh;
+        clip-path:none;
+      }
+
+      .refbar.mobile-open .refbar-head{
+        grid-template-columns:1fr;
+      }
+
+      .refbar.mobile-open .refbar-body{
+        grid-template-columns:1fr;
+      }
+
+      .side.mobile-open{
+        display:flex;
+      }
+
+      .side-storage-bar.mobile-open{
+        display:grid;
+        top:auto;
+        bottom:76px;
+        height:auto;
+        min-height:44px;
+        grid-template-columns:1fr;
+      }
+
+      .playbar.mobile-open{
+        display:grid;
+        top:auto;
+        bottom:76px;
+        min-height:0;
+        grid-template-columns:1fr 1fr;
+        align-items:stretch;
+      }
+
+      .playbar.mobile-open .speedbox{
+        grid-column:1/-1;
+        min-width:0;
+      }
+
+      .view-hud{
+        top:8px;
+        left:8px;
+        right:8px;
+        min-width:0;
+        font-size:12px;
+        padding:6px 8px;
+        z-index:30;
+      }
+
+      .view-hud .hud-sub{
+        display:none;
+      }
+
+      .mobile-dock{
+        display:grid;
+        position:absolute;
+        left:8px;
+        right:8px;
+        bottom:8px;
+        z-index:60;
+        grid-template-columns:repeat(6,1fr);
+        gap:6px;
+        padding:6px;
+        border:1px solid rgba(34,248,255,.34);
+        background:rgba(4,10,20,.88);
+        box-shadow:var(--shadow);
+        backdrop-filter:blur(12px);
+        -webkit-backdrop-filter:blur(12px);
+      }
+
+      .mobile-dock button{
+        min-height:44px;
+        padding:0 4px;
+        font-size:11px;
+        letter-spacing:0;
+      }
+
+      .mobile-quick-panel{
+        display:none;
+        position:absolute;
+        left:8px;
+        right:8px;
+        bottom:76px;
+        z-index:58;
+        border:1px solid rgba(34,248,255,.34);
+        background:rgba(4,10,20,.91);
+        box-shadow:var(--shadow);
+        padding:8px;
+        grid-template-columns:repeat(2,1fr);
+        gap:8px;
+        backdrop-filter:blur(12px);
+        -webkit-backdrop-filter:blur(12px);
+      }
+
+      .mobile-quick-panel.mobile-open{
+        display:grid;
+      }
+
+      .mobile-quick-panel button{
+        min-height:42px;
+        font-size:12px;
+      }
+
+      .title{
+        font-size:13px;
+      }
     }
   </style>
 </head>
@@ -477,8 +630,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v47</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF1-20→1-70固定 / CH01基準モデルのみ補正</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v48</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / スマホ最小操作バー / PDF1-20→1-70固定 / CH01基準モデル補正</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -698,6 +851,24 @@
       <button class="btn" id="nextBottomBtn">次CH</button>
       <button class="btn magenta" id="openArBtn">AR切替</button>
     </section>
+
+    <section class="mobile-quick-panel" id="mobileQuickPanel">
+      <button class="btn" id="mobileOpenRefBtn">参照/CH</button>
+      <button class="btn" id="mobileOpenObjectBtn">モデル</button>
+      <button class="btn" id="mobileOpenPdfBtn">PDF</button>
+      <button class="btn" id="mobileOpenAnimBtn">再生詳細</button>
+      <button class="btn lime" id="mobilePdfFitBtn">PDF復旧</button>
+      <button class="btn magenta" id="mobileClosePanelsBtn">閉じる</button>
+    </section>
+
+    <section class="mobile-dock" id="mobileDock">
+      <button class="btn" id="mobilePrevBtn">前CH</button>
+      <button class="btn lime" id="mobilePlayBtn">再生</button>
+      <button class="btn" id="mobileNextBtn">次CH</button>
+      <button class="btn" id="mobileFitBtn">全体</button>
+      <button class="btn" id="mobilePanelBtn">操作</button>
+      <button class="btn magenta" id="mobileArBtn">AR</button>
+    </section>
   </div>
 
   <script type="module">
@@ -804,6 +975,20 @@
     const loopBtn = document.getElementById("loopBtn");
     const nextBottomBtn = document.getElementById("nextBottomBtn");
     const openArBtn = document.getElementById("openArBtn");
+
+    const mobileQuickPanel = document.getElementById("mobileQuickPanel");
+    const mobilePrevBtn = document.getElementById("mobilePrevBtn");
+    const mobilePlayBtn = document.getElementById("mobilePlayBtn");
+    const mobileNextBtn = document.getElementById("mobileNextBtn");
+    const mobileFitBtn = document.getElementById("mobileFitBtn");
+    const mobilePanelBtn = document.getElementById("mobilePanelBtn");
+    const mobileArBtn = document.getElementById("mobileArBtn");
+    const mobileOpenRefBtn = document.getElementById("mobileOpenRefBtn");
+    const mobileOpenObjectBtn = document.getElementById("mobileOpenObjectBtn");
+    const mobileOpenPdfBtn = document.getElementById("mobileOpenPdfBtn");
+    const mobileOpenAnimBtn = document.getElementById("mobileOpenAnimBtn");
+    const mobilePdfFitBtn = document.getElementById("mobilePdfFitBtn");
+    const mobileClosePanelsBtn = document.getElementById("mobileClosePanelsBtn");
 
     let chapters = [];
     let currentChapterIndex = -1;
@@ -1345,7 +1530,7 @@
 
         const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
-        // v47:
+        // v48:
         // 以前は全モデルを「最大寸法2.0」に自動正規化していた。
         // そのためCH01/CH02で元の図面縮尺が同じでも、モデル側の見かけ寸法がズレていた。
         // 今回はデフォルトでGLB実寸を優先し、必要な時だけ自動正規化をONにする。
@@ -1426,6 +1611,7 @@
           } else {
             isPlaying = false;
             playPauseBtn.textContent = "再生";
+            if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
             setObjectStatus("ANIMATION COMPLETE");
           }
         }
@@ -1492,6 +1678,7 @@
 
       isPlaying = true;
       playPauseBtn.textContent = "一時停止";
+      if (mobilePlayBtn) mobilePlayBtn.textContent = "一時停止";
       setObjectStatus(targets.length > 1 ? `ANIMATION PLAY: 全Action ${targets.length}` : "ANIMATION PLAY");
     }
 
@@ -1499,6 +1686,7 @@
       actions.forEach(a => a.paused = true);
       isPlaying = false;
       playPauseBtn.textContent = "再生";
+      if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
       setObjectStatus("ANIMATION PAUSE");
     }
 
@@ -1633,7 +1821,7 @@
         canvas2d.width = Math.max(1, Math.floor(viewport.width));
         canvas2d.height = Math.max(1, Math.floor(viewport.height));
 
-        // v47:
+        // v48:
         // 描画後のcanvasピクセルではなく、PDF内部のページ寸法を保存する。
         // これを使うことで、PDF同士の縮尺差が出にくくなる。
         canvas2d._viewerPageWidth = base.width;
@@ -1823,7 +2011,7 @@
         // PDFページ実寸比を使う。床PDFを基準に同じ用紙・同じ縮尺なら同じ大きさになる。
         baseWorldWidth = 6.0 * percent / 100;
       } else {
-        // v47 default:
+        // v48 default:
         // PDFサイズは「補正前のモデル基準サイズ」に連動させる。
         // これで、CH02のモデルだけ拡大してもPDFサイズは一緒に拡大されない。
         baseWorldWidth = Math.max(2.5, modelRawSizeForPdf * 3.5) * percent / 100;
@@ -1939,7 +2127,7 @@
       const currentDistance = camera.position.distanceTo(controls.target);
       if (!currentDistance || currentDistance <= 0 || !viewDistanceAtSet || viewDistanceAtSet <= 0) return;
 
-      // v47:
+      // v48:
       // 表示倍率は「最後に設定した倍率」を基準に、ホイール/ピンチで変化した距離だけ補正する。
       // シーンサイズやPDFサイズに引っ張られないので、初期185%が185%として安定表示される。
       const mag = viewMagnificationAtSet * (viewDistanceAtSet / currentDistance);
@@ -1996,7 +2184,7 @@
       const mag = clampViewMagnification(viewMagnificationInput.value);
       viewMagnification = mag;
 
-      // v47:
+      // v48:
       // fitView直後の「実カメラ距離」を、指定した表示倍率そのものとして基準化する。
       // 表示倍率はカメラ距離の変化にだけ追従し、シーンサイズには左右されない。
       const baseAxisDistance = maxDim * 1.15;
@@ -2029,7 +2217,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0025_v47");
+      url.searchParams.set("v", "20260605_0026_v48");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -2057,6 +2245,62 @@
       controls.update();
       updateRealtimeViewMagnification();
       renderer.render(scene,camera);
+    }
+
+
+    function closeMobilePanels(){
+      refbar.classList.remove("mobile-open");
+      objectSide.classList.remove("mobile-open");
+      pdfSide.classList.remove("mobile-open");
+      sideStorageBar.classList.remove("mobile-open");
+      document.querySelector(".playbar")?.classList.remove("mobile-open");
+      mobileQuickPanel?.classList.remove("mobile-open");
+    }
+
+    function openMobilePanel(panel){
+      closeMobilePanels();
+
+      if (panel === "quick"){
+        mobileQuickPanel?.classList.add("mobile-open");
+        return;
+      }
+
+      if (panel === "ref"){
+        refbar.classList.add("mobile-open");
+        return;
+      }
+
+      if (panel === "object"){
+        objectSide.classList.add("mobile-open");
+        return;
+      }
+
+      if (panel === "pdf"){
+        pdfSide.classList.add("mobile-open");
+        return;
+      }
+
+      if (panel === "anim"){
+        document.querySelector(".playbar")?.classList.add("mobile-open");
+      }
+    }
+
+    function toggleMobilePlay(){
+      if (isPlaying) pauseAnimation();
+      else playAnimation(false);
+    }
+
+    function runMobilePdfFit(){
+      if (pdfSizeModeSelect) pdfSizeModeSelect.value = "model";
+      pdfAlwaysOnTop = true;
+      if (pdfAlwaysOnTopBtn){
+        pdfAlwaysOnTopBtn.textContent = "PDF前面表示ON";
+        pdfAlwaysOnTopBtn.classList.toggle("lime", true);
+      }
+      if (pdfOpacityInput) pdfOpacityInput.value = "0.8";
+      applyPdfTransform();
+      fitView();
+      setPdfStatus("スマホPDF復旧: 表示優先基準 / 前面表示ON / 透明度0.8");
     }
 
     collapseRefBtn.addEventListener("click", () => {
@@ -2238,6 +2482,24 @@
       if (isPlaying) pauseAnimation();
       else playAnimation(false);
     });
+
+    mobilePrevBtn.addEventListener("click", () => changeChapter(-1));
+    mobileNextBtn.addEventListener("click", () => changeChapter(1));
+    mobilePlayBtn.addEventListener("click", toggleMobilePlay);
+    mobileFitBtn.addEventListener("click", () => { closeMobilePanels(); fitView(); });
+    mobilePanelBtn.addEventListener("click", () => {
+      if (mobileQuickPanel.classList.contains("mobile-open")) closeMobilePanels();
+      else openMobilePanel("quick");
+    });
+    mobileArBtn.addEventListener("click", openArViewer);
+
+    mobileOpenRefBtn.addEventListener("click", () => openMobilePanel("ref"));
+    mobileOpenObjectBtn.addEventListener("click", () => openMobilePanel("object"));
+    mobileOpenPdfBtn.addEventListener("click", () => openMobilePanel("pdf"));
+    mobileOpenAnimBtn.addEventListener("click", () => openMobilePanel("anim"));
+    mobilePdfFitBtn.addEventListener("click", runMobilePdfFit);
+    mobileClosePanelsBtn.addEventListener("click", closeMobilePanels);
+
     restartBtn.addEventListener("click", restartAnimation);
 
     speedRange.addEventListener("input", () => {
@@ -2256,7 +2518,7 @@
 
     window.addEventListener("resize", resize);
 
-    // v47: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
+    // v48: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
     controls.addEventListener("change", updateRealtimeViewMagnification);
     renderer.domElement.addEventListener("wheel", () => {
       requestAnimationFrame(updateRealtimeViewMagnification);
