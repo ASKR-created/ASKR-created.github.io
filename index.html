@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v46 CH01 Base Visible Fix</title>
+  <title>SF 3D Viewer - Teaching Contest v47 Model Only CH01 Correction</title>
 
   <script type="importmap">
   {
@@ -477,8 +477,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v46</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / CH01基準固定 / PDF仮表示復旧 / モデル側補正</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v47</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF1-20→1-70固定 / CH01基準モデルのみ補正</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -544,12 +544,12 @@
           <button class="btn lime" id="modelRealScaleBtn">GLB実寸優先</button>
         </div>
 
-        <label>CH01基準自動補正</label>
+        <label>CH01基準モデル補正</label>
         <div class="grid2">
-          <button class="btn lime" id="chapterAutoCorrectionBtn">CH01基準補正ON</button>
-          <button class="btn" id="chapterCorrectionResetBtn">補正再計算</button>
+          <button class="btn lime" id="chapterCorrectionBtn">モデル補正ON</button>
+          <button class="btn" id="chapterCorrectionApplyBtn">補正を再反映</button>
         </div>
-        <div class="status" id="chapterCorrectionStatus">CH01基準補正: 待機中</div>
+        <div class="status" id="chapterCorrectionStatus">CH01基準モデル補正: 待機中</div>
 
         <label>モデル回転Y</label>
         <input id="modelRotYInput" type="number" step="1" value="0">
@@ -604,13 +604,12 @@
       <div class="side-body">
         <div class="info-row"><div class="k">床PDF</div><div class="v" id="pdfFloorNameText">未読込</div></div>
         <div class="info-row"><div class="k">側面PDF</div><div class="v" id="pdfSideNameText">未読込</div></div>
-        <div class="info-row"><div class="k">サイズ基準</div><div class="v" id="pdfSizeBasisText">CH01基準固定：未学習</div></div>
+        <div class="info-row"><div class="k">サイズ基準</div><div class="v" id="pdfSizeBasisText">表示優先：モデル表示範囲基準</div></div>
 
         <label>PDFサイズ基準</label>
         <select id="pdfSizeModeSelect">
-          <option value="ch01" selected>CH01基準固定：PDFは全CH同じ大きさ</option>
+          <option value="model" selected>表示優先：モデル表示範囲に合わせる</option>
           <option value="fixed">固定基準幅を使う</option>
-          <option value="model">表示優先：モデル表示範囲に合わせる</option>
           <option value="pdf">PDFページ実寸比を使う</option>
         </select>
 
@@ -620,11 +619,6 @@
         <div class="grid2">
           <button class="btn lime" id="pdfAlwaysOnTopBtn">PDF前面表示ON</button>
           <button class="btn" id="pdfFitVisibleBtn">PDF表示復旧</button>
-        </div>
-
-        <div class="grid2">
-          <button class="btn lime" id="saveCh01PdfBaseBtn">現在PDF幅をCH01基準登録</button>
-          <button class="btn" id="clearCh01PdfBaseBtn">CH01基準クリア</button>
         </div>
 
         <label>PDF配置モード</label>
@@ -752,16 +746,14 @@
     const pdfBaseWidthInput = document.getElementById("pdfBaseWidthInput");
     const pdfAlwaysOnTopBtn = document.getElementById("pdfAlwaysOnTopBtn");
     const pdfFitVisibleBtn = document.getElementById("pdfFitVisibleBtn");
-    const saveCh01PdfBaseBtn = document.getElementById("saveCh01PdfBaseBtn");
-    const clearCh01PdfBaseBtn = document.getElementById("clearCh01PdfBaseBtn");
 
     const modelScaleInput = document.getElementById("modelScaleInput");
     const applyModelScaleBtn = document.getElementById("applyModelScaleBtn");
     const snapGroundBtn = document.getElementById("snapGroundBtn");
     const modelNormalizeBtn = document.getElementById("modelNormalizeBtn");
     const modelRealScaleBtn = document.getElementById("modelRealScaleBtn");
-    const chapterAutoCorrectionBtn = document.getElementById("chapterAutoCorrectionBtn");
-    const chapterCorrectionResetBtn = document.getElementById("chapterCorrectionResetBtn");
+    const chapterCorrectionBtn = document.getElementById("chapterCorrectionBtn");
+    const chapterCorrectionApplyBtn = document.getElementById("chapterCorrectionApplyBtn");
     const chapterCorrectionStatus = document.getElementById("chapterCorrectionStatus");
     const modelRotYInput = document.getElementById("modelRotYInput");
     const rotYMinusBtn = document.getElementById("rotYMinusBtn");
@@ -821,23 +813,18 @@
     let modelBaseScale = 1;
     let modelUserScale = 1;
     let modelSize = 2;
+
+    // PDFサイズ計算用。モデル補正を掛ける前のサイズを保存する。
+    // ここを使うことで、モデル補正してもPDFサイズが一緒に変わらない。
+    let modelRawSizeForPdf = 2;
+
     let modelAutoNormalize = false;
     let currentModelPath = "";
 
-    // v46:
-    // PDF変換後の数値はCHごとに変えない。
-    // 画面上のPDF入力は 1/20 -> 1/70 固定のままにして、
-    // 必要だった差分は3Dモデル側の倍率で自動補正する。
-    let chapterAutoCorrectionEnabled = true;
-    let chapterModelCorrectionFactor = 1.0;
-    let ch01PdfBaseWorldWidth = 0;
-    const CH01_PDF_BASE_STORAGE_KEY = "viewer_ch01_pdf_base_world_width_v46";
+    let chapterCorrectionEnabled = true;
+    let chapterCorrectionFactor = 1.0;
     const CHAPTER_BASELINE_TARGET_SCALE = 70;
-
-    // 以前、手動で合わせるために必要だった「変更したい縮尺」。
-    // CH01を基準にするため、CH02は 78/70 = 1.114... だけ3Dモデル側を拡大する。
-    // CH03以降で差が出た場合は、ここに CH03: 数値 を追加すれば同じ考え方で補正できる。
-    const CHAPTER_REQUIRED_TARGET_SCALE_MAP = {
+    const CHAPTER_TARGET_SCALE_MAP = {
       "CH01": 70,
       "CH02": 78
     };
@@ -1260,144 +1247,41 @@
       return ch ? String(ch.name || "") : "";
     }
 
-    function getChapterRequiredTargetScale(chapterName){
-      const key = String(chapterName || "").trim();
-
-      if (CHAPTER_REQUIRED_TARGET_SCALE_MAP[key]){
-        return CHAPTER_REQUIRED_TARGET_SCALE_MAP[key];
-      }
-
-      // CH01_extra のような名前でも拾えるようにする
-      const match = key.match(/CH\s*0*(\d+)/i);
-      if (match){
-        const normalized = "CH" + String(parseInt(match[1], 10)).padStart(2, "0");
-        if (CHAPTER_REQUIRED_TARGET_SCALE_MAP[normalized]){
-          return CHAPTER_REQUIRED_TARGET_SCALE_MAP[normalized];
-        }
-      }
-
-      return CHAPTER_BASELINE_TARGET_SCALE;
+    function normalizeChapterName(name){
+      const raw = String(name || "").trim();
+      const match = raw.match(/CH\s*0*(\d+)/i);
+      if (!match) return raw;
+      return "CH" + String(parseInt(match[1], 10)).padStart(2, "0");
     }
 
-    function isCurrentChapterBaseline(){
-      const chapterName = getCurrentChapterName();
-      const match = String(chapterName || "").match(/CH\s*0*(\d+)/i);
-      if (!match) return String(chapterName).trim() === "CH01";
-      return parseInt(match[1], 10) === 1;
+    function getChapterTargetScale(){
+      const key = normalizeChapterName(getCurrentChapterName());
+      return CHAPTER_TARGET_SCALE_MAP[key] || CHAPTER_BASELINE_TARGET_SCALE;
     }
 
-    function loadSavedCh01PdfBaseWorldWidth(){
-      const saved = Number(localStorage.getItem(CH01_PDF_BASE_STORAGE_KEY) || "0");
-      return Number.isFinite(saved) && saved > 0 ? saved : 0;
-    }
+    function getChapterCorrectionFactor(){
+      if (!chapterCorrectionEnabled) return 1.0;
 
-    function saveCh01PdfBaseWorldWidth(value){
-      const n = Number(value) || 0;
-      if (n <= 0) return;
-      ch01PdfBaseWorldWidth = n;
-      localStorage.setItem(CH01_PDF_BASE_STORAGE_KEY, String(n));
-    }
-
-    function getFallbackPdfBaseWorldWidth(){
-      return Math.max(0.01, parseFloat(pdfBaseWidthInput ? pdfBaseWidthInput.value : "6.0") || 6.0);
-    }
-
-    function getCurrentNaturalPdfBaseWorldWidth(){
-      // CH01に合わせるための自然なPDF基準幅。
-      // GLB実寸優先でも、まずPDFが見えるようにモデル表示範囲から仮基準を作る。
-      return Math.max(2.5, modelSize * 3.5);
-    }
-
-    function hasLearnedCh01PdfBase(){
-      if (ch01PdfBaseWorldWidth > 0) return true;
-      return loadSavedCh01PdfBaseWorldWidth() > 0;
-    }
-
-    function getCh01PdfBaseWorldWidth(){
-      if (ch01PdfBaseWorldWidth > 0) return ch01PdfBaseWorldWidth;
-
-      const saved = loadSavedCh01PdfBaseWorldWidth();
-      if (saved > 0){
-        ch01PdfBaseWorldWidth = saved;
-        return saved;
-      }
-
-      // v46:
-      // CH01基準が未学習の場合、固定6.0だけだとPDFが小さすぎて見えない場合がある。
-      // そのため、未学習時は現在モデル表示範囲から仮基準を使い、PDFを必ず見える状態にする。
-      return getCurrentNaturalPdfBaseWorldWidth();
-    }
-
-    function updateCh01PdfBaseIfNeeded(){
-      if (!isCurrentChapterBaseline()) return;
-
-      const natural = getCurrentNaturalPdfBaseWorldWidth();
-      if (natural > 0){
-        saveCh01PdfBaseWorldWidth(natural);
-        if (pdfBaseWidthInput){
-          pdfBaseWidthInput.value = String(Math.round(natural * 1000) / 1000);
-        }
-      }
-    }
-
-    function saveCurrentPdfBaseAsCh01(){
-      const current = getCurrentNaturalPdfBaseWorldWidth();
-      if (current <= 0){
-        setPdfStatus("CH01基準登録失敗: 有効なPDF基準幅がありません。");
-        return;
-      }
-
-      saveCh01PdfBaseWorldWidth(current);
-      if (pdfBaseWidthInput){
-        pdfBaseWidthInput.value = String(Math.round(current * 1000) / 1000);
-      }
-
-      pdfSizeModeSelect.value = "ch01";
-      applyPdfTransform();
-      updateChapterCorrectionStatus();
-      setPdfStatus("CH01基準登録: 現在のPDF幅を全CH共通基準にしました。");
-    }
-
-    function clearSavedCh01PdfBase(){
-      ch01PdfBaseWorldWidth = 0;
-      localStorage.removeItem(CH01_PDF_BASE_STORAGE_KEY);
-      if (pdfBaseWidthInput) pdfBaseWidthInput.value = "6.0";
-      updateChapterCorrectionStatus();
-      applyPdfTransform();
-      setPdfStatus("CH01基準クリア: 次にCH01を開くと自動で再登録します。");
-    }
-
-    function getChapterModelCorrectionFactor(){
-      if (!chapterAutoCorrectionEnabled) return 1.0;
-
-      const chapterName = getCurrentChapterName();
-      const requiredTarget = getChapterRequiredTargetScale(chapterName);
-
-      // 例:
-      // CH01: 70/70 = 1.0
-      // CH02: 78/70 = 1.114...
-      return requiredTarget / CHAPTER_BASELINE_TARGET_SCALE;
+      // PDFは1/20→1/70固定。
+      // 以前CH02だけ1/78が必要だった差分は、3Dモデルだけに 78/70 を掛けて吸収する。
+      return getChapterTargetScale() / CHAPTER_BASELINE_TARGET_SCALE;
     }
 
     function updateChapterCorrectionStatus(){
-      chapterModelCorrectionFactor = getChapterModelCorrectionFactor();
+      chapterCorrectionFactor = getChapterCorrectionFactor();
 
-      const chapterName = getCurrentChapterName() || "未選択";
-      const requiredTarget = getChapterRequiredTargetScale(chapterName);
-      const factorText = chapterModelCorrectionFactor.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+      const chName = normalizeChapterName(getCurrentChapterName()) || "未選択";
+      const target = getChapterTargetScale();
+      const factorText = chapterCorrectionFactor.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
 
       if (chapterCorrectionStatus){
-        const learned = hasLearnedCh01PdfBase();
-        const baseWidth = getCh01PdfBaseWorldWidth();
-        const baseText = baseWidth > 0 ? baseWidth.toFixed(3).replace(/0+$/, "").replace(/\.$/, "") : "未学習";
-        const learnedText = learned ? "登録済" : "未登録・仮表示";
         chapterCorrectionStatus.textContent =
-          `CH01基準補正: ${chapterAutoCorrectionEnabled ? "ON" : "OFF"} / ${chapterName} / PDFは1/20→1/70固定 / モデル補正×${factorText} / CH01幅:${baseText}(${learnedText}) / 参考:${requiredTarget}`;
+          `CH01基準モデル補正: ${chapterCorrectionEnabled ? "ON" : "OFF"} / ${chName} / PDFは1/20→1/70固定 / モデルだけ×${factorText} / 参考:${target}`;
       }
 
-      if (chapterAutoCorrectionBtn){
-        chapterAutoCorrectionBtn.textContent = chapterAutoCorrectionEnabled ? "CH01基準補正ON" : "CH01基準補正OFF";
-        chapterAutoCorrectionBtn.classList.toggle("lime", chapterAutoCorrectionEnabled);
+      if (chapterCorrectionBtn){
+        chapterCorrectionBtn.textContent = chapterCorrectionEnabled ? "モデル補正ON" : "モデル補正OFF";
+        chapterCorrectionBtn.classList.toggle("lime", chapterCorrectionEnabled);
       }
     }
 
@@ -1461,7 +1345,7 @@
 
         const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
-        // v46:
+        // v47:
         // 以前は全モデルを「最大寸法2.0」に自動正規化していた。
         // そのためCH01/CH02で元の図面縮尺が同じでも、モデル側の見かけ寸法がズレていた。
         // 今回はデフォルトでGLB実寸を優先し、必要な時だけ自動正規化をONにする。
@@ -1469,14 +1353,20 @@
         modelUserScale = parseFloat(modelScaleInput.value) || 1;
         updateChapterCorrectionStatus();
 
-        const finalModelScale = modelBaseScale * modelUserScale * chapterModelCorrectionFactor;
-        modelSize = maxDim * finalModelScale;
+        const rawScale = modelBaseScale * modelUserScale;
+        const finalScale = rawScale * chapterCorrectionFactor;
 
-        modelWrapper.scale.setScalar(finalModelScale);
+        // PDFサイズは補正前サイズを使う。
+        modelRawSizeForPdf = maxDim * rawScale;
+
+        // カメラや表示範囲は補正後サイズを使う。
+        modelSize = maxDim * finalScale;
+
+        modelWrapper.scale.setScalar(finalScale);
         modelWrapper.position.set(
-          -center.x * finalModelScale,
-          -box.min.y * finalModelScale,
-          -center.z * finalModelScale
+          -center.x * finalScale,
+          -box.min.y * finalScale,
+          -center.z * finalScale
         );
 
         const rotY = THREE.MathUtils.degToRad(parseFloat(modelRotYInput.value) || 0);
@@ -1495,8 +1385,6 @@
         }
 
         updateAnimationSelect();
-        updateCh01PdfBaseIfNeeded();
-        updateChapterCorrectionStatus();
         setObjectStatus(`読込完了: ${path} / Action ${clips.length}`);
       }catch(err){
         console.error(err);
@@ -1633,21 +1521,23 @@
       modelBaseScale = modelAutoNormalize ? (2.0 / maxDim) : 1.0;
       updateChapterCorrectionStatus();
 
-      const finalModelScale = modelBaseScale * modelUserScale * chapterModelCorrectionFactor;
-      modelWrapper.scale.setScalar(finalModelScale);
+      const rawScale = modelBaseScale * modelUserScale;
+      const finalScale = rawScale * chapterCorrectionFactor;
 
-      modelWrapper.position.x = -sceneCenter.x * finalModelScale;
-      modelWrapper.position.z = -sceneCenter.z * finalModelScale;
+      modelRawSizeForPdf = maxDim * rawScale;
+
+      modelWrapper.scale.setScalar(finalScale);
+
+      modelWrapper.position.x = -sceneCenter.x * finalScale;
+      modelWrapper.position.z = -sceneCenter.z * finalScale;
 
       snapModelGround();
 
       const rotY = THREE.MathUtils.degToRad(parseFloat(modelRotYInput.value) || 0);
       modelWrapper.rotation.y = rotY;
 
-      modelSize = maxDim * finalModelScale;
-      setObjectStatus(`モデル変形反映 / scale ${modelUserScale} / 補正×${chapterModelCorrectionFactor.toFixed(4)} / ${modelAutoNormalize ? "自動正規化ON" : "GLB実寸優先"}`);
-      updateCh01PdfBaseIfNeeded();
-      updateChapterCorrectionStatus();
+      modelSize = maxDim * finalScale;
+      setObjectStatus(`モデル変形反映 / scale ${modelUserScale} / モデル補正×${chapterCorrectionFactor.toFixed(4)} / ${modelAutoNormalize ? "自動正規化ON" : "GLB実寸優先"}`);
       fitView();
       if (pdfLayers.length > 0) applyPdfTransform();
     }
@@ -1743,7 +1633,7 @@
         canvas2d.width = Math.max(1, Math.floor(viewport.width));
         canvas2d.height = Math.max(1, Math.floor(viewport.height));
 
-        // v46:
+        // v47:
         // 描画後のcanvasピクセルではなく、PDF内部のページ寸法を保存する。
         // これを使うことで、PDF同士の縮尺差が出にくくなる。
         canvas2d._viewerPageWidth = base.width;
@@ -1917,7 +1807,7 @@
 
     function getPdfWorldSizeByPageScale(layer){
       const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 28.571);
-      const mode = pdfSizeModeSelect ? pdfSizeModeSelect.value : "ch01";
+      const mode = pdfSizeModeSelect ? pdfSizeModeSelect.value : "model";
 
       const reference = getPdfReferenceLayer();
       const refPageWidth = Math.max(1, reference ? reference.pageWidth : layer.pageWidth || 1);
@@ -1927,18 +1817,16 @@
 
       let baseWorldWidth;
 
-      if (mode === "ch01"){
-        // v46 default:
-        // CH01で記録したPDF基準幅を全チャプターで使う。
-        // 3Dモデル側の補正をしても、PDFサイズは一緒に変わらない。
-        baseWorldWidth = getCh01PdfBaseWorldWidth() * percent / 100;
-      } else if (mode === "fixed"){
-        baseWorldWidth = getFallbackPdfBaseWorldWidth() * percent / 100;
+      if (mode === "fixed"){
+        baseWorldWidth = Math.max(0.01, parseFloat(pdfBaseWidthInput.value) || 6.0) * percent / 100;
       } else if (mode === "pdf"){
+        // PDFページ実寸比を使う。床PDFを基準に同じ用紙・同じ縮尺なら同じ大きさになる。
         baseWorldWidth = 6.0 * percent / 100;
       } else {
-        // 表示復旧用。これはモデルサイズに連動するため、CH01基準合わせでは推奨しない。
-        baseWorldWidth = Math.max(2.5, modelSize * 3.5) * percent / 100;
+        // v47 default:
+        // PDFサイズは「補正前のモデル基準サイズ」に連動させる。
+        // これで、CH02のモデルだけ拡大してもPDFサイズは一緒に拡大されない。
+        baseWorldWidth = Math.max(2.5, modelRawSizeForPdf * 3.5) * percent / 100;
       }
 
       return {
@@ -1985,16 +1873,8 @@
         const ref = getPdfReferenceLayer();
         const refText = ref ? `${getBaseName(ref.path)} / ${Math.round(ref.pageWidth)}×${Math.round(ref.pageHeight)}` : "未設定";
         const mode = pdfSizeModeSelect ? pdfSizeModeSelect.value : "model";
-        let modeText = "CH01基準固定";
-        if (mode === "model") modeText = "表示優先：モデル表示範囲基準";
-        if (mode === "fixed") modeText = "固定基準幅";
-        if (mode === "pdf") modeText = "PDFページ実寸比";
-        const ch01Base = getCh01PdfBaseWorldWidth();
-        const learned = hasLearnedCh01PdfBase();
-        const ch01Text = ch01Base > 0
-          ? ` / CH01幅:${ch01Base.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")}${learned ? "" : "(仮表示)"}`
-          : " / CH01幅:未学習";
-        pdfSizeBasisText.textContent = `${modeText}: ${refText}${mode === "ch01" ? ch01Text : ""}`;
+        const modeText = mode === "model" ? "表示優先：モデル表示範囲基準" : (mode === "fixed" ? "固定基準幅" : "PDFページ実寸比");
+        pdfSizeBasisText.textContent = `${modeText}: ${refText}`;
       }
     }
 
@@ -2023,7 +1903,7 @@
 
       const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 28.571);
       const opacity = Math.max(0.05, Math.min(1, parseFloat(pdfOpacityInput.value) || 0.65));
-      setPdfStatus(`PDF反映: ${pdfLayers.length}枚 / ${pdfSizeModeSelect ? pdfSizeModeSelect.value : "ch01"}基準 / 1/20→1/70固定 / ${percent}% / 前面${pdfAlwaysOnTop ? "ON" : "OFF"}`);
+      setPdfStatus(`PDF反映: ${pdfLayers.length}枚 / ${pdfSizeModeSelect ? pdfSizeModeSelect.value : "model"}基準 / ${percent}% / opacity ${opacity} / 前面${pdfAlwaysOnTop ? "ON" : "OFF"}`);
     }
 
 
@@ -2059,7 +1939,7 @@
       const currentDistance = camera.position.distanceTo(controls.target);
       if (!currentDistance || currentDistance <= 0 || !viewDistanceAtSet || viewDistanceAtSet <= 0) return;
 
-      // v46:
+      // v47:
       // 表示倍率は「最後に設定した倍率」を基準に、ホイール/ピンチで変化した距離だけ補正する。
       // シーンサイズやPDFサイズに引っ張られないので、初期185%が185%として安定表示される。
       const mag = viewMagnificationAtSet * (viewDistanceAtSet / currentDistance);
@@ -2116,7 +1996,7 @@
       const mag = clampViewMagnification(viewMagnificationInput.value);
       viewMagnification = mag;
 
-      // v46:
+      // v47:
       // fitView直後の「実カメラ距離」を、指定した表示倍率そのものとして基準化する。
       // 表示倍率はカメラ距離の変化にだけ追従し、シーンサイズには左右されない。
       const baseAxisDistance = maxDim * 1.15;
@@ -2149,7 +2029,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0024_v46");
+      url.searchParams.set("v", "20260605_0025_v47");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -2210,27 +2090,22 @@
       if (modelWrapper && modelScene) applyModelTransform();
     });
 
-    chapterAutoCorrectionBtn.addEventListener("click", () => {
-      chapterAutoCorrectionEnabled = !chapterAutoCorrectionEnabled;
+    chapterCorrectionBtn.addEventListener("click", () => {
+      chapterCorrectionEnabled = !chapterCorrectionEnabled;
       updateChapterCorrectionStatus();
       if (modelWrapper && modelScene) applyModelTransform();
     });
 
-    chapterCorrectionResetBtn.addEventListener("click", () => {
-      // PDF側の入力はCH01基準へ戻す。データごとに1/78などへ変えない。
+    chapterCorrectionApplyBtn.addEventListener("click", () => {
+      // PDF側は必ずCH01基準の 1/20→1/70 に戻す。
       pdfCurrentScaleInput.value = "20";
-      pdfTargetScaleInput.value = String(CHAPTER_BASELINE_TARGET_SCALE);
-      pdfPercentInput.value = (100 * 20 / CHAPTER_BASELINE_TARGET_SCALE).toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
-      pdfSizeModeSelect.value = "ch01";
-
-      if (isCurrentChapterBaseline()){
-        updateCh01PdfBaseIfNeeded();
-      }
-
+      pdfTargetScaleInput.value = "70";
+      pdfPercentInput.value = "28.571";
+      pdfSizeModeSelect.value = "model";
       updateChapterCorrectionStatus();
       if (modelWrapper && modelScene) applyModelTransform();
       if (pdfLayers.length > 0) applyPdfTransform();
-      setPdfStatus("CH01基準へ再計算: PDFは1/20→1/70固定、差分はモデル側で自動補正");
+      setPdfStatus("CH01基準を再反映: PDFは1/20→1/70固定、モデルだけ補正しました。");
     });
 
     snapGroundBtn.addEventListener("click", () => { snapModelGround(); fitView(); });
@@ -2307,7 +2182,6 @@
     });
 
     pdfFitVisibleBtn.addEventListener("click", () => {
-      // 表示されない時だけ使う復旧用。CH合わせ確認時はCH01基準固定へ戻す。
       pdfSizeModeSelect.value = "model";
       pdfAlwaysOnTop = true;
       pdfAlwaysOnTopBtn.textContent = "PDF前面表示ON";
@@ -2315,11 +2189,8 @@
       pdfOpacityInput.value = "0.8";
       applyPdfTransform();
       fitView();
-      setPdfStatus("PDF表示復旧: 見える状態に戻しました。合っていれば「現在PDF幅をCH01基準登録」を押してください。");
+      setPdfStatus("PDF表示復旧: PDFは補正前モデル基準 / 前面表示ON / 透明度0.8");
     });
-
-    saveCh01PdfBaseBtn.addEventListener("click", saveCurrentPdfBaseAsCh01);
-    clearCh01PdfBaseBtn.addEventListener("click", clearSavedCh01PdfBase);
 
     applyPdfScaleBtn.addEventListener("click", applyPdfScaleConversion);
     resetPdfScaleBtn.addEventListener("click", resetPdfScaleConversion);
@@ -2385,7 +2256,7 @@
 
     window.addEventListener("resize", resize);
 
-    // v46: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
+    // v47: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
     controls.addEventListener("change", updateRealtimeViewMagnification);
     renderer.domElement.addEventListener("wheel", () => {
       requestAnimationFrame(updateRealtimeViewMagnification);
@@ -2406,12 +2277,7 @@
     updateViewMagnificationHud(185, "READY");
     modelNormalizeBtn.classList.toggle("lime", modelAutoNormalize);
     modelRealScaleBtn.classList.toggle("lime", !modelAutoNormalize);
-    ch01PdfBaseWorldWidth = loadSavedCh01PdfBaseWorldWidth();
-    if (ch01PdfBaseWorldWidth > 0 && pdfBaseWidthInput){
-      pdfBaseWidthInput.value = String(Math.round(ch01PdfBaseWorldWidth * 1000) / 1000);
-    }
-
-    chapterAutoCorrectionBtn.classList.toggle("lime", chapterAutoCorrectionEnabled);
+    chapterCorrectionBtn.classList.toggle("lime", chapterCorrectionEnabled);
     updateChapterCorrectionStatus();
     modelSolidBtn.classList.toggle("lime", modelSolidMode);
     modelVisibilityBtn.classList.toggle("lime", modelVisibilityEnhanced);
