@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF 3D Viewer - Teaching Contest v57 Mobile Layout PDF Stable</title>
+  <title>SF 3D Viewer - Teaching Contest v58 Mobile Play Button Restore</title>
 
   <script type="importmap">
   {
@@ -569,7 +569,7 @@
         right:8px;
         bottom:8px;
         z-index:60;
-        grid-template-columns:repeat(4,1fr);
+        grid-template-columns:repeat(5,1fr);
         gap:6px;
         padding:6px;
         border:1px solid rgba(34,248,255,.34);
@@ -581,8 +581,8 @@
 
       .mobile-dock button{
         min-height:44px;
-        padding:0 4px;
-        font-size:11px;
+        padding:0 3px;
+        font-size:10.5px;
         letter-spacing:0;
       }
 
@@ -630,8 +630,8 @@
       <div class="refbar-head">
         <div class="ref-title">
           <div class="rgb-line"></div>
-          <div class="title">SF 3D VIEWER / TEACHING CONTEST v57</div>
-          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF安定版 / スマホレイアウト / PDF1-20→1-70固定</div>
+          <div class="title">SF 3D VIEWER / TEACHING CONTEST v58</div>
+          <div class="subtitle">参照フォルダ → CH選択 → GLB/PDF同時読込 / PDF安定版 / スマホ再生ボタン復旧 / PDF1-20→1-70固定</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -853,18 +853,19 @@
     </section>
 
     <section class="mobile-quick-panel" id="mobileQuickPanel">
-      <button class="btn" id="mobilePlayBtn">再生/停止</button>
       <button class="btn" id="mobileOpenRefBtn">CH選択</button>
       <button class="btn" id="mobileFitBtn">全体表示</button>
       <button class="btn lime" id="mobilePdfReloadBtn">PDF再読込</button>
       <button class="btn" id="mobileOpenPdfBtn">PDF設定</button>
+      <button class="btn" id="mobileOpenAnimBtn">再生詳細</button>
       <button class="btn magenta" id="mobileClosePanelsBtn">閉じる</button>
     </section>
 
     <section class="mobile-dock" id="mobileDock">
       <button class="btn" id="mobilePrevBtn">前</button>
-      <button class="btn lime" id="mobileArBtn">AR</button>
+      <button class="btn lime" id="mobilePlayBtn">再生</button>
       <button class="btn" id="mobileNextBtn">次</button>
+      <button class="btn lime" id="mobileArBtn">AR</button>
       <button class="btn magenta" id="mobilePanelBtn">メニュー</button>
     </section>
   </div>
@@ -984,6 +985,7 @@
     const mobileFitBtn = document.getElementById("mobileFitBtn");
     const mobilePdfReloadBtn = document.getElementById("mobilePdfReloadBtn");
     const mobileOpenPdfBtn = document.getElementById("mobileOpenPdfBtn");
+    const mobileOpenAnimBtn = document.getElementById("mobileOpenAnimBtn");
     const mobileClosePanelsBtn = document.getElementById("mobileClosePanelsBtn");
 
     let chapters = [];
@@ -1527,7 +1529,7 @@
 
         const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
-        // v57:
+        // v58:
         // 以前は全モデルを「最大寸法2.0」に自動正規化していた。
         // そのためCH01/CH02で元の図面縮尺が同じでも、モデル側の見かけ寸法がズレていた。
         // 今回はデフォルトでGLB実寸を優先し、必要な時だけ自動正規化をONにする。
@@ -1674,7 +1676,7 @@
 
       isPlaying = true;
       playPauseBtn.textContent = "一時停止";
-      if (mobilePlayBtn) mobilePlayBtn.textContent = "一時停止";
+      if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
       setObjectStatus(targets.length > 1 ? `ANIMATION PLAY: 全Action ${targets.length}` : "ANIMATION PLAY");
     }
 
@@ -1816,7 +1818,7 @@
         canvas2d.width = Math.max(1, Math.floor(viewport.width));
         canvas2d.height = Math.max(1, Math.floor(viewport.height));
 
-        // v57:
+        // v58:
         // 描画後のcanvasピクセルではなく、PDF内部のページ寸法を保存する。
         // これを使うことで、PDF同士の縮尺差が出にくくなる。
         canvas2d._viewerPageWidth = base.width;
@@ -2006,7 +2008,7 @@
         // PDFページ実寸比を使う。床PDFを基準に同じ用紙・同じ縮尺なら同じ大きさになる。
         baseWorldWidth = 6.0 * percent / 100;
       } else {
-        // v57 default:
+        // v58 default:
         // PDFサイズは「補正前のモデル基準サイズ」に連動させる。
         // これで、CH02のモデルだけ拡大してもPDFサイズは一緒に拡大されない。
         baseWorldWidth = Math.max(2.5, modelRawSizeForPdf * 3.5) * percent / 100;
@@ -2122,7 +2124,7 @@
       const currentDistance = camera.position.distanceTo(controls.target);
       if (!currentDistance || currentDistance <= 0 || !viewDistanceAtSet || viewDistanceAtSet <= 0) return;
 
-      // v57:
+      // v58:
       // 表示倍率は「最後に設定した倍率」を基準に、ホイール/ピンチで変化した距離だけ補正する。
       // シーンサイズやPDFサイズに引っ張られないので、初期185%が185%として安定表示される。
       const mag = viewMagnificationAtSet * (viewDistanceAtSet / currentDistance);
@@ -2179,7 +2181,7 @@
       const mag = clampViewMagnification(viewMagnificationInput.value);
       viewMagnification = mag;
 
-      // v57:
+      // v58:
       // fitView直後の「実カメラ距離」を、指定した表示倍率そのものとして基準化する。
       // 表示倍率はカメラ距離の変化にだけ追従し、シーンサイズには左右されない。
       const baseAxisDistance = maxDim * 1.15;
@@ -2212,7 +2214,7 @@
     function openArViewer(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0035_v57");
+      url.searchParams.set("v", "20260605_0036_v58");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -2484,6 +2486,7 @@
     mobileFitBtn.addEventListener("click", () => { closeMobilePanels(); fitView(); });
     mobilePdfReloadBtn.addEventListener("click", reloadCurrentPdfFromMobile);
     mobileOpenPdfBtn.addEventListener("click", () => openMobilePanel("pdf"));
+    mobileOpenAnimBtn.addEventListener("click", () => openMobilePanel("anim"));
     mobileClosePanelsBtn.addEventListener("click", closeMobilePanels);
 
     restartBtn.addEventListener("click", restartAnimation);
@@ -2504,7 +2507,7 @@
 
     window.addEventListener("resize", resize);
 
-    // v57: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
+    // v58: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
     controls.addEventListener("change", updateRealtimeViewMagnification);
     renderer.domElement.addEventListener("wheel", () => {
       requestAnimationFrame(updateRealtimeViewMagnification);
