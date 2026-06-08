@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Teaching Contest v53 AR Animation Mode</title>
+  <title>SF AR Viewer - Teaching Contest v54 Mobile Layout First</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -491,11 +491,12 @@
         bottom:76px;
         z-index:58;
         border:1px solid rgba(34,248,255,.34);
-        background:rgba(4,10,20,.93);
+        background:rgba(4,10,20,.94);
         box-shadow:var(--shadow);
         padding:8px;
         grid-template-columns:repeat(2,1fr);
         gap:8px;
+        border-radius:10px;
         backdrop-filter:blur(12px);
         -webkit-backdrop-filter:blur(12px);
       }
@@ -535,8 +536,8 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">SF AR VIEWER / TEACHING CONTEST v53</div>
-          <div class="subtitle">ARアニメ再生 / iPhoneはUSDZ確認 / PDF1-20→1-70固定</div>
+          <div class="title">SF AR VIEWER / TEACHING CONTEST v54</div>
+          <div class="subtitle">スマホレイアウト先行修正 / AR直接ボタン / PDF1-20→1-70固定</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -598,17 +599,6 @@
         </div>
         <div class="status" id="chapterCorrectionStatus">CH01基準モデル補正: 待機中</div>
 
-        <label>ARアニメーション</label>
-        <div class="grid2">
-          <button class="btn lime" id="arAnimAutoBtn">AR起動時再生ON</button>
-          <button class="btn lime" id="arAnimLoopBtn">ループON</button>
-        </div>
-        <div class="grid2">
-          <button class="btn" id="arAnimPrepBtn">ARアニメ準備</button>
-          <button class="btn" id="arAnimFirstBtn">先頭Action</button>
-        </div>
-        <div class="status" id="arAnimationStatus">AR ANIMATION READY</div>
-
         <div class="status" id="objectStatus">OBJECT READY</div>
       </div>
     </aside>
@@ -663,17 +653,17 @@
     </section>
 
     <section class="mobile-quick-panel" id="mobileQuickPanel">
-      <button class="btn lime" id="mobileArBtn">AR起動</button>
+      <button class="btn" id="mobilePlayBtn">再生/停止</button>
       <button class="btn" id="mobileOpenRefBtn">CH選択</button>
       <button class="btn" id="mobileResetViewBtn">視点リセット</button>
       <button class="btn magenta" id="mobileBack3dBtn">3Dへ戻る</button>
-      <button class="btn" id="mobileArAnimBtn">ARアニメ</button>
+      <button class="btn" id="mobileOpenObjectBtn">詳細設定</button>
       <button class="btn magenta" id="mobileClosePanelsBtn">閉じる</button>
     </section>
 
     <section class="mobile-dock" id="mobileDock">
       <button class="btn" id="mobilePrevBtn">前</button>
-      <button class="btn lime" id="mobilePlayBtn">再生</button>
+      <button class="btn lime" id="mobileArBtn">AR</button>
       <button class="btn" id="mobileNextBtn">次</button>
       <button class="btn magenta" id="mobilePanelBtn">メニュー</button>
     </section>
@@ -733,11 +723,6 @@
     const chapterCorrectionBtn = document.getElementById("chapterCorrectionBtn");
     const chapterCorrectionApplyBtn = document.getElementById("chapterCorrectionApplyBtn");
     const chapterCorrectionStatus = document.getElementById("chapterCorrectionStatus");
-    const arAnimAutoBtn = document.getElementById("arAnimAutoBtn");
-    const arAnimLoopBtn = document.getElementById("arAnimLoopBtn");
-    const arAnimPrepBtn = document.getElementById("arAnimPrepBtn");
-    const arAnimFirstBtn = document.getElementById("arAnimFirstBtn");
-    const arAnimationStatus = document.getElementById("arAnimationStatus");
     const prevBottomBtn = document.getElementById("prevBottomBtn");
     const playPauseBtn = document.getElementById("playPauseBtn");
     const restartBtn = document.getElementById("restartBtn");
@@ -755,7 +740,6 @@
     const mobileBack3dBtn = document.getElementById("mobileBack3dBtn");
     const mobileOpenRefBtn = document.getElementById("mobileOpenRefBtn");
     const mobileOpenObjectBtn = document.getElementById("mobileOpenObjectBtn");
-    const mobileArAnimBtn = document.getElementById("mobileArAnimBtn");
     const mobileResetViewBtn = document.getElementById("mobileResetViewBtn");
     const mobileClosePanelsBtn = document.getElementById("mobileClosePanelsBtn");
 
@@ -769,10 +753,6 @@
 
     let chapterCorrectionEnabled = false;
     let chapterCorrectionFactor = 1.0;
-
-    let arAnimationAutoPlay = true;
-    let arAnimationLoop = true;
-    let lastPreparedAnimationName = "";
     const CHAPTER_BASELINE_TARGET_SCALE = 70;
     const CHAPTER_TARGET_SCALE_MAP = {
       "CH01": 70,
@@ -1023,77 +1003,6 @@
       }
     }
 
-
-    function setArAnimationStatus(text){
-      if (arAnimationStatus){
-        arAnimationStatus.textContent = text;
-      }
-      console.log("[AR ANIMATION]", text);
-    }
-
-    function getAvailableAnimationNames(){
-      const list = viewer.availableAnimations || [];
-      return Array.isArray(list) ? list : [];
-    }
-
-    function chooseAnimationForAR(){
-      const selected = animationSelect ? animationSelect.value : "";
-      const names = getAvailableAnimationNames();
-
-      if (selected) return selected;
-      if (names.length > 0) return names[0];
-
-      return "";
-    }
-
-    function updateArAnimationButtons(){
-      if (arAnimAutoBtn){
-        arAnimAutoBtn.textContent = arAnimationAutoPlay ? "AR起動時再生ON" : "AR起動時再生OFF";
-        arAnimAutoBtn.classList.toggle("lime", arAnimationAutoPlay);
-      }
-
-      if (arAnimLoopBtn){
-        arAnimLoopBtn.textContent = arAnimationLoop ? "ループON" : "ループOFF";
-        arAnimLoopBtn.classList.toggle("lime", arAnimationLoop);
-      }
-    }
-
-    function prepareAnimationForAR(){
-      const chosen = chooseAnimationForAR();
-
-      if (!currentModel && currentIosModel){
-        setArAnimationStatus("USDZのみ読込中: iPhone AR側のアニメーションはUSDZ内に焼き込まれている場合のみ再生されます。");
-        return true;
-      }
-
-      if (!chosen){
-        setArAnimationStatus("アニメーションなし: GLB/GLTF内にActionが見つかりません。");
-        return false;
-      }
-
-      try{
-        viewer.animationName = chosen;
-        viewer.timeScale = playSpeed || 0.8;
-        viewer.loop = arAnimationLoop;
-        viewer.currentTime = 0;
-
-        if (arAnimationAutoPlay){
-          viewer.play();
-          isPaused = false;
-          playPauseBtn.textContent = "一時停止";
-          if (mobilePlayBtn) mobilePlayBtn.textContent = "一時停止";
-        }
-
-        lastPreparedAnimationName = chosen;
-        setArAnimationStatus(`ARアニメ準備OK: ${chosen} / 速度${(playSpeed || 0.8).toFixed(2)}x / ループ${arAnimationLoop ? "ON" : "OFF"}`);
-        return true;
-      }catch(err){
-        console.error(err);
-        setArAnimationStatus("ARアニメ準備エラー");
-        return false;
-      }
-    }
-
     async function loadChapter(index){
       if (index < 0 || index >= chapters.length) return;
 
@@ -1298,10 +1207,8 @@
       }
 
       try{
-        prepareAnimationForAR();
-
         await viewer.activateAR();
-        setObjectStatus(`AR起動要求を送信しました。アニメ: ${lastPreparedAnimationName || "USDZ/端末依存"}`);
+        setObjectStatus("AR起動要求を送信しました。");
       }catch(err){
         console.error(err);
         alert("AR起動に失敗しました。\n\nAndroid: Chromeで開いてください。\niPhone: Safari + USDZが必要です。\nアプリ内ブラウザでは失敗することがあります。");
@@ -1312,7 +1219,7 @@
     function open3D(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
-      url.searchParams.set("v", "20260605_0031_v53");
+      url.searchParams.set("v", "20260605_0032_v54");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -1320,35 +1227,10 @@
 
     viewer.addEventListener("load", () => {
       refreshAnimations();
-
-      const names = getAvailableAnimationNames();
-      if (names.length > 0){
-        if (!animationSelect.value){
-          animationSelect.value = names[0];
-        }
-        if (arAnimationAutoPlay){
-          prepareAnimationForAR();
-        } else {
-          setArAnimationStatus(`Action検出: ${names.length}件 / ${names[0]}`);
-        }
-      } else {
-        setArAnimationStatus("Actionなし: GLB/GLTFにアニメーションが見つかりません。");
-      }
-
       setObjectStatus("読込完了: " + currentModel);
     });
 
     viewer.addEventListener("finished", () => {
-      if (arAnimationLoop && currentModel){
-        viewer.currentTime = 0;
-        viewer.play();
-        isPaused = false;
-        playPauseBtn.textContent = "一時停止";
-        if (mobilePlayBtn) mobilePlayBtn.textContent = "一時停止";
-        setObjectStatus("ANIMATION LOOP");
-        return;
-      }
-
       isPaused = true;
       playPauseBtn.textContent = "再生";
       if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
@@ -1459,30 +1341,6 @@
       setObjectStatus(`AR補正再反映: PDFは1/20→1/70固定 / モデルだけ×${chapterCorrectionFactor.toFixed(4)}`);
     });
 
-    arAnimAutoBtn.addEventListener("click", () => {
-      arAnimationAutoPlay = !arAnimationAutoPlay;
-      updateArAnimationButtons();
-      setArAnimationStatus(`AR起動時再生: ${arAnimationAutoPlay ? "ON" : "OFF"}`);
-    });
-
-    arAnimLoopBtn.addEventListener("click", () => {
-      arAnimationLoop = !arAnimationLoop;
-      updateArAnimationButtons();
-      prepareAnimationForAR();
-    });
-
-    arAnimPrepBtn.addEventListener("click", prepareAnimationForAR);
-
-    arAnimFirstBtn.addEventListener("click", () => {
-      const names = getAvailableAnimationNames();
-      if (names.length > 0){
-        animationSelect.value = names[0];
-        prepareAnimationForAR();
-      } else {
-        setArAnimationStatus("先頭Actionなし: アニメーションが見つかりません。");
-      }
-    });
-
     mobilePrevBtn.addEventListener("click", () => changeChapter(-1));
     mobileNextBtn.addEventListener("click", () => changeChapter(1));
     mobilePlayBtn.addEventListener("click", toggleMobilePlay);
@@ -1495,10 +1353,6 @@
 
     mobileOpenRefBtn.addEventListener("click", () => openMobilePanel("ref"));
     mobileOpenObjectBtn.addEventListener("click", () => openMobilePanel("object"));
-    mobileArAnimBtn.addEventListener("click", () => {
-      prepareAnimationForAR();
-      closeMobilePanels();
-    });
     mobileResetViewBtn.addEventListener("click", () => {
       closeMobilePanels();
       viewer.cameraOrbit = "25deg 70deg 130%";
@@ -1540,12 +1394,9 @@
       if (!animationSelect.value) return;
       viewer.animationName = animationSelect.value;
       viewer.currentTime = 0;
-      viewer.loop = arAnimationLoop;
       viewer.play();
       isPaused = false;
       playPauseBtn.textContent = "一時停止";
-      if (mobilePlayBtn) mobilePlayBtn.textContent = "一時停止";
-      setArAnimationStatus(`Action選択: ${animationSelect.value}`);
     });
 
     applyPdfScaleBtn.addEventListener("click", applyPdfScaleConversion);
@@ -1558,7 +1409,6 @@
     if (initialRoot) rootInput.value = initialRoot;
     chapterCorrectionBtn.classList.toggle("lime", chapterCorrectionEnabled);
     updateChapterCorrectionStatus();
-    updateArAnimationButtons();
     loadReferenceRoot();
   </script>
 </body>
