@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Teaching Contest v50 Simple Mobile Layout</title>
+  <title>SF AR Viewer - Teaching Contest v51 Size Stable Reset</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -535,8 +535,8 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">SF AR VIEWER / TEACHING CONTEST v50</div>
-          <div class="subtitle">スマホ4ボタン構成 / PDF1-20→1-70固定 / CH01基準モデル補正</div>
+          <div class="title">SF AR VIEWER / TEACHING CONTEST v51</div>
+          <div class="subtitle">サイズ安定版 / スマホ4ボタン構成 / PDF1-20→1-70固定</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -592,7 +592,7 @@
 
         <label>CH01基準モデル補正</label>
         <div class="grid2">
-          <button class="btn lime" id="chapterCorrectionBtn">モデル補正ON</button>
+          <button class="btn" id="chapterCorrectionBtn">モデル補正OFF</button>
           <button class="btn" id="chapterCorrectionApplyBtn">補正再反映</button>
         </div>
         <div class="status" id="chapterCorrectionStatus">CH01基準モデル補正: 待機中</div>
@@ -745,7 +745,7 @@
     let playSpeed = 0.8;
     let isPaused = false;
 
-    let chapterCorrectionEnabled = true;
+    let chapterCorrectionEnabled = false;
     let chapterCorrectionFactor = 1.0;
     const CHAPTER_BASELINE_TARGET_SCALE = 70;
     const CHAPTER_TARGET_SCALE_MAP = {
@@ -1164,7 +1164,7 @@
     function open3D(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
-      url.searchParams.set("v", "20260605_0026_v48");
+      url.searchParams.set("v", "20260605_0029_v51");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
