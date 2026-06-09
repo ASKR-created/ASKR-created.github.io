@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Teaching Contest v54 Mobile Layout First</title>
+  <title>SF AR Viewer - Teaching Contest v55 iOS Safari Prompt</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -536,8 +536,8 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">SF AR VIEWER / TEACHING CONTEST v54</div>
-          <div class="subtitle">スマホレイアウト先行修正 / AR直接ボタン / PDF1-20→1-70固定</div>
+          <div class="title">SF AR VIEWER / TEACHING CONTEST v55</div>
+          <div class="subtitle">iPhone Safari切替確認 / AR直接ボタン / PDF1-20→1-70固定</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -772,6 +772,75 @@
     function isSafariLike(){
       const ua = navigator.userAgent;
       return /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|Android/i.test(ua);
+    }
+
+    async function copyTextToClipboard(text){
+      try{
+        if (navigator.clipboard && window.isSecureContext){
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      }catch(err){
+        console.warn("clipboard api failed", err);
+      }
+
+      try{
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return ok;
+      }catch(err){
+        console.warn("fallback copy failed", err);
+        return false;
+      }
+    }
+
+    async function askOpenInSafariIfNeeded(){
+      const ios = isIOSLike();
+      const safari = isSafariLike();
+
+      if (!ios || safari){
+        return true;
+      }
+
+      const url = window.location.href;
+      const ok = confirm(
+        "iPhone/iPadではSafariで開くとARが安定します。\n\n" +
+        "Safariで開くために、このURLをコピーしますか？\n\n" +
+        "OK: URLをコピーして、Safariに貼り付けて開く\n" +
+        "キャンセル: このまま続行"
+      );
+
+      if (!ok){
+        setObjectStatus("iPhone Safari切替をキャンセルしました。このままAR起動を試します。");
+        return true;
+      }
+
+      const copied = await copyTextToClipboard(url);
+
+      if (copied){
+        alert(
+          "URLをコピーしました。\n\n" +
+          "Safariを開いて、アドレスバーに貼り付けてください。\n\n" +
+          "iPhone ChromeからSafariを自動起動することはできないため、手動で開いてください。"
+        );
+        setObjectStatus("Safari用URLをコピーしました。Safariで開いてください。");
+      }else{
+        alert(
+          "URLの自動コピーに失敗しました。\n\n" +
+          "次のURLを手動でコピーしてSafariで開いてください。\n\n" +
+          url
+        );
+        setObjectStatus("Safari用URLコピー失敗。手動コピーしてください。");
+      }
+
+      return false;
     }
 
     function setObjectStatus(text){
@@ -1188,6 +1257,9 @@
     }
 
     async function openAR(){
+      const shouldContinue = await askOpenInSafariIfNeeded();
+      if (!shouldContinue) return;
+
       const ios = isIOSLike();
       const safari = isSafariLike();
 
@@ -1219,7 +1291,7 @@
     function open3D(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
-      url.searchParams.set("v", "20260605_0032_v54");
+      url.searchParams.set("v", "20260605_0037_v55");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
