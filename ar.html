@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Teaching Contest v57 iOS Safari Share Sheet</title>
+  <title>SF AR Viewer - Teaching Contest v58 iOS Chrome Direct AR</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -536,8 +536,8 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">SF AR VIEWER / TEACHING CONTEST v57</div>
-          <div class="subtitle">iPhone Safari共有シート誘導 / AR直接ボタン / PDF1-20→1-70固定</div>
+          <div class="title">SF AR VIEWER / TEACHING CONTEST v58</div>
+          <div class="subtitle">iPhone Chrome直接AR試行 / USDZ直接起動 / PDF1-20→1-70固定</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -802,60 +802,25 @@
     }
 
     async function askOpenInSafariIfNeeded(){
-      const ios = isIOSLike();
-      const safari = isSafariLike();
+      // v58:
+      // iPhone ChromeでそのままAR起動を試す。
+      // Safari誘導・共有シート誘導は行わない。
+      return true;
+    }
 
-      if (!ios || safari){
-        return true;
+    function getIosModelUrl(){
+      return currentIosModel ? toAssetUrl(currentIosModel) : "";
+    }
+
+    function openUsdZDirectly(){
+      const url = getIosModelUrl();
+      if (!url){
+        alert("このチャプターにはUSDZが見つかりません。\n\niPhone ChromeでARを試す場合は、同じCHフォルダ内に .usdz を入れてください。");
+        setObjectStatus("USDZ DIRECT ERROR: USDZなし");
+        return;
       }
-
-      const url = window.location.href;
-      const copied = await copyTextToClipboard(url);
-
-      const ok = confirm(
-        "iPhone/iPadではSafariで開くとARが安定します。\n\n" +
-        "Chrome等からSafariを完全自動起動することはできないため、\n" +
-        "共有シートまたはコピーしたURLでSafariに切り替えます。\n\n" +
-        "OK: 共有シートを開く / URLをコピー\n" +
-        "キャンセル: このままChromeでAR起動を試す"
-      );
-
-      if (!ok){
-        setObjectStatus("Safari切替をキャンセルしました。このままAR起動を試します。");
-        return true;
-      }
-
-      setObjectStatus(copied
-        ? "Safari用URLをコピーしました。共有シートを開きます。"
-        : "Safari用URLコピーに失敗しました。共有シートを開きます。"
-      );
-
-      if (navigator.share){
-        try{
-          await navigator.share({
-            title: "AR Viewer",
-            text: "Safariで開いてARを確認してください。",
-            url: url
-          });
-
-          alert(
-            "共有シートを開きました。\n\n" +
-            "Safariで開く、またはURLをコピーしてSafariに貼り付けてください。"
-          );
-
-          return false;
-        }catch(err){
-          console.warn("share canceled or failed", err);
-        }
-      }
-
-      alert(
-        (copied ? "URLをコピーしました。\n\n" : "URLコピーに失敗しました。\n\n") +
-        "Safariを開いて、アドレスバーに貼り付けてください。\n\n" +
-        url
-      );
-
-      return false;
+      setObjectStatus("USDZ直接起動を試行: " + url);
+      window.location.href = url;
     }
 
     function setObjectStatus(text){
@@ -1284,13 +1249,13 @@
       }
 
       if (ios && !currentIosModel){
-        alert("iPhone/iPadのARにはUSDZファイルが必要です。\n\nこのチャプターにはUSDZが見つかりません。\nGLBだけの場合は3Dプレビューはできますが、iPhoneのARでは保存画面になったり、起動できないことがあります。");
+        alert("iPhone/iPadのARにはUSDZファイルが必要です。\n\nこのチャプターにはUSDZが見つかりません。\nChromeで試す場合も、同じCHフォルダ内に .usdz を入れてください。");
         setObjectStatus("iOS AR ERROR: USDZがありません。");
         return;
       }
 
       if (ios && !safari){
-        alert("iPhone/iPadではSafariで開いてください。\nChromeアプリやアプリ内ブラウザではARが起動しないことがあります。");
+        setObjectStatus("iPhone Chromeで直接AR起動を試します。失敗時はUSDZ直接起動へ切替できます。");
       }
 
       try{
@@ -1298,7 +1263,28 @@
         setObjectStatus("AR起動要求を送信しました。");
       }catch(err){
         console.error(err);
-        alert("AR起動に失敗しました。\n\nAndroid: Chromeで開いてください。\niPhone: Safari + USDZが必要です。\nアプリ内ブラウザでは失敗することがあります。");
+
+        const ios = isIOSLike();
+        const safari = isSafariLike();
+
+        if (ios && !safari && currentIosModel){
+          const ok = confirm(
+            "iPhone ChromeでAR起動に失敗しました。\n\n" +
+            "同じCHフォルダ内のUSDZを直接開いてARを試しますか？\n\n" +
+            "OK: USDZを直接開く\n" +
+            "キャンセル: 中止"
+          );
+          if (ok){
+            openUsdZDirectly();
+            return;
+          }
+        }
+
+        alert(
+          "AR起動に失敗しました。\n\n" +
+          "iPhone Chromeでは端末やiOSの仕様により動かない場合があります。\n" +
+          "USDZが入っているか、ファイルサイズが大きすぎないか確認してください。"
+        );
         setObjectStatus("AR START ERROR");
       }
     }
@@ -1306,7 +1292,7 @@
     function open3D(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
-      url.searchParams.set("v", "20260605_0039_v57");
+      url.searchParams.set("v", "20260605_0040_v58");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
