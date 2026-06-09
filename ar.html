@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Teaching Contest v55 iOS Safari Prompt</title>
+  <title>SF AR Viewer - Teaching Contest v56 iOS Safari Auto Attempt</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -536,8 +536,8 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">SF AR VIEWER / TEACHING CONTEST v55</div>
-          <div class="subtitle">iPhone Safari切替確認 / AR直接ボタン / PDF1-20→1-70固定</div>
+          <div class="title">SF AR VIEWER / TEACHING CONTEST v56</div>
+          <div class="subtitle">iPhone Safari自動切替試行 / AR直接ボタン / PDF1-20→1-70固定</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -810,35 +810,60 @@
       }
 
       const url = window.location.href;
-      const ok = confirm(
-        "iPhone/iPadではSafariで開くとARが安定します。\n\n" +
-        "Safariで開くために、このURLをコピーしますか？\n\n" +
-        "OK: URLをコピーして、Safariに貼り付けて開く\n" +
-        "キャンセル: このまま続行"
+
+      // iPhone ChromeなどからSafariを確実に強制起動する公式APIはない。
+      // ただし、ユーザー操作直後であれば x-web-search:// でSafari起動に渡せる場合があるため、
+      // 自動切替を試す。失敗時に備えてURLは先にコピーしておく。
+      const copied = await copyTextToClipboard(url);
+
+      setObjectStatus(copied
+        ? "iPhone Safari自動切替を試行中。URLはコピー済みです。"
+        : "iPhone Safari自動切替を試行中。URLコピーは失敗しました。"
       );
 
-      if (!ok){
-        setObjectStatus("iPhone Safari切替をキャンセルしました。このままAR起動を試します。");
+      const tryAuto = confirm(
+        "iPhone/iPadではSafariでARを開きます。\n\n" +
+        "OKを押すとSafariへの自動切替を試します。\n" +
+        "切り替わらない場合は、コピー済みURLをSafariに貼り付けてください。"
+      );
+
+      if (!tryAuto){
+        setObjectStatus("Safari自動切替をキャンセルしました。このままAR起動を試します。");
         return true;
       }
 
-      const copied = await copyTextToClipboard(url);
+      const encodedUrl = encodeURIComponent(url);
+      const safariAttemptUrl = "x-web-search://?" + encodedUrl;
 
-      if (copied){
+      let fallbackShown = false;
+
+      const showFallback = () => {
+        if (fallbackShown) return;
+        fallbackShown = true;
+
         alert(
-          "URLをコピーしました。\n\n" +
+          "Safariへ自動切替できなかった可能性があります。\n\n" +
+          (copied ? "URLはコピー済みです。\n" : "URLコピーに失敗しました。\n") +
           "Safariを開いて、アドレスバーに貼り付けてください。\n\n" +
-          "iPhone ChromeからSafariを自動起動することはできないため、手動で開いてください。"
-        );
-        setObjectStatus("Safari用URLをコピーしました。Safariで開いてください。");
-      }else{
-        alert(
-          "URLの自動コピーに失敗しました。\n\n" +
-          "次のURLを手動でコピーしてSafariで開いてください。\n\n" +
           url
         );
-        setObjectStatus("Safari用URLコピー失敗。手動コピーしてください。");
-      }
+      };
+
+      const onVisibilityChange = () => {
+        if (document.hidden){
+          fallbackShown = true;
+          document.removeEventListener("visibilitychange", onVisibilityChange);
+        }
+      };
+
+      document.addEventListener("visibilitychange", onVisibilityChange);
+
+      setTimeout(() => {
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+        showFallback();
+      }, 1600);
+
+      window.location.href = safariAttemptUrl;
 
       return false;
     }
@@ -1291,7 +1316,7 @@
     function open3D(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
-      url.searchParams.set("v", "20260605_0037_v55");
+      url.searchParams.set("v", "20260605_0038_v56");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
