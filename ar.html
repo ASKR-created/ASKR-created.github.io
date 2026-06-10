@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Teaching Contest v60 Dark Technical UI</title>
+  <title>SF AR Viewer - Teaching Contest v61 AR PDF Model Switch Fix</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -507,7 +507,7 @@
     }
   
     /* ============================================================
-       v60 DARK TECHNICAL UI OVERRIDE
+       v61 DARK TECHNICAL UI OVERRIDE
        3D / AR 共通デザイン
        ============================================================ */
 
@@ -798,6 +798,26 @@
       }
     }
 
+  
+    /* v61: ARスマホ時のPDF表示・モデル切替補助 */
+    @media (max-width:980px){
+      #pdfSide.mobile-open,
+      #objectSide.mobile-open{
+        top:64px !important;
+        bottom:76px !important;
+        z-index:66 !important;
+      }
+
+      #pdfSide.mobile-open .pdf-preview{
+        max-height:34dvh !important;
+        object-fit:contain !important;
+      }
+
+      .mobile-quick-panel{
+        grid-template-columns:repeat(2,1fr) !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -829,8 +849,8 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">DARK TECH AR VIEWER / TEACHING CONTEST v60</div>
-          <div class="subtitle">Dark Technical UI / Chrome直接AR / PDF1-20→1-70固定</div>
+          <div class="title">DARK TECH AR VIEWER / TEACHING CONTEST v61</div>
+          <div class="subtitle">Dark Technical UI / PDF表示・モデル切替修正 / Chrome直接AR</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -881,7 +901,12 @@
         </div>
 
         <div class="grid2">
-          <button class="btn" id="modelUrlBtn">モデルURL表示</button>
+          <button class="btn" id="modelUrlBtn">GLB URL表示</button>
+          <button class="btn lime" id="directUsdZBtn">USDZ直接</button>
+        </div>
+
+        <div class="grid2">
+          <button class="btn" id="iosModelUrlBtn">USDZ URL表示</button>
           <button class="btn magenta" id="clearModelBtn">モデル消去</button>
         </div>
 
@@ -950,9 +975,11 @@
       <button class="btn" id="mobileAfterArNextBtn">AR後次CH OFF</button>
       <button class="btn lime" id="mobileNextArBtn">次CH→AR</button>
       <button class="btn" id="mobileOpenRefBtn">CH選択</button>
+      <button class="btn" id="mobileOpenObjectBtn">モデル切替</button>
+      <button class="btn lime" id="mobileOpenPdfBtn">PDF表示</button>
       <button class="btn" id="mobileOpenAnimBtn">再生詳細</button>
       <button class="btn" id="mobileResetViewBtn">視点リセット</button>
-      <button class="btn" id="mobileOpenObjectBtn">詳細設定</button>
+      <button class="btn" id="mobileDirectUsdZBtn">USDZ直接</button>
       <button class="btn magenta" id="mobileBack3dBtn">3Dへ戻る</button>
       <button class="btn magenta" id="mobileClosePanelsBtn">閉じる</button>
     </section>
@@ -1016,6 +1043,8 @@
     const arStartBtn = document.getElementById("arStartBtn");
     const resetViewBtn = document.getElementById("resetViewBtn");
     const modelUrlBtn = document.getElementById("modelUrlBtn");
+    const iosModelUrlBtn = document.getElementById("iosModelUrlBtn");
+    const directUsdZBtn = document.getElementById("directUsdZBtn");
     const clearModelBtn = document.getElementById("clearModelBtn");
     const chapterCorrectionBtn = document.getElementById("chapterCorrectionBtn");
     const chapterCorrectionApplyBtn = document.getElementById("chapterCorrectionApplyBtn");
@@ -1040,8 +1069,10 @@
     const mobileNextArBtn = document.getElementById("mobileNextArBtn");
     const mobileOpenRefBtn = document.getElementById("mobileOpenRefBtn");
     const mobileOpenObjectBtn = document.getElementById("mobileOpenObjectBtn");
+    const mobileOpenPdfBtn = document.getElementById("mobileOpenPdfBtn");
     const mobileOpenAnimBtn = document.getElementById("mobileOpenAnimBtn");
     const mobileResetViewBtn = document.getElementById("mobileResetViewBtn");
+    const mobileDirectUsdZBtn = document.getElementById("mobileDirectUsdZBtn");
     const mobileClosePanelsBtn = document.getElementById("mobileClosePanelsBtn");
 
     let chapters = [];
@@ -1052,9 +1083,9 @@
     let playSpeed = 0.8;
     let isPaused = false;
 
-    const AR_AFTER_NEXT_KEY = "teachingContestArAfterNext_v60";
-    const AR_PENDING_KEY = "teachingContestArPending_v60";
-    const AR_LAST_STATE_KEY = "teachingContestArLastState_v60";
+    const AR_AFTER_NEXT_KEY = "teachingContestArAfterNext_v61";
+    const AR_PENDING_KEY = "teachingContestArPending_v61";
+    const AR_LAST_STATE_KEY = "teachingContestArLastState_v61";
 
     let autoAdvanceAfterAR = localStorage.getItem(AR_AFTER_NEXT_KEY) === "1";
     let arLaunchPending = false;
@@ -1111,7 +1142,7 @@
     }
 
     async function askOpenInSafariIfNeeded(){
-      // v60:
+      // v61:
       // iPhone ChromeでそのままAR起動を試す。
       // Safari誘導・共有シート誘導は行わない。
       return true;
@@ -1131,6 +1162,15 @@
       markArLaunchPending();
       setObjectStatus("USDZ直接起動を試行: " + url);
       window.location.href = url;
+    }
+
+    function showIosModelUrl(){
+      const url = getIosModelUrl();
+      if (!url){
+        alert("USDZが未読込です。同じCHフォルダ内に .usdz を入れてください。");
+        return;
+      }
+      prompt("USDZ URL", url);
     }
 
     function saveCurrentViewerState(){
@@ -1553,9 +1593,15 @@
       pdfFloorPreview.removeAttribute("src");
       pdfSidePreview.removeAttribute("src");
 
+      const floorPdf = chapter.floorPdf || (chapter.pdfs && chapter.pdfs.length > 0 ? chapter.pdfs[0] : "");
+      const sidePdf = chapter.sidePdf || (chapter.pdfs && chapter.pdfs.length > 1 ? chapter.pdfs.find(p => p !== floorPdf) : "");
+
+      pdfFloorPathText.textContent = floorPdf || "未登録";
+      pdfSidePathText.textContent = sidePdf || "未登録";
+
       const jobs = [];
-      if (chapter.floorPdf) jobs.push(loadPdfPreview(chapter.floorPdf, pdfFloorPreview));
-      if (chapter.sidePdf && chapter.sidePdf !== chapter.floorPdf) jobs.push(loadPdfPreview(chapter.sidePdf, pdfSidePreview));
+      if (floorPdf) jobs.push(loadPdfPreview(floorPdf, pdfFloorPreview));
+      if (sidePdf && sidePdf !== floorPdf) jobs.push(loadPdfPreview(sidePdf, pdfSidePreview));
 
       if (jobs.length === 0){
         setPdfStatus("このチャプターにPDFはありません。");
@@ -1564,7 +1610,7 @@
 
       await Promise.all(jobs);
       applyPdfScaleConversion();
-      setPdfStatus(`PDF PREVIEW: ${jobs.length}枚 / 床 ${chapter.floorPdf ? getBaseName(chapter.floorPdf) : "なし"} / 側面 ${chapter.sidePdf ? getBaseName(chapter.sidePdf) : "なし"}`);
+      setPdfStatus(`PDF PREVIEW: ${jobs.length}枚 / 床 ${floorPdf ? getBaseName(floorPdf) : "なし"} / 側面 ${sidePdf ? getBaseName(sidePdf) : "なし"}`);
     }
 
     function formatScaleNumber(value){
@@ -1707,7 +1753,7 @@
     function open3D(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
-      url.searchParams.set("v", "20260605_0042_v60");
+      url.searchParams.set("v", "20260605_0043_v61");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -1799,9 +1845,11 @@
 
     arStartBtn.addEventListener("click", openAR);
     modelUrlBtn.addEventListener("click", () => {
-      if (!currentModel) return alert("モデル未読込");
-      prompt("モデルURL", toAssetUrl(currentModel));
+      if (!currentModel) return alert("GLB/GLTFモデル未読込");
+      prompt("GLB/GLTF モデルURL", toAssetUrl(currentModel));
     });
+    iosModelUrlBtn.addEventListener("click", showIosModelUrl);
+    directUsdZBtn.addEventListener("click", openUsdZDirectly);
     clearModelBtn.addEventListener("click", () => {
       currentModel = "";
       currentIosModel = "";
@@ -1845,7 +1893,9 @@
 
     mobileOpenRefBtn.addEventListener("click", () => openMobilePanel("ref"));
     mobileOpenObjectBtn.addEventListener("click", () => openMobilePanel("object"));
+    mobileOpenPdfBtn.addEventListener("click", () => openMobilePanel("pdf"));
     mobileOpenAnimBtn.addEventListener("click", () => openMobilePanel("anim"));
+    mobileDirectUsdZBtn.addEventListener("click", openUsdZDirectly);
     mobileResetViewBtn.addEventListener("click", () => {
       closeMobilePanels();
       viewer.cameraOrbit = "25deg 70deg 130%";
