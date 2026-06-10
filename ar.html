@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Teaching Contest v58 iOS Chrome Direct AR</title>
+  <title>SF AR Viewer - Teaching Contest v59 AR Return Workflow</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -466,7 +466,7 @@
         right:8px;
         bottom:8px;
         z-index:60;
-        grid-template-columns:repeat(4,1fr);
+        grid-template-columns:repeat(5,1fr);
         gap:6px;
         padding:6px;
         border:1px solid rgba(34,248,255,.34);
@@ -478,8 +478,8 @@
 
       .mobile-dock button{
         min-height:44px;
-        padding:0 4px;
-        font-size:11px;
+        padding:0 3px;
+        font-size:10.5px;
         letter-spacing:0;
       }
 
@@ -536,8 +536,8 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">SF AR VIEWER / TEACHING CONTEST v58</div>
-          <div class="subtitle">iPhone Chrome直接AR試行 / USDZ直接起動 / PDF1-20→1-70固定</div>
+          <div class="title">SF AR VIEWER / TEACHING CONTEST v59</div>
+          <div class="subtitle">AR戻り後CH操作 / Chrome直接AR / PDF1-20→1-70固定</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -649,20 +649,24 @@
       <select id="animationSelect">
         <option value="">アニメーションなし</option>
       </select>
+      <button class="btn" id="afterArNextBtn">AR後次CH OFF</button>
       <button class="btn magenta" id="back3dBtn">3Dへ戻る</button>
     </section>
 
     <section class="mobile-quick-panel" id="mobileQuickPanel">
-      <button class="btn" id="mobilePlayBtn">再生/停止</button>
+      <button class="btn" id="mobileAfterArNextBtn">AR後次CH OFF</button>
+      <button class="btn lime" id="mobileNextArBtn">次CH→AR</button>
       <button class="btn" id="mobileOpenRefBtn">CH選択</button>
+      <button class="btn" id="mobileOpenAnimBtn">再生詳細</button>
       <button class="btn" id="mobileResetViewBtn">視点リセット</button>
-      <button class="btn magenta" id="mobileBack3dBtn">3Dへ戻る</button>
       <button class="btn" id="mobileOpenObjectBtn">詳細設定</button>
+      <button class="btn magenta" id="mobileBack3dBtn">3Dへ戻る</button>
       <button class="btn magenta" id="mobileClosePanelsBtn">閉じる</button>
     </section>
 
     <section class="mobile-dock" id="mobileDock">
       <button class="btn" id="mobilePrevBtn">前</button>
+      <button class="btn lime" id="mobilePlayBtn">再生</button>
       <button class="btn lime" id="mobileArBtn">AR</button>
       <button class="btn" id="mobileNextBtn">次</button>
       <button class="btn magenta" id="mobilePanelBtn">メニュー</button>
@@ -729,6 +733,7 @@
     const speedRange = document.getElementById("speedRange");
     const speedText = document.getElementById("speedText");
     const animationSelect = document.getElementById("animationSelect");
+    const afterArNextBtn = document.getElementById("afterArNextBtn");
     const back3dBtn = document.getElementById("back3dBtn");
 
     const mobileQuickPanel = document.getElementById("mobileQuickPanel");
@@ -738,8 +743,11 @@
     const mobileArBtn = document.getElementById("mobileArBtn");
     const mobilePanelBtn = document.getElementById("mobilePanelBtn");
     const mobileBack3dBtn = document.getElementById("mobileBack3dBtn");
+    const mobileAfterArNextBtn = document.getElementById("mobileAfterArNextBtn");
+    const mobileNextArBtn = document.getElementById("mobileNextArBtn");
     const mobileOpenRefBtn = document.getElementById("mobileOpenRefBtn");
     const mobileOpenObjectBtn = document.getElementById("mobileOpenObjectBtn");
+    const mobileOpenAnimBtn = document.getElementById("mobileOpenAnimBtn");
     const mobileResetViewBtn = document.getElementById("mobileResetViewBtn");
     const mobileClosePanelsBtn = document.getElementById("mobileClosePanelsBtn");
 
@@ -750,6 +758,14 @@
     let currentIosModel = "";
     let playSpeed = 0.8;
     let isPaused = false;
+
+    const AR_AFTER_NEXT_KEY = "teachingContestArAfterNext_v59";
+    const AR_PENDING_KEY = "teachingContestArPending_v59";
+    const AR_LAST_STATE_KEY = "teachingContestArLastState_v59";
+
+    let autoAdvanceAfterAR = localStorage.getItem(AR_AFTER_NEXT_KEY) === "1";
+    let arLaunchPending = false;
+    let arReturnObservedHidden = false;
 
     let chapterCorrectionEnabled = false;
     let chapterCorrectionFactor = 1.0;
@@ -802,7 +818,7 @@
     }
 
     async function askOpenInSafariIfNeeded(){
-      // v58:
+      // v59:
       // iPhone ChromeでそのままAR起動を試す。
       // Safari誘導・共有シート誘導は行わない。
       return true;
@@ -819,8 +835,110 @@
         setObjectStatus("USDZ DIRECT ERROR: USDZなし");
         return;
       }
+      markArLaunchPending();
       setObjectStatus("USDZ直接起動を試行: " + url);
       window.location.href = url;
+    }
+
+    function saveCurrentViewerState(){
+      const ch = chapters[currentChapterIndex];
+
+      try{
+        localStorage.setItem(AR_LAST_STATE_KEY, JSON.stringify({
+          root: currentRoot || "",
+          chapter: ch ? ch.name : "",
+          index: currentChapterIndex,
+          ts: Date.now()
+        }));
+      }catch(err){
+        console.warn("save state failed", err);
+      }
+    }
+
+    function markArLaunchPending(){
+      const ch = chapters[currentChapterIndex];
+      arLaunchPending = true;
+      arReturnObservedHidden = false;
+      saveCurrentViewerState();
+
+      try{
+        localStorage.setItem(AR_PENDING_KEY, JSON.stringify({
+          root: currentRoot || "",
+          chapter: ch ? ch.name : "",
+          index: currentChapterIndex,
+          afterNext: autoAdvanceAfterAR,
+          ts: Date.now()
+        }));
+      }catch(err){
+        console.warn("pending save failed", err);
+      }
+    }
+
+    function clearArLaunchPending(){
+      arLaunchPending = false;
+      arReturnObservedHidden = false;
+      try{
+        localStorage.removeItem(AR_PENDING_KEY);
+      }catch(err){
+        console.warn("pending clear failed", err);
+      }
+    }
+
+    function updateAfterArNextButtons(){
+      const text = autoAdvanceAfterAR ? "AR後次CH ON" : "AR後次CH OFF";
+
+      if (afterArNextBtn){
+        afterArNextBtn.textContent = text;
+        afterArNextBtn.classList.toggle("lime", autoAdvanceAfterAR);
+      }
+
+      if (mobileAfterArNextBtn){
+        mobileAfterArNextBtn.textContent = text;
+        mobileAfterArNextBtn.classList.toggle("lime", autoAdvanceAfterAR);
+      }
+    }
+
+    function toggleAfterArNext(){
+      autoAdvanceAfterAR = !autoAdvanceAfterAR;
+      localStorage.setItem(AR_AFTER_NEXT_KEY, autoAdvanceAfterAR ? "1" : "0");
+      updateAfterArNextButtons();
+      setObjectStatus(autoAdvanceAfterAR ? "ARから戻ったら次CHへ進みます。" : "ARから戻っても現在CHを保持します。");
+    }
+
+    async function handleReturnFromAR(reason="return"){
+      let pending = null;
+
+      try{
+        const raw = localStorage.getItem(AR_PENDING_KEY);
+        pending = raw ? JSON.parse(raw) : null;
+      }catch(err){
+        pending = null;
+      }
+
+      if (!pending && !arLaunchPending) return;
+
+      if (pending && pending.ts && Date.now() - pending.ts > 1000 * 60 * 20){
+        clearArLaunchPending();
+        return;
+      }
+
+      const shouldNext = autoAdvanceAfterAR || (pending && pending.afterNext);
+
+      clearArLaunchPending();
+
+      if (shouldNext && chapters.length > 0){
+        setObjectStatus("ARから戻りました。次CHへ進みます。");
+        await changeChapter(1);
+      }else{
+        setObjectStatus("ARから戻りました。現在CHを保持しています。");
+      }
+    }
+
+    async function nextChapterAndOpenAR(){
+      if (chapters.length === 0) return;
+      await changeChapter(1);
+      closeMobilePanels();
+      setTimeout(() => openAR(), 350);
     }
 
     function setObjectStatus(text){
@@ -1077,6 +1195,7 @@
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (chapters[currentChapterIndex]) url.searchParams.set("chapter", chapters[currentChapterIndex].name);
       history.replaceState(null, "", url.toString());
+      saveCurrentViewerState();
     }
 
     async function loadModel(path, iosPath=""){
@@ -1201,12 +1320,12 @@
       setPdfStatus("縮尺初期化: 1/20 → 1/70 / プレビュー倍率 28.571%");
     }
 
-    function changeChapter(delta){
+    async function changeChapter(delta){
       if (chapters.length === 0) return;
       let next = currentChapterIndex + delta;
       if (next < 0) next = chapters.length - 1;
       if (next >= chapters.length) next = 0;
-      loadChapter(next);
+      await loadChapter(next);
     }
 
     function refreshAnimations(){
@@ -1259,8 +1378,9 @@
       }
 
       try{
+        markArLaunchPending();
         await viewer.activateAR();
-        setObjectStatus("AR起動要求を送信しました。");
+        setObjectStatus(autoAdvanceAfterAR ? "AR起動要求を送信しました。戻ったら次CHへ進みます。" : "AR起動要求を送信しました。戻っても現在CHを保持します。");
       }catch(err){
         console.error(err);
 
@@ -1280,6 +1400,8 @@
           }
         }
 
+        clearArLaunchPending();
+
         alert(
           "AR起動に失敗しました。\n\n" +
           "iPhone Chromeでは端末やiOSの仕様により動かない場合があります。\n" +
@@ -1292,7 +1414,7 @@
     function open3D(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
-      url.searchParams.set("v", "20260605_0040_v58");
+      url.searchParams.set("v", "20260605_0041_v59");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
@@ -1361,7 +1483,7 @@
         viewer.play();
         isPaused = false;
         playPauseBtn.textContent = "一時停止";
-        if (mobilePlayBtn) mobilePlayBtn.textContent = "一時停止";
+        if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
       } else {
         viewer.pause();
         isPaused = true;
@@ -1424,8 +1546,13 @@
     });
     mobileBack3dBtn.addEventListener("click", open3D);
 
+    afterArNextBtn.addEventListener("click", toggleAfterArNext);
+    mobileAfterArNextBtn.addEventListener("click", toggleAfterArNext);
+    mobileNextArBtn.addEventListener("click", nextChapterAndOpenAR);
+
     mobileOpenRefBtn.addEventListener("click", () => openMobilePanel("ref"));
     mobileOpenObjectBtn.addEventListener("click", () => openMobilePanel("object"));
+    mobileOpenAnimBtn.addEventListener("click", () => openMobilePanel("anim"));
     mobileResetViewBtn.addEventListener("click", () => {
       closeMobilePanels();
       viewer.cameraOrbit = "25deg 70deg 130%";
@@ -1440,7 +1567,7 @@
         viewer.play();
         isPaused = false;
         playPauseBtn.textContent = "一時停止";
-        if (mobilePlayBtn) mobilePlayBtn.textContent = "一時停止";
+        if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
       } else {
         viewer.pause();
         isPaused = true;
@@ -1454,7 +1581,7 @@
       viewer.play();
       isPaused = false;
       playPauseBtn.textContent = "一時停止";
-      if (mobilePlayBtn) mobilePlayBtn.textContent = "一時停止";
+      if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
     });
 
     speedRange.addEventListener("input", () => {
@@ -1479,9 +1606,34 @@
 
     back3dBtn.addEventListener("click", open3D);
 
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden){
+        if (arLaunchPending){
+          arReturnObservedHidden = true;
+        }
+      }else{
+        if (arLaunchPending && arReturnObservedHidden){
+          setTimeout(() => handleReturnFromAR("visibility"), 300);
+        }
+      }
+    });
+
+    window.addEventListener("focus", () => {
+      if (arLaunchPending && arReturnObservedHidden){
+        setTimeout(() => handleReturnFromAR("focus"), 300);
+      }
+    });
+
+    window.addEventListener("pageshow", (event) => {
+      if (event.persisted){
+        setTimeout(() => handleReturnFromAR("pageshow"), 300);
+      }
+    });
+
     if (initialRoot) rootInput.value = initialRoot;
     chapterCorrectionBtn.classList.toggle("lime", chapterCorrectionEnabled);
     updateChapterCorrectionStatus();
+    updateAfterArNextButtons();
     loadReferenceRoot();
   </script>
 </body>
