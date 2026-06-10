@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>SF AR Viewer - Teaching Contest v59 AR Return Workflow</title>
+  <title>SF AR Viewer - Teaching Contest v60 Dark Technical UI</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -505,6 +505,299 @@
       .mobile-quick-panel button{min-height:42px;font-size:12px}
       .title{font-size:13px}
     }
+  
+    /* ============================================================
+       v60 DARK TECHNICAL UI OVERRIDE
+       3D / AR 共通デザイン
+       ============================================================ */
+
+    :root{
+      --bg:#05070d;
+      --bg2:#080d16;
+      --panel:rgba(13,19,32,.90);
+      --panel2:rgba(17,27,43,.94);
+      --panel3:rgba(7,12,22,.86);
+      --cyan:#38ddf8;
+      --cyan2:#7dd3fc;
+      --lime:#7ef29a;
+      --magenta:#9f7aea;
+      --yellow:#eab308;
+      --text:#eafbff;
+      --sub:#95a3b8;
+      --muted:#64748b;
+      --line:rgba(125,211,252,.22);
+      --line2:rgba(148,163,184,.20);
+      --danger:#ff5d7a;
+      --shadow:0 18px 46px rgba(0,0,0,.38),0 0 0 1px rgba(125,211,252,.055);
+      --radius:12px;
+      --radius2:9px;
+    }
+
+    html,body{
+      background:
+        radial-gradient(circle at 20% 12%, rgba(56,221,248,.075), transparent 30%),
+        radial-gradient(circle at 78% 80%, rgba(159,122,234,.060), transparent 34%),
+        linear-gradient(135deg,#05070d 0%,#070c15 46%,#03050b 100%) !important;
+      color:var(--text) !important;
+      font-family:"Yu Gothic UI","Meiryo","MS UI Gothic",sans-serif !important;
+    }
+
+    body::before{
+      opacity:.24 !important;
+      background:
+        linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(125,211,252,.016) 1px,transparent 1px) !important;
+      background-size:6px 6px,24px 24px !important;
+      mix-blend-mode:screen !important;
+    }
+
+    body::after{
+      opacity:.12 !important;
+      background:linear-gradient(to bottom,rgba(255,255,255,.025),transparent 1px) !important;
+      background-size:100% 6px !important;
+    }
+
+    #viewer,
+    model-viewer{
+      background:
+        radial-gradient(circle at center,rgba(125,211,252,.05),transparent 34%),
+        linear-gradient(180deg,rgba(8,13,22,.10),rgba(3,5,10,.20)) !important;
+    }
+
+    .refbar,
+    .side,
+    .side-storage-bar,
+    .playbar,
+    .view-hud,
+    .mobile-dock,
+    .mobile-quick-panel,
+    .ar-button{
+      border:1px solid var(--line) !important;
+      background:
+        linear-gradient(180deg,rgba(17,27,43,.92),rgba(8,13,22,.88)) !important;
+      box-shadow:var(--shadow) !important;
+      backdrop-filter:blur(14px) saturate(125%) !important;
+      -webkit-backdrop-filter:blur(14px) saturate(125%) !important;
+      border-radius:var(--radius) !important;
+      clip-path:none !important;
+    }
+
+    .refbar{
+      top:12px !important;
+      left:12px !important;
+      right:12px !important;
+      overflow:hidden !important;
+    }
+
+    .refbar-head{
+      min-height:50px !important;
+      padding:9px 14px !important;
+      background:linear-gradient(90deg,rgba(56,221,248,.075),rgba(159,122,234,.040),transparent) !important;
+      border-bottom:1px solid rgba(125,211,252,.10) !important;
+    }
+
+    .refbar-body{
+      padding:10px 14px 12px !important;
+    }
+
+    .rgb-line{
+      height:2px !important;
+      margin-bottom:7px !important;
+      background:linear-gradient(90deg,rgba(56,221,248,.92),rgba(125,211,252,.30),rgba(126,242,154,.65)) !important;
+      box-shadow:none !important;
+      border-radius:999px !important;
+    }
+
+    .title{
+      color:var(--text) !important;
+      font-size:16px !important;
+      letter-spacing:.10em !important;
+      text-shadow:none !important;
+    }
+
+    .subtitle{
+      color:var(--sub) !important;
+      letter-spacing:.025em !important;
+    }
+
+    .side-head{
+      color:var(--cyan2) !important;
+      text-shadow:none !important;
+      background:
+        linear-gradient(90deg,rgba(56,221,248,.085),rgba(148,163,184,.035),transparent) !important;
+      border-bottom:1px solid rgba(125,211,252,.12) !important;
+      border-radius:var(--radius) var(--radius) 0 0 !important;
+      letter-spacing:.10em !important;
+    }
+
+    .side-body{
+      scrollbar-color:rgba(125,211,252,.36) rgba(7,12,22,.4);
+    }
+
+    .status{
+      color:var(--sub) !important;
+      background:rgba(7,12,22,.72) !important;
+      border:1px solid rgba(148,163,184,.15) !important;
+      border-radius:var(--radius2) !important;
+      line-height:1.45 !important;
+    }
+
+    label{
+      color:var(--sub) !important;
+      font-weight:700 !important;
+      letter-spacing:.045em !important;
+    }
+
+    input,
+    select,
+    textarea{
+      color:var(--text) !important;
+      background:rgba(5,8,14,.88) !important;
+      border:1px solid rgba(148,163,184,.22) !important;
+      border-radius:8px !important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.035) !important;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus{
+      border-color:rgba(56,221,248,.66) !important;
+      box-shadow:0 0 0 2px rgba(56,221,248,.10), inset 0 1px 0 rgba(255,255,255,.04) !important;
+    }
+
+    input[type="range"]{
+      accent-color:var(--cyan) !important;
+      box-shadow:none !important;
+    }
+
+    button,
+    .btn,
+    .storage-label{
+      min-height:38px;
+      color:var(--text) !important;
+      border:1px solid rgba(125,211,252,.24) !important;
+      background:
+        linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,22,.96)) !important;
+      border-radius:9px !important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.055) !important;
+      text-shadow:none !important;
+      letter-spacing:.045em !important;
+      transition:
+        border-color .16s ease,
+        background .16s ease,
+        box-shadow .16s ease,
+        transform .08s ease,
+        color .16s ease !important;
+    }
+
+    button:hover,
+    .btn:hover,
+    .storage-label:hover{
+      border-color:rgba(56,221,248,.72) !important;
+      background:
+        linear-gradient(180deg,rgba(26,43,66,.98),rgba(9,17,29,.98)) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 0 0 2px rgba(56,221,248,.10) !important;
+      transform:translateY(-1px);
+    }
+
+    button:active,
+    .btn:active,
+    .storage-label:active{
+      transform:translateY(0);
+      background:linear-gradient(180deg,rgba(8,13,22,.98),rgba(20,31,49,.98)) !important;
+    }
+
+    button.lime,
+    .btn.lime{
+      color:var(--lime) !important;
+      border-color:rgba(126,242,154,.36) !important;
+      background:linear-gradient(180deg,rgba(16,38,31,.96),rgba(7,20,17,.96)) !important;
+    }
+
+    button.lime:hover,
+    .btn.lime:hover{
+      border-color:rgba(126,242,154,.70) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 0 0 2px rgba(126,242,154,.10) !important;
+    }
+
+    button.magenta,
+    .btn.magenta{
+      color:#e8ddff !important;
+      border-color:rgba(159,122,234,.38) !important;
+      background:linear-gradient(180deg,rgba(38,28,58,.96),rgba(17,11,29,.96)) !important;
+    }
+
+    button.magenta:hover,
+    .btn.magenta:hover{
+      border-color:rgba(159,122,234,.72) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 0 0 2px rgba(159,122,234,.12) !important;
+    }
+
+    .view-hud{
+      color:var(--cyan2) !important;
+      border-color:rgba(126,242,154,.32) !important;
+      background:rgba(7,12,22,.78) !important;
+      letter-spacing:.06em !important;
+    }
+
+    .view-hud .hud-sub{
+      color:var(--muted) !important;
+    }
+
+    .playbar{
+      background:
+        linear-gradient(180deg,rgba(13,19,32,.92),rgba(5,8,14,.90)) !important;
+      min-height:68px !important;
+    }
+
+    .mobile-dock{
+      background:rgba(7,12,22,.92) !important;
+      border-radius:14px !important;
+      padding:7px !important;
+    }
+
+    .mobile-quick-panel{
+      background:rgba(7,12,22,.94) !important;
+      border-radius:14px !important;
+    }
+
+    .ar-button{
+      color:var(--text) !important;
+      background:linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,22,.96)) !important;
+      border-color:rgba(56,221,248,.42) !important;
+    }
+
+    .pdf-page,
+    canvas{
+      border-radius:6px;
+    }
+
+    .pdf-page{
+      box-shadow:0 12px 30px rgba(0,0,0,.28) !important;
+    }
+
+    @media (max-width:980px){
+      .view-hud{
+        background:rgba(7,12,22,.58) !important;
+        border-color:rgba(125,211,252,.18) !important;
+      }
+
+      .mobile-dock button{
+        min-height:46px !important;
+        font-size:10.5px !important;
+      }
+
+      .mobile-quick-panel{
+        bottom:78px !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -536,8 +829,8 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">SF AR VIEWER / TEACHING CONTEST v59</div>
-          <div class="subtitle">AR戻り後CH操作 / Chrome直接AR / PDF1-20→1-70固定</div>
+          <div class="title">DARK TECH AR VIEWER / TEACHING CONTEST v60</div>
+          <div class="subtitle">Dark Technical UI / Chrome直接AR / PDF1-20→1-70固定</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -759,9 +1052,9 @@
     let playSpeed = 0.8;
     let isPaused = false;
 
-    const AR_AFTER_NEXT_KEY = "teachingContestArAfterNext_v59";
-    const AR_PENDING_KEY = "teachingContestArPending_v59";
-    const AR_LAST_STATE_KEY = "teachingContestArLastState_v59";
+    const AR_AFTER_NEXT_KEY = "teachingContestArAfterNext_v60";
+    const AR_PENDING_KEY = "teachingContestArPending_v60";
+    const AR_LAST_STATE_KEY = "teachingContestArLastState_v60";
 
     let autoAdvanceAfterAR = localStorage.getItem(AR_AFTER_NEXT_KEY) === "1";
     let arLaunchPending = false;
@@ -818,7 +1111,7 @@
     }
 
     async function askOpenInSafariIfNeeded(){
-      // v59:
+      // v60:
       // iPhone ChromeでそのままAR起動を試す。
       // Safari誘導・共有シート誘導は行わない。
       return true;
@@ -1414,7 +1707,7 @@
     function open3D(){
       const ch = chapters[currentChapterIndex];
       const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
-      url.searchParams.set("v", "20260605_0041_v59");
+      url.searchParams.set("v", "20260605_0042_v60");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
