@@ -914,6 +914,35 @@
       }
     }
 
+  
+    /* Chapter explanation TXT panel */
+    .chapter-text-panel{
+      margin-top:10px;
+      border:1px solid rgba(112,126,116,.24);
+      background:rgba(255,255,255,.52);
+      border-radius:6px;
+      overflow:hidden;
+    }
+    .chapter-text-head{
+      padding:8px 10px;
+      background:#F1EBDD;
+      color:#40584E;
+      font-weight:700;
+      border-bottom:1px solid rgba(112,126,116,.24);
+    }
+    .chapter-text{
+      min-height:72px;
+      max-height:230px;
+      overflow:auto;
+      padding:10px;
+      white-space:pre-wrap;
+      word-break:break-word;
+      line-height:1.65;
+      color:var(--text);
+      font-size:13px;
+    }
+    @media (max-width:980px){ .chapter-text{ max-height:32dvh; } }
+
   </style>
 </head>
 <body>
@@ -978,6 +1007,12 @@
           <div class="info-row"><div class="k">CHAPTER</div><div class="v" id="chapterNameText">未選択</div></div>
           <div class="info-row"><div class="k">MODEL</div><div class="v" id="modelPathText">未読込</div></div>
           <div class="info-row"><div class="k">PDF</div><div class="v" id="pdfPathText">未読込</div></div>
+          <div class="info-row"><div class="k">TEXT</div><div class="v" id="chapterTextPathText">未読込</div></div>
+        </div>
+
+        <div class="chapter-text-panel">
+          <div class="chapter-text-head">解説文</div>
+          <div class="chapter-text" id="chapterTextBox">CHフォルダ内のTXTを読み込みます。</div>
         </div>
 
         <label>モデル倍率</label>
@@ -1191,6 +1226,7 @@
 
     const MODEL_EXTS = [".glb", ".gltf"];
     const PDF_EXTS = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
+    const TXT_EXTS = [".txt"];
 
     const canvas = document.getElementById("viewer");
 
@@ -1205,6 +1241,8 @@
 
     const chapterNameText = document.getElementById("chapterNameText");
     const modelPathText = document.getElementById("modelPathText");
+    const chapterTextPathText = document.getElementById("chapterTextPathText");
+    const chapterTextBox = document.getElementById("chapterTextBox");
     const pdfPathText = document.getElementById("pdfPathText");
     const pdfFloorNameText = document.getElementById("pdfFloorNameText");
     const pdfSideNameText = document.getElementById("pdfSideNameText");
@@ -1476,6 +1514,7 @@
 
       const model = files.find(f => MODEL_EXTS.includes(getExt(f.path))) || null;
       const pdfFiles = files.filter(f => PDF_EXTS.includes(getExt(f.path)));
+      const textFile = files.find(f => TXT_EXTS.includes(getExt(f.path))) || null;
       const chosen = chooseFloorAndSidePdfs(pdfFiles);
 
       return {
@@ -1486,6 +1525,7 @@
         floorPdf:chosen.floorPdf,
         sidePdf:chosen.sidePdf,
         pdfs:chosen.pdfs,
+        textPath:textFile ? textFile.path : "",
         files:files.map(f => f.path)
       };
     }
@@ -1574,6 +1614,26 @@
       }
     }
 
+    async function loadChapterText(chapter){
+      if (!chapterTextPathText || !chapterTextBox) return;
+      const textPath = chapter && chapter.textPath ? chapter.textPath : "";
+      chapterTextPathText.textContent = textPath || "未登録";
+      if (!textPath){
+        chapterTextBox.textContent = "このチャプターに解説TXTはありません。";
+        return;
+      }
+      try{
+        chapterTextBox.textContent = "解説文を読み込み中...";
+        const res = await fetch(toAssetUrl(textPath), {cache:"no-store"});
+        if (!res.ok) throw new Error("TXT " + res.status + ": " + textPath);
+        const text = await res.text();
+        chapterTextBox.textContent = text.trim() || "解説TXTは空です。";
+      }catch(err){
+        console.error(err);
+        chapterTextBox.textContent = "解説TXTの読み込みに失敗しました。\n" + textPath + "\n" + err.message;
+      }
+    }
+
     async function loadChapter(index){
       if (index < 0 || index >= chapters.length) return;
 
@@ -1587,6 +1647,8 @@
       updateChapterCorrectionStatus();
       pdfFloorNameText.textContent = ch.floorPdf ? getBaseName(ch.floorPdf) : "未読込";
       pdfSideNameText.textContent = ch.sidePdf ? getBaseName(ch.sidePdf) : "未読込";
+
+      await loadChapterText(ch);
 
       if (ch.model) await loadModel(ch.model);
       else clearModel();
