@@ -3,26 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>3D教材ビューアー - Natural Teaching UI</title>
+  <title>AR教材ビューアー - Natural Teaching UI</title>
 
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
 
   <style>
     :root{
-      --bg:#030712;
       --panel:rgba(8,16,32,.88);
-      --panel2:rgba(10,22,44,.94);
       --cyan:#22f8ff;
       --lime:#a6ff2d;
       --magenta:#ff2deb;
-      --yellow:#ffe66d;
       --text:#eafbff;
       --sub:#96a8c8;
       --line:rgba(34,248,255,.34);
@@ -30,6 +21,7 @@
     }
 
     *{box-sizing:border-box}
+
     html,body{
       width:100%;
       height:100%;
@@ -54,17 +46,6 @@
         linear-gradient(90deg,rgba(34,248,255,.022) 1px,transparent 1px);
       background-size:4px 4px,18px 18px;
       mix-blend-mode:screen;
-    }
-
-    body::after{
-      content:"";
-      position:fixed;
-      inset:0;
-      pointer-events:none;
-      z-index:51;
-      background:linear-gradient(to bottom,rgba(255,255,255,.032),transparent 1px);
-      background-size:100% 5px;
-      opacity:.28;
     }
 
     #app{
@@ -134,43 +115,15 @@
       display:none!important;
     }
 
-    #viewer{
+    model-viewer{
       position:absolute;
       inset:0;
       width:100%;
       height:100%;
-      display:block;
-      z-index:1;
-    }
-
-
-    .view-hud{
-      position:absolute;
-      top:150px;
-      right:18px;
-      z-index:24;
-      min-width:170px;
-      border:1px solid rgba(166,255,45,.58);
-      background:rgba(4,10,20,.82);
-      color:var(--lime);
-      box-shadow:0 0 18px rgba(166,255,45,.18),0 0 24px rgba(34,248,255,.08);
-      padding:8px 12px;
-      font-family:Consolas,"MS UI Gothic",monospace;
-      font-size:13px;
-      font-weight:bold;
-      letter-spacing:.08em;
-      text-align:center;
-      pointer-events:none;
-      backdrop-filter:blur(10px);
-      -webkit-backdrop-filter:blur(10px);
-    }
-
-    .view-hud .hud-sub{
-      margin-top:3px;
-      color:var(--sub);
-      font-size:10px;
-      letter-spacing:.04em;
-      font-weight:normal;
+      background:transparent;
+      --poster-color:transparent;
+      --progress-bar-color:#22f8ff;
+      --progress-bar-height:3px;
     }
 
     .refbar{
@@ -194,10 +147,6 @@
       align-items:center;
       padding:8px 12px;
       min-height:48px;
-    }
-
-    .ref-title{
-      min-width:0;
     }
 
     .rgb-line{
@@ -241,12 +190,11 @@
 
     .side-storage-bar{
       position:absolute;
-      top:150px;
-      left:10px;
-      right:210px;
-      transform:none;
+      top:76px;
+      left:50%;
+      transform:translateX(-50%);
       z-index:23;
-      width:auto;
+      width:min(760px,calc(100vw - 20px));
       min-height:44px;
       border:1px solid rgba(34,248,255,.34);
       background:rgba(4,10,20,.84);
@@ -264,23 +212,11 @@
       font-size:12px;
     }
 
-    .refbar.collapsed ~ .side-storage-bar{
-      top:76px;
-    }
-
-    .refbar.collapsed ~ .side{
-      top:130px;
-    }
-
-    .refbar.collapsed ~ .view-hud{
-      top:76px;
-    }
-
     .side{
       position:absolute;
-      top:205px;
+      top:128px;
       bottom:86px;
-      width:min(360px,calc(50vw - 18px));
+      width:min(340px,calc(50vw - 18px));
       z-index:12;
       border:1px solid var(--line);
       background:var(--panel);
@@ -296,10 +232,6 @@
     .side.right{right:10px}
 
     .side-head{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
       padding:10px 12px;
       border-bottom:1px solid rgba(34,248,255,.20);
       background:linear-gradient(90deg,rgba(34,248,255,.10),rgba(255,45,235,.07));
@@ -324,18 +256,18 @@
       z-index:22;
       min-height:66px;
       border:1px solid var(--line);
-      background:rgba(4,10,20,.82);
+      background:rgba(4,10,20,.84);
       box-shadow:var(--shadow);
       backdrop-filter:blur(12px);
       -webkit-backdrop-filter:blur(12px);
       display:grid;
-      grid-template-columns:auto auto auto 1fr auto auto auto auto;
+      grid-template-columns:auto auto 1fr auto auto auto;
       gap:8px;
       align-items:center;
       padding:8px;
     }
 
-    .playbar .speedbox{
+    .speedbox{
       display:grid;
       grid-template-columns:auto 1fr auto;
       gap:8px;
@@ -380,11 +312,6 @@
       font-size:13px;
     }
 
-    input:focus,select:focus{
-      border-color:var(--magenta);
-      box-shadow:0 0 12px rgba(255,45,235,.16);
-    }
-
     input[type="range"]{
       accent-color:var(--lime);
       padding:0;
@@ -404,13 +331,6 @@
       margin-top:8px;
     }
 
-    .grid3{
-      display:grid;
-      grid-template-columns:1fr 1fr 1fr;
-      gap:8px;
-      margin-top:8px;
-    }
-
     .status{
       margin-top:8px;
       border:1px solid rgba(166,255,45,.26);
@@ -425,7 +345,7 @@
 
     .info-row{
       display:grid;
-      grid-template-columns:92px 1fr;
+      grid-template-columns:86px 1fr;
       gap:8px;
       padding:5px 0;
       border-bottom:1px solid rgba(34,248,255,.08);
@@ -435,20 +355,34 @@
     .info-row .k{color:var(--sub)}
     .info-row .v{word-break:break-all}
 
-    .mini{
-      font-size:11px;
-      color:var(--sub);
-      line-height:1.45;
-    }
-
-    .chapter-card{
-      border:1px solid rgba(166,255,45,.28);
-      background:rgba(166,255,45,.04);
-      padding:8px;
+    .pdf-preview{
+      width:100%;
+      aspect-ratio:1.414/1;
+      object-fit:contain;
+      background:white;
+      border:1px solid rgba(34,248,255,.35);
       margin-top:8px;
+      opacity:.85;
+      transform-origin:top left;
     }
 
-    .hidden{display:none!important}
+    .ar-button{
+      position:absolute;
+      left:50%;
+      bottom:96px;
+      transform:translateX(-50%);
+      z-index:18;
+      min-width:min(420px,calc(100vw - 48px));
+      min-height:54px;
+      border:2px solid rgba(166,255,45,.72);
+      background:linear-gradient(180deg,rgba(24,48,18,.92),rgba(4,14,8,.94));
+      color:var(--lime);
+      font-size:18px;
+      font-weight:bold;
+      letter-spacing:.10em;
+      box-shadow:0 0 22px rgba(166,255,45,.22);
+      cursor:pointer;
+    }
 
     .mobile-dock,
     .mobile-quick-panel{
@@ -456,10 +390,7 @@
     }
 
     @media (max-width:980px){
-      html,body{
-        overflow:hidden;
-        height:100%;
-      }
+      html,body{overflow:hidden;height:100%}
 
       #app{
         position:fixed;
@@ -471,7 +402,7 @@
         background:#02030a;
       }
 
-      #viewer{
+      model-viewer{
         position:absolute;
         inset:0;
         width:100%;
@@ -481,15 +412,9 @@
         margin:0;
       }
 
-      .refbar,
-      .side-storage-bar,
-      .side,
-      .playbar{
-        display:none;
-      }
+      .refbar,.side-storage-bar,.side,.playbar{display:none}
 
       .refbar.mobile-open,
-      .side-storage-bar.mobile-open,
       .side.mobile-open,
       .playbar.mobile-open{
         display:flex;
@@ -513,26 +438,9 @@
         clip-path:none;
       }
 
-      .refbar.mobile-open .refbar-head{
-        grid-template-columns:1fr;
-      }
-
-      .refbar.mobile-open .refbar-body{
-        grid-template-columns:1fr;
-      }
-
-      .side.mobile-open{
-        display:flex;
-      }
-
-      .side-storage-bar.mobile-open{
-        display:grid;
-        top:auto;
-        bottom:76px;
-        height:auto;
-        min-height:44px;
-        grid-template-columns:1fr;
-      }
+      .refbar.mobile-open .refbar-head{grid-template-columns:1fr}
+      .refbar.mobile-open .refbar-body{grid-template-columns:1fr}
+      .side.mobile-open{display:flex}
 
       .playbar.mobile-open{
         display:grid;
@@ -543,24 +451,13 @@
         align-items:stretch;
       }
 
-      .playbar.mobile-open .speedbox{
+      .playbar.mobile-open .speedbox,
+      .playbar.mobile-open select{
         grid-column:1/-1;
         min-width:0;
       }
 
-      .view-hud{
-        top:8px;
-        left:8px;
-        right:8px;
-        min-width:0;
-        font-size:12px;
-        padding:6px 8px;
-        z-index:30;
-      }
-
-      .view-hud .hud-sub{
-        display:none;
-      }
+      .ar-button{display:none}
 
       .mobile-dock{
         display:grid;
@@ -604,19 +501,323 @@
         -webkit-backdrop-filter:blur(12px);
       }
 
-      .mobile-quick-panel.mobile-open{
-        display:grid;
+      .mobile-quick-panel.mobile-open{display:grid}
+      .mobile-quick-panel button{min-height:42px;font-size:12px}
+      .title{font-size:13px}
+    }
+  
+    /* ============================================================
+       v61 DARK TECHNICAL UI OVERRIDE
+       3D / AR 共通デザイン
+       ============================================================ */
+
+    :root{
+      --bg:#05070d;
+      --bg2:#080d16;
+      --panel:rgba(13,19,32,.90);
+      --panel2:rgba(17,27,43,.94);
+      --panel3:rgba(7,12,22,.86);
+      --cyan:#38ddf8;
+      --cyan2:#7dd3fc;
+      --lime:#7ef29a;
+      --magenta:#9f7aea;
+      --yellow:#eab308;
+      --text:#eafbff;
+      --sub:#95a3b8;
+      --muted:#64748b;
+      --line:rgba(125,211,252,.22);
+      --line2:rgba(148,163,184,.20);
+      --danger:#ff5d7a;
+      --shadow:0 18px 46px rgba(0,0,0,.38),0 0 0 1px rgba(125,211,252,.055);
+      --radius:12px;
+      --radius2:9px;
+    }
+
+    html,body{
+      background:
+        radial-gradient(circle at 20% 12%, rgba(56,221,248,.075), transparent 30%),
+        radial-gradient(circle at 78% 80%, rgba(159,122,234,.060), transparent 34%),
+        linear-gradient(135deg,#05070d 0%,#070c15 46%,#03050b 100%) !important;
+      color:var(--text) !important;
+      font-family:"Yu Gothic UI","Meiryo","MS UI Gothic",sans-serif !important;
+    }
+
+    body::before{
+      opacity:.24 !important;
+      background:
+        linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(125,211,252,.016) 1px,transparent 1px) !important;
+      background-size:6px 6px,24px 24px !important;
+      mix-blend-mode:screen !important;
+    }
+
+    body::after{
+      opacity:.12 !important;
+      background:linear-gradient(to bottom,rgba(255,255,255,.025),transparent 1px) !important;
+      background-size:100% 6px !important;
+    }
+
+    #viewer,
+    model-viewer{
+      background:
+        radial-gradient(circle at center,rgba(125,211,252,.05),transparent 34%),
+        linear-gradient(180deg,rgba(8,13,22,.10),rgba(3,5,10,.20)) !important;
+    }
+
+    .refbar,
+    .side,
+    .side-storage-bar,
+    .playbar,
+    .view-hud,
+    .mobile-dock,
+    .mobile-quick-panel,
+    .ar-button{
+      border:1px solid var(--line) !important;
+      background:
+        linear-gradient(180deg,rgba(17,27,43,.92),rgba(8,13,22,.88)) !important;
+      box-shadow:var(--shadow) !important;
+      backdrop-filter:blur(14px) saturate(125%) !important;
+      -webkit-backdrop-filter:blur(14px) saturate(125%) !important;
+      border-radius:var(--radius) !important;
+      clip-path:none !important;
+    }
+
+    .refbar{
+      top:12px !important;
+      left:12px !important;
+      right:12px !important;
+      overflow:hidden !important;
+    }
+
+    .refbar-head{
+      min-height:50px !important;
+      padding:9px 14px !important;
+      background:linear-gradient(90deg,rgba(56,221,248,.075),rgba(159,122,234,.040),transparent) !important;
+      border-bottom:1px solid rgba(125,211,252,.10) !important;
+    }
+
+    .refbar-body{
+      padding:10px 14px 12px !important;
+    }
+
+    .rgb-line{
+      height:2px !important;
+      margin-bottom:7px !important;
+      background:linear-gradient(90deg,rgba(56,221,248,.92),rgba(125,211,252,.30),rgba(126,242,154,.65)) !important;
+      box-shadow:none !important;
+      border-radius:999px !important;
+    }
+
+    .title{
+      color:var(--text) !important;
+      font-size:16px !important;
+      letter-spacing:.10em !important;
+      text-shadow:none !important;
+    }
+
+    .subtitle{
+      color:var(--sub) !important;
+      letter-spacing:.025em !important;
+    }
+
+    .side-head{
+      color:var(--cyan2) !important;
+      text-shadow:none !important;
+      background:
+        linear-gradient(90deg,rgba(56,221,248,.085),rgba(148,163,184,.035),transparent) !important;
+      border-bottom:1px solid rgba(125,211,252,.12) !important;
+      border-radius:var(--radius) var(--radius) 0 0 !important;
+      letter-spacing:.10em !important;
+    }
+
+    .side-body{
+      scrollbar-color:rgba(125,211,252,.36) rgba(7,12,22,.4);
+    }
+
+    .status{
+      color:var(--sub) !important;
+      background:rgba(7,12,22,.72) !important;
+      border:1px solid rgba(148,163,184,.15) !important;
+      border-radius:var(--radius2) !important;
+      line-height:1.45 !important;
+    }
+
+    label{
+      color:var(--sub) !important;
+      font-weight:700 !important;
+      letter-spacing:.045em !important;
+    }
+
+    input,
+    select,
+    textarea{
+      color:var(--text) !important;
+      background:rgba(5,8,14,.88) !important;
+      border:1px solid rgba(148,163,184,.22) !important;
+      border-radius:8px !important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.035) !important;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus{
+      border-color:rgba(56,221,248,.66) !important;
+      box-shadow:0 0 0 2px rgba(56,221,248,.10), inset 0 1px 0 rgba(255,255,255,.04) !important;
+    }
+
+    input[type="range"]{
+      accent-color:var(--cyan) !important;
+      box-shadow:none !important;
+    }
+
+    button,
+    .btn,
+    .storage-label{
+      min-height:38px;
+      color:var(--text) !important;
+      border:1px solid rgba(125,211,252,.24) !important;
+      background:
+        linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,22,.96)) !important;
+      border-radius:9px !important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.055) !important;
+      text-shadow:none !important;
+      letter-spacing:.045em !important;
+      transition:
+        border-color .16s ease,
+        background .16s ease,
+        box-shadow .16s ease,
+        transform .08s ease,
+        color .16s ease !important;
+    }
+
+    button:hover,
+    .btn:hover,
+    .storage-label:hover{
+      border-color:rgba(56,221,248,.72) !important;
+      background:
+        linear-gradient(180deg,rgba(26,43,66,.98),rgba(9,17,29,.98)) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 0 0 2px rgba(56,221,248,.10) !important;
+      transform:translateY(-1px);
+    }
+
+    button:active,
+    .btn:active,
+    .storage-label:active{
+      transform:translateY(0);
+      background:linear-gradient(180deg,rgba(8,13,22,.98),rgba(20,31,49,.98)) !important;
+    }
+
+    button.lime,
+    .btn.lime{
+      color:var(--lime) !important;
+      border-color:rgba(126,242,154,.36) !important;
+      background:linear-gradient(180deg,rgba(16,38,31,.96),rgba(7,20,17,.96)) !important;
+    }
+
+    button.lime:hover,
+    .btn.lime:hover{
+      border-color:rgba(126,242,154,.70) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 0 0 2px rgba(126,242,154,.10) !important;
+    }
+
+    button.magenta,
+    .btn.magenta{
+      color:#e8ddff !important;
+      border-color:rgba(159,122,234,.38) !important;
+      background:linear-gradient(180deg,rgba(38,28,58,.96),rgba(17,11,29,.96)) !important;
+    }
+
+    button.magenta:hover,
+    .btn.magenta:hover{
+      border-color:rgba(159,122,234,.72) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 0 0 2px rgba(159,122,234,.12) !important;
+    }
+
+    .view-hud{
+      color:var(--cyan2) !important;
+      border-color:rgba(126,242,154,.32) !important;
+      background:rgba(7,12,22,.78) !important;
+      letter-spacing:.06em !important;
+    }
+
+    .view-hud .hud-sub{
+      color:var(--muted) !important;
+    }
+
+    .playbar{
+      background:
+        linear-gradient(180deg,rgba(13,19,32,.92),rgba(5,8,14,.90)) !important;
+      min-height:68px !important;
+    }
+
+    .mobile-dock{
+      background:rgba(7,12,22,.92) !important;
+      border-radius:14px !important;
+      padding:7px !important;
+    }
+
+    .mobile-quick-panel{
+      background:rgba(7,12,22,.94) !important;
+      border-radius:14px !important;
+    }
+
+    .ar-button{
+      color:var(--text) !important;
+      background:linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,22,.96)) !important;
+      border-color:rgba(56,221,248,.42) !important;
+    }
+
+    .pdf-page,
+    canvas{
+      border-radius:6px;
+    }
+
+    .pdf-page{
+      box-shadow:0 12px 30px rgba(0,0,0,.28) !important;
+    }
+
+    @media (max-width:980px){
+      .view-hud{
+        background:rgba(7,12,22,.58) !important;
+        border-color:rgba(125,211,252,.18) !important;
       }
 
-      .mobile-quick-panel button{
-        min-height:42px;
-        font-size:12px;
+      .mobile-dock button{
+        min-height:46px !important;
+        font-size:10.5px !important;
       }
 
-      .title{
-        font-size:13px;
+      .mobile-quick-panel{
+        bottom:78px !important;
       }
     }
+
+  
+    /* v61: ARスマホ時のPDF表示・モデル切替補助 */
+    @media (max-width:980px){
+      #pdfSide.mobile-open,
+      #objectSide.mobile-open{
+        top:64px !important;
+        bottom:76px !important;
+        z-index:66 !important;
+      }
+
+      #pdfSide.mobile-open .pdf-preview{
+        max-height:34dvh !important;
+        object-fit:contain !important;
+      }
+
+      .mobile-quick-panel{
+        grid-template-columns:repeat(2,1fr) !important;
+      }
+    }
+
   
 
     /* Natural teaching-material theme override */
@@ -850,14 +1051,32 @@
     <input class="storage-check" type="checkbox" id="hideObjectSide">
     <input class="storage-check" type="checkbox" id="hidePdfSide">
     <input class="storage-check" type="checkbox" id="focusViewer">
-    <canvas id="viewer"></canvas>
+    <model-viewer
+      id="viewer"
+      camera-controls
+      touch-action="pan-y"
+      auto-rotate
+      shadow-intensity="0.75"
+      exposure="1.1"
+      ar
+      ar-modes="quick-look scene-viewer"
+      ar-scale="auto"
+      ar-placement="floor"
+      scale="1 1 1"
+      autoplay
+      camera-orbit="25deg 70deg 130%"
+      min-camera-orbit="auto auto 80%"
+      max-camera-orbit="auto auto 500%"
+    >
+      <button slot="ar-button" class="ar-button" id="nativeArButton">ARで見る</button>
+    </model-viewer>
 
     <section class="refbar" id="refbar">
       <div class="refbar-head">
-        <div class="ref-title">
+        <div>
           <div class="rgb-line"></div>
-          <div class="title">3D教材ビューアー</div>
-          <div class="subtitle">チャプターごとの3Dモデルと図面PDFを確認できます</div>
+          <div class="title">AR教材ビューアー</div>
+          <div class="subtitle">AR表示前にモデルと図面を確認できます</div>
         </div>
         <button class="btn" id="collapseRefBtn">参照フォルダ収納</button>
         <button class="btn lime" id="scanBtn">参照読込</button>
@@ -880,11 +1099,6 @@
       </div>
     </section>
 
-    <div class="view-hud" id="viewMagnificationHud">
-      現在表示倍率 185%
-      <div class="hud-sub">表示倍率</div>
-    </div>
-
     <section class="side-storage-bar" id="sideStorageBar">
       <label class="storage-label object" for="hideObjectSide">
         <span class="opened">左サイドバー収納</span>
@@ -903,77 +1117,32 @@
     <aside class="side left" id="objectSide">
       <div class="side-head">モデル操作</div>
       <div class="side-body">
-        <div class="chapter-card">
-          <div class="info-row"><div class="k">CHAPTER</div><div class="v" id="chapterNameText">未選択</div></div>
-          <div class="info-row"><div class="k">MODEL</div><div class="v" id="modelPathText">未読込</div></div>
-          <div class="info-row"><div class="k">PDF</div><div class="v" id="pdfPathText">未読込</div></div>
-        </div>
-
-        <label>モデル倍率</label>
-        <input id="modelScaleInput" type="number" step="0.01" value="1">
+        <div class="info-row"><div class="k">CHAPTER</div><div class="v" id="chapterNameText">未選択</div></div>
+        <div class="info-row"><div class="k">MODEL</div><div class="v" id="modelPathText">未読込</div></div>
+        <div class="info-row"><div class="k">USDZ</div><div class="v" id="iosModelPathText">未読込</div></div>
 
         <div class="grid2">
-          <button class="btn lime" id="applyModelScaleBtn">倍率反映</button>
-          <button class="btn" id="snapGroundBtn">地面に置く</button>
+          <button class="btn lime" id="arStartBtn">ARで見る</button>
+          <button class="btn" id="resetViewBtn">視点リセット</button>
         </div>
 
-        <label>モデル尺度</label>
         <div class="grid2">
-          <button class="btn" id="modelNormalizeBtn">自動正規化OFF</button>
-          <button class="btn lime" id="modelRealScaleBtn">GLB実寸優先</button>
+          <button class="btn" id="modelUrlBtn">GLB URL表示</button>
+          <button class="btn lime" id="directUsdZBtn">USDZ直接</button>
+        </div>
+
+        <div class="grid2">
+          <button class="btn" id="iosModelUrlBtn">USDZ URL表示</button>
+          <button class="btn magenta" id="clearModelBtn">モデル消去</button>
         </div>
 
         <label>CH01基準モデル補正</label>
         <div class="grid2">
-          <button class="btn lime" id="chapterCorrectionBtn">モデル補正ON</button>
-          <button class="btn" id="chapterCorrectionApplyBtn">補正を再反映</button>
+          <button class="btn" id="chapterCorrectionBtn">モデル補正OFF</button>
+          <button class="btn" id="chapterCorrectionApplyBtn">補正再反映</button>
         </div>
         <div class="status" id="chapterCorrectionStatus">CH01基準モデル補正: 待機中</div>
 
-        <label>モデル回転Y</label>
-        <input id="modelRotYInput" type="number" step="1" value="0">
-
-        <div class="grid2">
-          <button class="btn" id="rotYMinusBtn">Y -90°</button>
-          <button class="btn" id="rotYPlusBtn">Y +90°</button>
-        </div>
-
-        <label>3Dビューアー表示倍率 %</label>
-        <input id="viewMagnificationInput" type="number" min="10" max="500" step="5" value="185">
-
-        <div class="grid3">
-          <button class="btn" id="viewMag100Btn">100%</button>
-          <button class="btn lime" id="viewMag185Btn">185%</button>
-          <button class="btn" id="viewMag200Btn">200%</button>
-        </div>
-
-        <div class="grid2">
-          <button class="btn lime" id="applyViewMagnificationBtn">表示倍率反映</button>
-          <button class="btn" id="fitViewBtn">全体表示</button>
-        </div>
-
-        <div class="grid2">
-          <button class="btn" id="nearViewBtn">近く</button>
-          <button class="btn" id="farViewBtn">遠く</button>
-        </div>
-
-        <div class="grid2">
-          <button class="btn" id="viewMagResetBtn">倍率初期化</button>
-          <button class="btn magenta" id="clearModelBtn">モデル消去</button>
-        </div>
-
-        <label>モデル視認性</label>
-        <div class="grid2">
-          <button class="btn lime" id="modelSolidBtn">ソリッド表示ON</button>
-          <button class="btn lime" id="modelVisibilityBtn">視認性強調ON</button>
-        </div>
-
-        <div class="grid2">
-          <button class="btn lime" id="modelEdgeBtn">エッジ強調ON</button>
-          <button class="btn" id="modelOriginalBtn">元材質に近く</button>
-        </div>
-
-        <div class="status" id="viewMagnificationStatus">表示倍率: 185%</div>
         <div class="status" id="objectStatus">OBJECT READY</div>
       </div>
     </aside>
@@ -981,35 +1150,11 @@
     <aside class="side right" id="pdfSide">
       <div class="side-head">図面PDF操作</div>
       <div class="side-body">
-        <div class="info-row"><div class="k">床PDF</div><div class="v" id="pdfFloorNameText">未読込</div></div>
-        <div class="info-row"><div class="k">側面PDF</div><div class="v" id="pdfSideNameText">未読込</div></div>
-        <div class="info-row"><div class="k">サイズ基準</div><div class="v" id="pdfSizeBasisText">表示優先：モデル表示範囲基準</div></div>
+        <div class="info-row"><div class="k">床PDF</div><div class="v" id="pdfFloorPathText">未読込</div></div>
+        <img id="pdfFloorPreview" class="pdf-preview" alt="floor PDF preview">
 
-        <label>PDFサイズ基準</label>
-        <select id="pdfSizeModeSelect">
-          <option value="model" selected>表示優先：モデル表示範囲に合わせる</option>
-          <option value="fixed">固定基準幅を使う</option>
-          <option value="pdf">PDFページ実寸比を使う</option>
-        </select>
-
-        <label>PDF固定基準幅</label>
-        <input id="pdfBaseWidthInput" type="number" min="0.01" step="0.01" value="6.0">
-
-        <div class="grid2">
-          <button class="btn lime" id="pdfAlwaysOnTopBtn">PDF前面表示ON</button>
-          <button class="btn" id="pdfFitVisibleBtn">PDF表示復旧</button>
-        </div>
-
-        <label>PDF配置モード</label>
-        <select id="pdfPlacementSelect">
-          <option value="auto">自動：1枚目=床 / 2枚目=側面</option>
-          <option value="floor">床PDFのみ操作</option>
-          <option value="side">側面PDFのみ操作</option>
-          <option value="both">床＋側面を両方操作</option>
-        </select>
-
-        <label>PDFサイズ %</label>
-        <input id="pdfPercentInput" type="number" step="0.001" value="28.571">
+        <div class="info-row"><div class="k">側面PDF</div><div class="v" id="pdfSidePathText">未読込</div></div>
+        <img id="pdfSidePreview" class="pdf-preview" alt="side PDF preview">
 
         <div class="status" id="pdfScaleReadout">縮尺換算: 未設定</div>
 
@@ -1029,33 +1174,8 @@
           <button class="btn" id="resetPdfScaleBtn">縮尺初期化</button>
         </div>
 
-        <label>PDF視認性</label>
-        <div class="grid2">
-          <button class="btn" id="pdfTransparentBtn">白背景透過OFF</button>
-          <button class="btn" id="pdfLineColorBtn">線シアン化OFF</button>
-        </div>
-
-        <label>透明度</label>
-        <input id="pdfOpacityInput" type="number" min="0.05" max="1" step="0.05" value="0.65">
-
-        <div class="grid3">
-          <div><label>X</label><input id="pdfXInput" type="number" step="0.01" value="0"></div>
-          <div><label>Y</label><input id="pdfYInput" type="number" step="0.01" value="0"></div>
-          <div><label>Z</label><input id="pdfZInput" type="number" step="0.01" value="0"></div>
-        </div>
-
-        <div class="grid2">
-          <button class="btn lime" id="applyPdfBtn">PDF反映</button>
-          <button class="btn" id="resetPdfPosBtn">位置リセット</button>
-        </div>
-
-        <div class="grid2">
-          <button class="btn" id="togglePdfBtn">PDF表示/非表示</button>
-          <button class="btn magenta" id="clearPdfBtn">PDF消去</button>
-        </div>
-
         <div class="status" id="pdfStatus">PDF READY</div>
-        <div class="mini">PDFが2つある場合は、床PDFと側面PDFとして同時配置します。名前に「平面/floor/床」があれば床、「側面/立面/side/wall」があれば側面を優先します。</div>
+        <div class="status">PDFが2つある場合は、床PDFと側面PDFとしてプレビューします。実ARへ渡すのはGLB/GLTFモデルです。</div>
       </div>
     </aside>
 
@@ -1065,41 +1185,41 @@
       <button class="btn" id="restartBtn">最初から</button>
 
       <div class="speedbox">
-        <span class="mini">速度</span>
+        <span>速度</span>
         <input id="speedRange" type="range" min="0.05" max="2.0" step="0.05" value="0.80">
         <span id="speedText">0.80x</span>
       </div>
 
-      <select id="animationSelect" title="アニメーション">
-        <option value="__ALL__">全Action</option>
+      <select id="animationSelect">
+        <option value="">アニメーションなし</option>
       </select>
-      <button class="btn" id="loopBtn">ループOFF</button>
-      <button class="btn" id="nextBottomBtn">次CH</button>
-      <button class="btn magenta" id="openArBtn">AR切替</button>
+      <button class="btn" id="afterArNextBtn">AR後次CH OFF</button>
+      <button class="btn magenta" id="back3dBtn">3Dへ戻る</button>
     </section>
 
     <section class="mobile-quick-panel" id="mobileQuickPanel">
+      <button class="btn" id="mobileAfterArNextBtn">AR後次CH OFF</button>
+      <button class="btn lime" id="mobileNextArBtn">次CH→AR</button>
       <button class="btn" id="mobileOpenRefBtn">CH選択</button>
-      <button class="btn" id="mobileFitBtn">全体表示</button>
-      <button class="btn lime" id="mobilePdfReloadBtn">PDF再読込</button>
-      <button class="btn" id="mobileOpenPdfBtn">PDF設定</button>
+      <button class="btn" id="mobileOpenObjectBtn">モデル切替</button>
+      <button class="btn lime" id="mobileOpenPdfBtn">PDF表示</button>
       <button class="btn" id="mobileOpenAnimBtn">再生詳細</button>
+      <button class="btn" id="mobileResetViewBtn">視点リセット</button>
+      <button class="btn" id="mobileDirectUsdZBtn">USDZ直接</button>
+      <button class="btn magenta" id="mobileBack3dBtn">3Dへ戻る</button>
       <button class="btn magenta" id="mobileClosePanelsBtn">閉じる</button>
     </section>
 
     <section class="mobile-dock" id="mobileDock">
       <button class="btn" id="mobilePrevBtn">前</button>
       <button class="btn lime" id="mobilePlayBtn">再生</button>
-      <button class="btn" id="mobileNextBtn">次</button>
       <button class="btn lime" id="mobileArBtn">AR</button>
+      <button class="btn" id="mobileNextBtn">次</button>
       <button class="btn magenta" id="mobilePanelBtn">メニュー</button>
     </section>
   </div>
 
   <script type="module">
-    import * as THREE from "three";
-    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -1118,11 +1238,12 @@
       "教材コンクール"
     ];
 
-    const MODEL_EXTS = [".glb", ".gltf"];
+    const GLB_EXTS = [".glb", ".gltf"];
+    const USDZ_EXTS = [".usdz"];
+    const MODEL_EXTS = [".glb", ".gltf", ".usdz"];
     const PDF_EXTS = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
 
-    const canvas = document.getElementById("viewer");
-
+    const viewer = document.getElementById("viewer");
     const refbar = document.getElementById("refbar");
     const collapseRefBtn = document.getElementById("collapseRefBtn");
     const scanBtn = document.getElementById("scanBtn");
@@ -1131,188 +1252,253 @@
     const chapterSelect = document.getElementById("chapterSelect");
     const prevChapterBtn = document.getElementById("prevChapterBtn");
     const nextChapterBtn = document.getElementById("nextChapterBtn");
-
     const chapterNameText = document.getElementById("chapterNameText");
     const modelPathText = document.getElementById("modelPathText");
-    const pdfPathText = document.getElementById("pdfPathText");
-    const pdfFloorNameText = document.getElementById("pdfFloorNameText");
-    const pdfSideNameText = document.getElementById("pdfSideNameText");
-    const pdfSizeBasisText = document.getElementById("pdfSizeBasisText");
-    const pdfSizeModeSelect = document.getElementById("pdfSizeModeSelect");
-    const pdfBaseWidthInput = document.getElementById("pdfBaseWidthInput");
-    const pdfAlwaysOnTopBtn = document.getElementById("pdfAlwaysOnTopBtn");
-    const pdfFitVisibleBtn = document.getElementById("pdfFitVisibleBtn");
-
-    const modelScaleInput = document.getElementById("modelScaleInput");
-    const applyModelScaleBtn = document.getElementById("applyModelScaleBtn");
-    const snapGroundBtn = document.getElementById("snapGroundBtn");
-    const modelNormalizeBtn = document.getElementById("modelNormalizeBtn");
-    const modelRealScaleBtn = document.getElementById("modelRealScaleBtn");
-    const chapterCorrectionBtn = document.getElementById("chapterCorrectionBtn");
-    const chapterCorrectionApplyBtn = document.getElementById("chapterCorrectionApplyBtn");
-    const chapterCorrectionStatus = document.getElementById("chapterCorrectionStatus");
-    const modelRotYInput = document.getElementById("modelRotYInput");
-    const rotYMinusBtn = document.getElementById("rotYMinusBtn");
-    const rotYPlusBtn = document.getElementById("rotYPlusBtn");
-    const viewMagnificationInput = document.getElementById("viewMagnificationInput");
-    const viewMag100Btn = document.getElementById("viewMag100Btn");
-    const viewMag185Btn = document.getElementById("viewMag185Btn");
-    const viewMag200Btn = document.getElementById("viewMag200Btn");
-    const applyViewMagnificationBtn = document.getElementById("applyViewMagnificationBtn");
-    const nearViewBtn = document.getElementById("nearViewBtn");
-    const farViewBtn = document.getElementById("farViewBtn");
-    const viewMagResetBtn = document.getElementById("viewMagResetBtn");
-    const modelSolidBtn = document.getElementById("modelSolidBtn");
-    const modelVisibilityBtn = document.getElementById("modelVisibilityBtn");
-    const modelEdgeBtn = document.getElementById("modelEdgeBtn");
-    const modelOriginalBtn = document.getElementById("modelOriginalBtn");
-    const viewMagnificationStatus = document.getElementById("viewMagnificationStatus");
-    const viewMagnificationHud = document.getElementById("viewMagnificationHud");
-    const fitViewBtn = document.getElementById("fitViewBtn");
-    const clearModelBtn = document.getElementById("clearModelBtn");
-    const objectStatus = document.getElementById("objectStatus");
-
-    const pdfPlacementSelect = document.getElementById("pdfPlacementSelect");
-    const pdfPercentInput = document.getElementById("pdfPercentInput");
+    const iosModelPathText = document.getElementById("iosModelPathText");
+    const pdfFloorPathText = document.getElementById("pdfFloorPathText");
+    const pdfSidePathText = document.getElementById("pdfSidePathText");
+    const pdfFloorPreview = document.getElementById("pdfFloorPreview");
+    const pdfSidePreview = document.getElementById("pdfSidePreview");
     const pdfScaleReadout = document.getElementById("pdfScaleReadout");
     const pdfCurrentScaleInput = document.getElementById("pdfCurrentScaleInput");
     const pdfTargetScaleInput = document.getElementById("pdfTargetScaleInput");
     const applyPdfScaleBtn = document.getElementById("applyPdfScaleBtn");
     const resetPdfScaleBtn = document.getElementById("resetPdfScaleBtn");
-    const pdfTransparentBtn = document.getElementById("pdfTransparentBtn");
-    const pdfLineColorBtn = document.getElementById("pdfLineColorBtn");
-    const pdfOpacityInput = document.getElementById("pdfOpacityInput");
-    const pdfXInput = document.getElementById("pdfXInput");
-    const pdfYInput = document.getElementById("pdfYInput");
-    const pdfZInput = document.getElementById("pdfZInput");
-    const applyPdfBtn = document.getElementById("applyPdfBtn");
-    const resetPdfPosBtn = document.getElementById("resetPdfPosBtn");
-    const togglePdfBtn = document.getElementById("togglePdfBtn");
-    const clearPdfBtn = document.getElementById("clearPdfBtn");
+    const objectStatus = document.getElementById("objectStatus");
     const pdfStatus = document.getElementById("pdfStatus");
-
+    const arStartBtn = document.getElementById("arStartBtn");
+    const resetViewBtn = document.getElementById("resetViewBtn");
+    const modelUrlBtn = document.getElementById("modelUrlBtn");
+    const iosModelUrlBtn = document.getElementById("iosModelUrlBtn");
+    const directUsdZBtn = document.getElementById("directUsdZBtn");
+    const clearModelBtn = document.getElementById("clearModelBtn");
+    const chapterCorrectionBtn = document.getElementById("chapterCorrectionBtn");
+    const chapterCorrectionApplyBtn = document.getElementById("chapterCorrectionApplyBtn");
+    const chapterCorrectionStatus = document.getElementById("chapterCorrectionStatus");
     const prevBottomBtn = document.getElementById("prevBottomBtn");
     const playPauseBtn = document.getElementById("playPauseBtn");
     const restartBtn = document.getElementById("restartBtn");
     const speedRange = document.getElementById("speedRange");
     const speedText = document.getElementById("speedText");
     const animationSelect = document.getElementById("animationSelect");
-    const loopBtn = document.getElementById("loopBtn");
-    const nextBottomBtn = document.getElementById("nextBottomBtn");
-    const openArBtn = document.getElementById("openArBtn");
+    const afterArNextBtn = document.getElementById("afterArNextBtn");
+    const back3dBtn = document.getElementById("back3dBtn");
 
     const mobileQuickPanel = document.getElementById("mobileQuickPanel");
     const mobilePrevBtn = document.getElementById("mobilePrevBtn");
-    const mobileArBtn = document.getElementById("mobileArBtn");
-    const mobileNextBtn = document.getElementById("mobileNextBtn");
-    const mobilePanelBtn = document.getElementById("mobilePanelBtn");
     const mobilePlayBtn = document.getElementById("mobilePlayBtn");
+    const mobileNextBtn = document.getElementById("mobileNextBtn");
+    const mobileArBtn = document.getElementById("mobileArBtn");
+    const mobilePanelBtn = document.getElementById("mobilePanelBtn");
+    const mobileBack3dBtn = document.getElementById("mobileBack3dBtn");
+    const mobileAfterArNextBtn = document.getElementById("mobileAfterArNextBtn");
+    const mobileNextArBtn = document.getElementById("mobileNextArBtn");
     const mobileOpenRefBtn = document.getElementById("mobileOpenRefBtn");
-    const mobileFitBtn = document.getElementById("mobileFitBtn");
-    const mobilePdfReloadBtn = document.getElementById("mobilePdfReloadBtn");
+    const mobileOpenObjectBtn = document.getElementById("mobileOpenObjectBtn");
     const mobileOpenPdfBtn = document.getElementById("mobileOpenPdfBtn");
     const mobileOpenAnimBtn = document.getElementById("mobileOpenAnimBtn");
+    const mobileResetViewBtn = document.getElementById("mobileResetViewBtn");
+    const mobileDirectUsdZBtn = document.getElementById("mobileDirectUsdZBtn");
     const mobileClosePanelsBtn = document.getElementById("mobileClosePanelsBtn");
 
     let chapters = [];
     let currentChapterIndex = -1;
     let currentRoot = "";
-    let modelWrapper = null;
-    let modelScene = null;
-    let modelBaseScale = 1;
-    let modelUserScale = 1;
-    let modelSize = 2;
+    let currentModel = "";
+    let currentIosModel = "";
+    let playSpeed = 0.8;
+    let isPaused = false;
 
-    // PDFサイズ計算用。モデル補正を掛ける前のサイズを保存する。
-    // ここを使うことで、モデル補正してもPDFサイズが一緒に変わらない。
-    let modelRawSizeForPdf = 2;
+    const AR_AFTER_NEXT_KEY = "teachingContestArAfterNext_v61";
+    const AR_PENDING_KEY = "teachingContestArPending_v61";
+    const AR_LAST_STATE_KEY = "teachingContestArLastState_v61";
 
-    let modelAutoNormalize = false;
-    let currentModelPath = "";
+    let autoAdvanceAfterAR = localStorage.getItem(AR_AFTER_NEXT_KEY) === "1";
+    let arLaunchPending = false;
+    let arReturnObservedHidden = false;
 
-    let chapterCorrectionEnabled = true;
+    let chapterCorrectionEnabled = false;
     let chapterCorrectionFactor = 1.0;
     const CHAPTER_BASELINE_TARGET_SCALE = 70;
     const CHAPTER_TARGET_SCALE_MAP = {
       "CH01": 70,
       "CH02": 78
     };
-    let viewMagnification = 185;
-    let fitViewBaseDistance = 1;
-    let realtimeViewMagnification = 185;
-    let lastHudText = "";
-    let modelSolidMode = true;
-    let modelVisibilityEnhanced = true;
-    let modelEdgesEnhanced = true;
-    let pdfWhiteTransparent = false;
-    let pdfLineCyan = false;
-    let pdfAlwaysOnTop = true;
-    let viewDistanceAtSet = 1;
-    let viewMagnificationAtSet = 185;
-    let mixer = null;
-    let clips = [];
-    let actions = [];
-    let isPlaying = false;
-    let loopEnabled = false;
-    let animSpeed = 0.8;
-    let animElapsed = 0;
-    let animDuration = 0;
-    let activeRunActions = [];
-    let finishedRunActions = new Set();
-    let mixerFinishedHandlerAttached = false;
-    let runSerial = 0;
-
-    let pdfLayers = [];
 
     const params = new URLSearchParams(location.search);
     const initialRoot = params.get("root") ? decodeURIComponent(params.get("root")) : "";
     const initialChapter = params.get("chapter") ? decodeURIComponent(params.get("chapter")) : "";
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x02030a);
 
-    const camera = new THREE.PerspectiveCamera(55, 1, 0.01, 100000);
-    camera.position.set(4, 3, 5);
+    function isIOSLike(){
+      return /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    }
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias:true,
-      alpha:false,
-      powerPreference:"high-performance"
-    });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.shadowMap.enabled = true;
+    function isSafariLike(){
+      const ua = navigator.userAgent;
+      return /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|Android/i.test(ua);
+    }
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.screenSpacePanning = true;
+    async function copyTextToClipboard(text){
+      try{
+        if (navigator.clipboard && window.isSecureContext){
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      }catch(err){
+        console.warn("clipboard api failed", err);
+      }
 
-    scene.add(new THREE.HemisphereLight(0xddeeff,0x101018,1.55));
+      try{
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return ok;
+      }catch(err){
+        console.warn("fallback copy failed", err);
+        return false;
+      }
+    }
 
-    const key = new THREE.DirectionalLight(0xffffff,2.0);
-    key.position.set(4,8,6);
-    key.castShadow = true;
-    scene.add(key);
+    async function askOpenInSafariIfNeeded(){
+      // v61:
+      // iPhone ChromeでそのままAR起動を試す。
+      // Safari誘導・共有シート誘導は行わない。
+      return true;
+    }
 
-    const fill = new THREE.DirectionalLight(0x22f8ff,.75);
-    fill.position.set(-5,2,-4);
-    scene.add(fill);
+    function getIosModelUrl(){
+      return currentIosModel ? toAssetUrl(currentIosModel) : "";
+    }
 
-    const magenta = new THREE.PointLight(0xff2deb,.75,18);
-    magenta.position.set(-3,2.5,3);
-    scene.add(magenta);
+    function openUsdZDirectly(){
+      const url = getIosModelUrl();
+      if (!url){
+        alert("このチャプターにはUSDZが見つかりません。\n\niPhone ChromeでARを試す場合は、同じCHフォルダ内に .usdz を入れてください。");
+        setObjectStatus("USDZ DIRECT ERROR: USDZなし");
+        return;
+      }
+      markArLaunchPending();
+      setObjectStatus("USDZ直接起動を試行: " + url);
+      window.location.href = url;
+    }
 
-    const grid = new THREE.GridHelper(10,20,0x22f8ff,0x18324f);
-    grid.material.transparent = true;
-    grid.material.opacity = .22;
-    scene.add(grid);
+    function showIosModelUrl(){
+      const url = getIosModelUrl();
+      if (!url){
+        alert("USDZが未読込です。同じCHフォルダ内に .usdz を入れてください。");
+        return;
+      }
+      prompt("USDZ URL", url);
+    }
 
-    const pdfRoot = new THREE.Group();
-    scene.add(pdfRoot);
+    function saveCurrentViewerState(){
+      const ch = chapters[currentChapterIndex];
 
-    const clock = new THREE.Clock();
+      try{
+        localStorage.setItem(AR_LAST_STATE_KEY, JSON.stringify({
+          root: currentRoot || "",
+          chapter: ch ? ch.name : "",
+          index: currentChapterIndex,
+          ts: Date.now()
+        }));
+      }catch(err){
+        console.warn("save state failed", err);
+      }
+    }
+
+    function markArLaunchPending(){
+      const ch = chapters[currentChapterIndex];
+      arLaunchPending = true;
+      arReturnObservedHidden = false;
+      saveCurrentViewerState();
+
+      try{
+        localStorage.setItem(AR_PENDING_KEY, JSON.stringify({
+          root: currentRoot || "",
+          chapter: ch ? ch.name : "",
+          index: currentChapterIndex,
+          afterNext: autoAdvanceAfterAR,
+          ts: Date.now()
+        }));
+      }catch(err){
+        console.warn("pending save failed", err);
+      }
+    }
+
+    function clearArLaunchPending(){
+      arLaunchPending = false;
+      arReturnObservedHidden = false;
+      try{
+        localStorage.removeItem(AR_PENDING_KEY);
+      }catch(err){
+        console.warn("pending clear failed", err);
+      }
+    }
+
+    function updateAfterArNextButtons(){
+      const text = autoAdvanceAfterAR ? "AR後次CH ON" : "AR後次CH OFF";
+
+      if (afterArNextBtn){
+        afterArNextBtn.textContent = text;
+        afterArNextBtn.classList.toggle("lime", autoAdvanceAfterAR);
+      }
+
+      if (mobileAfterArNextBtn){
+        mobileAfterArNextBtn.textContent = text;
+        mobileAfterArNextBtn.classList.toggle("lime", autoAdvanceAfterAR);
+      }
+    }
+
+    function toggleAfterArNext(){
+      autoAdvanceAfterAR = !autoAdvanceAfterAR;
+      localStorage.setItem(AR_AFTER_NEXT_KEY, autoAdvanceAfterAR ? "1" : "0");
+      updateAfterArNextButtons();
+      setObjectStatus(autoAdvanceAfterAR ? "ARから戻ったら次CHへ進みます。" : "ARから戻っても現在CHを保持します。");
+    }
+
+    async function handleReturnFromAR(reason="return"){
+      let pending = null;
+
+      try{
+        const raw = localStorage.getItem(AR_PENDING_KEY);
+        pending = raw ? JSON.parse(raw) : null;
+      }catch(err){
+        pending = null;
+      }
+
+      if (!pending && !arLaunchPending) return;
+
+      if (pending && pending.ts && Date.now() - pending.ts > 1000 * 60 * 20){
+        clearArLaunchPending();
+        return;
+      }
+
+      const shouldNext = autoAdvanceAfterAR || (pending && pending.afterNext);
+
+      clearArLaunchPending();
+
+      if (shouldNext && chapters.length > 0){
+        setObjectStatus("ARから戻りました。次CHへ進みます。");
+        await changeChapter(1);
+      }else{
+        setObjectStatus("ARから戻りました。現在CHを保持しています。");
+      }
+    }
+
+    async function nextChapterAndOpenAR(){
+      if (chapters.length === 0) return;
+      await changeChapter(1);
+      closeMobilePanels();
+      setTimeout(() => openAR(), 350);
+    }
 
     function setObjectStatus(text){
       objectStatus.textContent = text;
@@ -1402,15 +1588,17 @@
     async function scanChapter(chapterPath){
       const items = await fetchGitHubContents(chapterPath);
       const files = Array.isArray(items) ? items.filter(item => item.type === "file") : [];
-
-      const model = files.find(f => MODEL_EXTS.includes(getExt(f.path))) || null;
+      const glbModel = files.find(f => GLB_EXTS.includes(getExt(f.path))) || null;
+      const usdzModel = files.find(f => USDZ_EXTS.includes(getExt(f.path))) || null;
+      const fallbackModel = files.find(f => MODEL_EXTS.includes(getExt(f.path))) || null;
       const pdfFiles = files.filter(f => PDF_EXTS.includes(getExt(f.path)));
       const chosen = chooseFloorAndSidePdfs(pdfFiles);
 
       return {
         name:getBaseName(chapterPath),
         path:chapterPath,
-        model:model ? model.path : "",
+        model:glbModel ? glbModel.path : (fallbackModel ? fallbackModel.path : ""),
+        iosModel:usdzModel ? usdzModel.path : "",
         pdf:chosen.floorPdf,
         floorPdf:chosen.floorPdf,
         sidePdf:chosen.sidePdf,
@@ -1427,7 +1615,7 @@
 
       for (const d of dirs){
         const ch = await scanChapter(d.path);
-        if (ch.model || ch.pdf) result.push(ch);
+        if (ch.model || ch.iosModel || ch.pdf) result.push(ch);
       }
 
       result.sort((a,b) => a.name.localeCompare(b.name, "ja"));
@@ -1443,7 +1631,7 @@
             chapters = result;
             currentRoot = candidate;
             populateChapters();
-            setObjectStatus(`参照フォルダ検出: ${candidate} / ${result.length} chapters`);
+            setObjectStatus(`参照フォルダ検出: ${candidate}`);
             return true;
           }
         }catch(err){
@@ -1451,7 +1639,7 @@
         }
       }
 
-      setObjectStatus("参照フォルダが見つかりません。rootInputへ入力してください。");
+      setObjectStatus("参照フォルダが見つかりません。");
       return false;
     }
 
@@ -1503,6 +1691,48 @@
       }
     }
 
+
+    function normalizeChapterName(name){
+      const raw = String(name || "").trim();
+      const match = raw.match(/CH\s*0*(\d+)/i);
+      if (!match) return raw;
+      return "CH" + String(parseInt(match[1], 10)).padStart(2, "0");
+    }
+
+    function getCurrentChapterName(){
+      const ch = chapters[currentChapterIndex];
+      return ch ? String(ch.name || "") : "";
+    }
+
+    function getChapterTargetScale(){
+      const key = normalizeChapterName(getCurrentChapterName());
+      return CHAPTER_TARGET_SCALE_MAP[key] || CHAPTER_BASELINE_TARGET_SCALE;
+    }
+
+    function updateChapterCorrectionStatus(){
+      chapterCorrectionFactor = chapterCorrectionEnabled
+        ? (getChapterTargetScale() / CHAPTER_BASELINE_TARGET_SCALE)
+        : 1.0;
+
+      const chName = normalizeChapterName(getCurrentChapterName()) || "未選択";
+      const target = getChapterTargetScale();
+      const factorText = chapterCorrectionFactor.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+
+      if (chapterCorrectionStatus){
+        chapterCorrectionStatus.textContent =
+          `ARモデル補正: ${chapterCorrectionEnabled ? "ON" : "OFF"} / ${chName} / PDFは1/20→1/70固定 / モデルだけ×${factorText} / 参考:${target}`;
+      }
+
+      if (chapterCorrectionBtn){
+        chapterCorrectionBtn.textContent = chapterCorrectionEnabled ? "モデル補正ON" : "モデル補正OFF";
+        chapterCorrectionBtn.classList.toggle("lime", chapterCorrectionEnabled);
+      }
+
+      if (viewer){
+        viewer.setAttribute("scale", `${chapterCorrectionFactor} ${chapterCorrectionFactor} ${chapterCorrectionFactor}`);
+      }
+    }
+
     async function loadChapter(index){
       if (index < 0 || index >= chapters.length) return;
 
@@ -1512,19 +1742,18 @@
 
       chapterNameText.textContent = ch.name;
       modelPathText.textContent = ch.model || "未登録";
-      pdfPathText.textContent = ch.pdfs && ch.pdfs.length ? ch.pdfs.join(" / ") : "未登録";
+      iosModelPathText.textContent = ch.iosModel || "未登録";
       updateChapterCorrectionStatus();
-      pdfFloorNameText.textContent = ch.floorPdf ? getBaseName(ch.floorPdf) : "未読込";
-      pdfSideNameText.textContent = ch.sidePdf ? getBaseName(ch.sidePdf) : "未読込";
+      pdfFloorPathText.textContent = ch.floorPdf || "未登録";
+      pdfSidePathText.textContent = ch.sidePdf || "未登録";
 
-      if (ch.model) await loadModel(ch.model);
-      else clearModel();
+      if (ch.model || ch.iosModel) await loadModel(ch.model, ch.iosModel);
 
-      clearPdf("all");
+      pdfFloorPreview.removeAttribute("src");
+      pdfSidePreview.removeAttribute("src");
       setPdfStatus("PDF読込OFF");
 
       updateUrlState();
-      fitView();
     }
 
     function updateUrlState(){
@@ -1532,564 +1761,80 @@
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (chapters[currentChapterIndex]) url.searchParams.set("chapter", chapters[currentChapterIndex].name);
       history.replaceState(null, "", url.toString());
+      saveCurrentViewerState();
     }
 
+    async function loadModel(path, iosPath=""){
+      currentModel = path || "";
+      currentIosModel = iosPath || "";
 
-    function makeViewerSolidMaterial(originalMaterial){
-      const baseColor = new THREE.Color(0xcfefff);
-
-      if (originalMaterial && originalMaterial.color){
-        baseColor.copy(originalMaterial.color).lerp(new THREE.Color(0x8fdcff), 0.45);
-      }
-
-      const material = new THREE.MeshStandardMaterial({
-        color: baseColor,
-        roughness: 0.82,
-        metalness: 0.18,
-        transparent: false,
-        opacity: 1.0,
-        side: THREE.DoubleSide,
-        emissive: new THREE.Color(0x06131a),
-        emissiveIntensity: 0.28
-      });
-
-      if (originalMaterial && originalMaterial.map){
-        material.map = originalMaterial.map;
-      }
-
-      return material;
-    }
-
-    function enhanceModelVisibility(root){
-      if (!root) return;
-
-      root.traverse(obj => {
-        if (!obj.isMesh || !obj.material) return;
-
-        if (!obj.userData.originalViewerMaterial){
-          obj.userData.originalViewerMaterial = obj.material;
-        }
-
-        const baseMats = Array.isArray(obj.userData.originalViewerMaterial)
-          ? obj.userData.originalViewerMaterial
-          : [obj.userData.originalViewerMaterial];
-
-        if (modelSolidMode){
-          const solidMats = baseMats.map(mat => makeViewerSolidMaterial(mat));
-          obj.material = Array.isArray(obj.userData.originalViewerMaterial) ? solidMats : solidMats[0];
-        } else if (modelVisibilityEnhanced){
-          const enhancedMats = baseMats.map(mat => {
-            const cloned = mat.clone();
-
-            if (cloned.color){
-              cloned.color.lerp(new THREE.Color(0x7fdcff), 0.22);
-            }
-
-            if ("roughness" in cloned) cloned.roughness = Math.max(0.72, cloned.roughness || 0.72);
-            if ("metalness" in cloned) cloned.metalness = Math.min(0.25, cloned.metalness || 0.05);
-            if ("emissive" in cloned && cloned.emissive){
-              cloned.emissive.setHex(0x06131a);
-              if ("emissiveIntensity" in cloned) cloned.emissiveIntensity = 0.25;
-            }
-
-            cloned.transparent = false;
-            cloned.opacity = 1.0;
-            cloned.side = THREE.DoubleSide;
-            cloned.needsUpdate = true;
-            return cloned;
-          });
-
-          obj.material = Array.isArray(obj.userData.originalViewerMaterial) ? enhancedMats : enhancedMats[0];
-        } else {
-          obj.material = obj.userData.originalViewerMaterial;
-        }
-
-        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-        for (const mat of mats){
-          if (!mat) continue;
-          mat.wireframe = false;
-          mat.transparent = false;
-          mat.opacity = 1.0;
-          mat.needsUpdate = true;
-        }
-
-        if (modelEdgesEnhanced && obj.geometry && !obj.userData.viewerEdgeLine){
-          try{
-            const edgeGeo = new THREE.EdgesGeometry(obj.geometry, 22);
-            const edgeMat = new THREE.LineBasicMaterial({
-              color:0x22f8ff,
-              transparent:true,
-              opacity:0.56,
-              depthTest:true
-            });
-            const line = new THREE.LineSegments(edgeGeo, edgeMat);
-            line.name = "VIEWER_VISIBILITY_EDGE";
-            line.renderOrder = 50;
-            obj.add(line);
-            obj.userData.viewerEdgeLine = line;
-          }catch(err){
-            console.warn("edge add skipped", err);
-          }
-        }
-      });
-    }
-
-    function removeModelEdgeLines(root){
-      if (!root) return;
-
-      root.traverse(obj => {
-        const line = obj.userData ? obj.userData.viewerEdgeLine : null;
-        if (line){
-          line.parent?.remove(line);
-          line.geometry?.dispose?.();
-          line.material?.dispose?.();
-          obj.userData.viewerEdgeLine = null;
-        }
-      });
-    }
-
-    function refreshModelVisibility(){
-      if (!modelScene) return;
-      removeModelEdgeLines(modelScene);
-      enhanceModelVisibility(modelScene);
-      setObjectStatus(`ソリッド: ${modelSolidMode ? "ON" : "OFF"} / 視認性: ${modelVisibilityEnhanced ? "ON" : "OFF"} / エッジ: ${modelEdgesEnhanced ? "ON" : "OFF"}`);
-    }
-
-
-    function getCurrentChapterName(){
-      const ch = chapters[currentChapterIndex];
-      return ch ? String(ch.name || "") : "";
-    }
-
-    function normalizeChapterName(name){
-      const raw = String(name || "").trim();
-      const match = raw.match(/CH\s*0*(\d+)/i);
-      if (!match) return raw;
-      return "CH" + String(parseInt(match[1], 10)).padStart(2, "0");
-    }
-
-    function getChapterTargetScale(){
-      const key = normalizeChapterName(getCurrentChapterName());
-      return CHAPTER_TARGET_SCALE_MAP[key] || CHAPTER_BASELINE_TARGET_SCALE;
-    }
-
-    function getChapterCorrectionFactor(){
-      if (!chapterCorrectionEnabled) return 1.0;
-
-      // PDFは1/20→1/70固定。
-      // 以前CH02だけ1/78が必要だった差分は、3Dモデルだけに 78/70 を掛けて吸収する。
-      return getChapterTargetScale() / CHAPTER_BASELINE_TARGET_SCALE;
-    }
-
-    function updateChapterCorrectionStatus(){
-      chapterCorrectionFactor = getChapterCorrectionFactor();
-
-      const chName = normalizeChapterName(getCurrentChapterName()) || "未選択";
-      const target = getChapterTargetScale();
-      const factorText = chapterCorrectionFactor.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
-
-      if (chapterCorrectionStatus){
-        chapterCorrectionStatus.textContent =
-          `CH01基準モデル補正: ${chapterCorrectionEnabled ? "ON" : "OFF"} / ${chName} / PDFは1/20→1/70固定 / モデルだけ×${factorText} / 参考:${target}`;
-      }
-
-      if (chapterCorrectionBtn){
-        chapterCorrectionBtn.textContent = chapterCorrectionEnabled ? "モデル補正ON" : "モデル補正OFF";
-        chapterCorrectionBtn.classList.toggle("lime", chapterCorrectionEnabled);
-      }
-    }
-
-    function clearModel(){
-      if (modelWrapper){
-        scene.remove(modelWrapper);
-        modelWrapper.traverse(obj => {
-          if (obj.geometry) obj.geometry.dispose?.();
-          if (obj.material){
-            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-            mats.forEach(mat => {
-              for (const key in mat){
-                if (mat[key] && mat[key].isTexture) mat[key].dispose?.();
-              }
-              mat.dispose?.();
-            });
-          }
-        });
-      }
-
-      modelWrapper = null;
-      modelScene = null;
-      currentModelPath = "";
-      mixer = null;
-      clips = [];
-      actions = [];
-      activeRunActions = [];
-      finishedRunActions = new Set();
-      isPlaying = false;
-      playPauseBtn.textContent = "再生";
-      if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
-      updateAnimationSelect();
-      setObjectStatus("モデル消去");
-    }
-
-    async function loadModel(path){
-      clearModel();
-
-      const loader = new GLTFLoader();
-      const url = toAssetUrl(path);
-
-      try{
-        setObjectStatus("MODEL LOADING: " + path);
-        const gltf = await loader.loadAsync(url);
-
-        currentModelPath = path;
-        modelScene = gltf.scene || gltf.scenes[0];
-        clips = gltf.animations || [];
-
-        enhanceModelVisibility(modelScene);
-
-        modelWrapper = new THREE.Group();
-        modelWrapper.name = "TEACHING_CHAPTER_MODEL_WRAPPER";
-        modelWrapper.add(modelScene);
-        scene.add(modelWrapper);
-
-        const box = new THREE.Box3().setFromObject(modelScene);
-        const size = new THREE.Vector3();
-        const center = new THREE.Vector3();
-        box.getSize(size);
-        box.getCenter(center);
-
-        const maxDim = Math.max(size.x, size.y, size.z) || 1;
-
-        // v58:
-        // 以前は全モデルを「最大寸法2.0」に自動正規化していた。
-        // そのためCH01/CH02で元の図面縮尺が同じでも、モデル側の見かけ寸法がズレていた。
-        // 今回はデフォルトでGLB実寸を優先し、必要な時だけ自動正規化をONにする。
-        modelBaseScale = modelAutoNormalize ? (2.0 / maxDim) : 1.0;
-        modelUserScale = parseFloat(modelScaleInput.value) || 1;
-        updateChapterCorrectionStatus();
-
-        const rawScale = modelBaseScale * modelUserScale;
-        const finalScale = rawScale * chapterCorrectionFactor;
-
-        // PDFサイズは補正前サイズを使う。
-        modelRawSizeForPdf = maxDim * rawScale;
-
-        // カメラや表示範囲は補正後サイズを使う。
-        modelSize = maxDim * finalScale;
-
-        modelWrapper.scale.setScalar(finalScale);
-        modelWrapper.position.set(
-          -center.x * finalScale,
-          -box.min.y * finalScale,
-          -center.z * finalScale
-        );
-
-        const rotY = THREE.MathUtils.degToRad(parseFloat(modelRotYInput.value) || 0);
-        modelWrapper.rotation.y = rotY;
-
-        if (clips.length > 0){
-          mixer = new THREE.AnimationMixer(modelScene);
-          actions = clips.map(clip => {
-            const action = mixer.clipAction(clip);
-            action.setLoop(THREE.LoopOnce, 1);
-            action.clampWhenFinished = true;
-            return action;
-          });
-          animDuration = Math.max(...clips.map(c => c.duration || 0), 0);
-          attachMixerFinishedHandler();
-        }
-
-        updateAnimationSelect();
-        setObjectStatus(`読込完了: ${path} / Action ${clips.length}`);
-      }catch(err){
-        console.error(err);
-        setObjectStatus("MODEL LOAD ERROR");
-        alert("モデルの読み込みに失敗しました。\n\n" + path + "\n\n" + err.message);
-      }
-    }
-
-    function updateAnimationSelect(){
-      animationSelect.innerHTML = "";
-      const all = document.createElement("option");
-      all.value = "__ALL__";
-      all.textContent = clips.length ? "全Action" : "アニメーションなし";
-      animationSelect.appendChild(all);
-
-      clips.forEach((clip, i) => {
-        const opt = document.createElement("option");
-        opt.value = String(i);
-        opt.textContent = clip.name || `Action ${i+1}`;
-        animationSelect.appendChild(opt);
-      });
-    }
-
-    function attachMixerFinishedHandler(){
-      if (!mixer || mixerFinishedHandlerAttached) return;
-
-      mixer.addEventListener("finished", event => {
-        if (!isPlaying || activeRunActions.length === 0) return;
-
-        const finishedAction = event.action;
-        if (!activeRunActions.includes(finishedAction)) return;
-
-        finishedRunActions.add(finishedAction);
-
-        // 全Action選択時は、短いActionだけで止めず、今回再生対象のActionがすべて完了するまで待つ。
-        if (finishedRunActions.size >= activeRunActions.length){
-          if (loopEnabled){
-            restartAnimation();
-          } else {
-            isPlaying = false;
-            playPauseBtn.textContent = "再生";
-            setObjectStatus("ANIMATION COMPLETE");
-          }
-        }
-      });
-
-      mixerFinishedHandlerAttached = true;
-    }
-
-    function getSelectedAnimationActions(){
-      if (actions.length === 0) return [];
-
-      const selected = animationSelect.value;
-      if (selected === "__ALL__"){
-        return actions.filter(Boolean);
-      }
-
-      const one = actions[parseInt(selected, 10)];
-      return one ? [one] : [];
-    }
-
-    function playAnimation(restart=false){
-      if (!mixer || actions.length === 0){
-        setObjectStatus("アニメーションなし");
-        return;
-      }
-
-      const targets = getSelectedAnimationActions();
-      if (targets.length === 0){
-        setObjectStatus("再生対象Actionなし");
-        return;
-      }
-
-      if (restart){
-        mixer.stopAllAction();
-        animElapsed = 0;
-      }
-
-      runSerial += 1;
-      activeRunActions = targets;
-      finishedRunActions = new Set();
-
-      // 選択対象外のActionは停止。
-      // 全Action選択時は全Actionを同時に1回だけ再生。
-      for (const action of actions){
-        if (!targets.includes(action)){
-          action.stop();
-          action.enabled = false;
-          continue;
-        }
-
-        action.enabled = true;
-        action.paused = false;
-        action.setLoop(THREE.LoopOnce, 1);
-        action.clampWhenFinished = true;
-
-        if (restart || action.time >= action.getClip().duration || !isPlaying){
-          action.reset();
-        }
-
-        action.setEffectiveTimeScale(1);
-        action.setEffectiveWeight(1);
-        action.play();
-      }
-
-      isPlaying = true;
-      playPauseBtn.textContent = "一時停止";
-      if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
-      setObjectStatus(targets.length > 1 ? `ANIMATION PLAY: 全Action ${targets.length}` : "ANIMATION PLAY");
-    }
-
-    function pauseAnimation(){
-      actions.forEach(a => a.paused = true);
-      isPlaying = false;
-      playPauseBtn.textContent = "再生";
-      setObjectStatus("ANIMATION PAUSE");
-    }
-
-    function restartAnimation(){
-      playAnimation(true);
-    }
-
-    function applyModelTransform(){
-      if (!modelWrapper || !modelScene) return;
-
-      modelUserScale = parseFloat(modelScaleInput.value) || 1;
-
-      const sceneBox = new THREE.Box3().setFromObject(modelScene);
-      const sceneSize = new THREE.Vector3();
-      const sceneCenter = new THREE.Vector3();
-      sceneBox.getSize(sceneSize);
-      sceneBox.getCenter(sceneCenter);
-      const maxDim = Math.max(sceneSize.x, sceneSize.y, sceneSize.z) || 1;
-
-      modelBaseScale = modelAutoNormalize ? (2.0 / maxDim) : 1.0;
       updateChapterCorrectionStatus();
 
-      const rawScale = modelBaseScale * modelUserScale;
-      const finalScale = rawScale * chapterCorrectionFactor;
-
-      modelRawSizeForPdf = maxDim * rawScale;
-
-      modelWrapper.scale.setScalar(finalScale);
-
-      modelWrapper.position.x = -sceneCenter.x * finalScale;
-      modelWrapper.position.z = -sceneCenter.z * finalScale;
-
-      snapModelGround();
-
-      const rotY = THREE.MathUtils.degToRad(parseFloat(modelRotYInput.value) || 0);
-      modelWrapper.rotation.y = rotY;
-
-      modelSize = maxDim * finalScale;
-      setObjectStatus(`モデル変形反映 / scale ${modelUserScale} / モデル補正×${chapterCorrectionFactor.toFixed(4)} / ${modelAutoNormalize ? "自動正規化ON" : "GLB実寸優先"}`);
-      fitView();
-      if (pdfLayers.length > 0) applyPdfTransform();
-    }
-
-    function snapModelGround(){
-      if (!modelWrapper) return;
-      const box = new THREE.Box3().setFromObject(modelWrapper);
-      if (box.isEmpty()) return;
-      modelWrapper.position.y += -box.min.y;
-      setObjectStatus("モデルを地面Y=0へ配置");
-    }
-
-    function disposePdfLayer(layer){
-      if (!layer) return;
-
-      if (layer.group && layer.group.parent){
-        layer.group.parent.remove(layer.group);
+      if (currentModel && GLB_EXTS.includes(getExt(currentModel))){
+        viewer.src = toAssetUrl(currentModel);
+      } else if (currentIosModel){
+        // USDZしか無い場合、iPhone AR用として保持する。
+        // 3DプレビューにはGLB/GLTFが必要なので、プレビューは未設定になる。
+        viewer.removeAttribute("src");
+      } else {
+        viewer.removeAttribute("src");
       }
 
-      layer.texture?.dispose?.();
-      layer.material?.dispose?.();
-      layer.mesh?.geometry?.dispose?.();
-    }
-
-    function clearPdf(placement="all"){
-      const targets = placement === "all"
-        ? [...pdfLayers]
-        : pdfLayers.filter(layer => layer.placement === placement);
-
-      for (const layer of targets){
-        disposePdfLayer(layer);
+      if (currentIosModel){
+        viewer.setAttribute("ios-src", toAssetUrl(currentIosModel));
+      } else {
+        viewer.removeAttribute("ios-src");
       }
 
-      pdfLayers = placement === "all"
-        ? []
-        : pdfLayers.filter(layer => layer.placement !== placement);
-
-      if (placement === "all" || placement === "floor") pdfFloorNameText.textContent = "未読込";
-      if (placement === "all" || placement === "side") pdfSideNameText.textContent = "未読込";
-
-      setPdfStatus(placement === "all" ? "PDF消去" : `${placement} PDF消去`);
+      const iosText = currentIosModel ? ` / iOS USDZあり` : ` / iOS USDZなし`;
+      setObjectStatus(`MODEL LOADING: ${currentModel || "GLBなし"}${iosText} / AR補正×${chapterCorrectionFactor.toFixed(4)}`);
     }
 
+    async function loadPdfPreview(path, targetImage){
+      try{
+        setPdfStatus("PDF LOADING: " + path);
+        const ext = getExt(path);
 
-    function processPdfCanvasForVisibility(canvas2d){
-      if (!pdfWhiteTransparent && !pdfLineCyan) return canvas2d;
-
-      const ctx = canvas2d.getContext("2d", {willReadFrequently:true});
-      const img = ctx.getImageData(0, 0, canvas2d.width, canvas2d.height);
-      const data = img.data;
-
-      for (let i = 0; i < data.length; i += 4){
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const a = data[i + 3] || 255;
-        const avg = (r + g + b) / 3;
-
-        if (pdfWhiteTransparent && avg > 238){
-          data[i + 3] = 0;
-          continue;
+        if (ext === ".pdf"){
+          const task = pdfjsLib.getDocument(toAssetUrl(path));
+          const pdf = await task.promise;
+          const page = await pdf.getPage(1);
+          const viewport = page.getViewport({scale:1.2});
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext("2d", {alpha:false});
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0,0,canvas.width,canvas.height);
+          await page.render({canvasContext:ctx, viewport}).promise;
+          targetImage.src = canvas.toDataURL("image/png");
+        } else {
+          targetImage.src = toAssetUrl(path);
         }
 
-        if (pdfLineCyan){
-          const darkness = Math.max(0, 255 - avg) / 255;
-          if (darkness > 0.035){
-            const alpha = Math.max(70, Math.min(235, Math.round(a * Math.max(0.45, darkness * 1.25))));
-            data[i] = 34;
-            data[i + 1] = 248;
-            data[i + 2] = 255;
-            data[i + 3] = alpha;
-          }
-        }
+        applyPdfScaleConversion();
+        setPdfStatus("PDF PREVIEW: " + path + " / 初期プレビュー倍率 28.571%");
+      }catch(err){
+        console.error(err);
+        setPdfStatus("PDF PREVIEW ERROR");
       }
-
-      ctx.putImageData(img, 0, 0);
-      return canvas2d;
     }
 
-    async function renderPdfToCanvas(path){
-      const ext = getExt(path);
-      const url = toAssetUrl(path);
 
-      if (ext === ".pdf"){
-        const task = pdfjsLib.getDocument(url);
-        const pdf = await task.promise;
-        const page = await pdf.getPage(1);
-        const base = page.getViewport({scale:1});
-        const maxSide = 2048;
-        const scale = Math.min(2.2, maxSide / Math.max(base.width, base.height));
-        const viewport = page.getViewport({scale});
-        const canvas2d = document.createElement("canvas");
-        canvas2d.width = Math.max(1, Math.floor(viewport.width));
-        canvas2d.height = Math.max(1, Math.floor(viewport.height));
 
-        // v58:
-        // 描画後のcanvasピクセルではなく、PDF内部のページ寸法を保存する。
-        // これを使うことで、PDF同士の縮尺差が出にくくなる。
-        canvas2d._viewerPageWidth = base.width;
-        canvas2d._viewerPageHeight = base.height;
-        canvas2d._viewerSourceKind = "pdf";
+    async function loadChapterPdfPreviews(chapter){
+      pdfFloorPreview.removeAttribute("src");
+      pdfSidePreview.removeAttribute("src");
 
-        const ctx = canvas2d.getContext("2d", {alpha:true});
-        ctx.clearRect(0,0,canvas2d.width,canvas2d.height);
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(0,0,canvas2d.width,canvas2d.height);
-        await page.render({canvasContext:ctx, viewport}).promise;
-        return processPdfCanvasForVisibility(canvas2d);
-      }
+      const floorPdf = chapter.floorPdf || (chapter.pdfs && chapter.pdfs.length > 0 ? chapter.pdfs[0] : "");
+      const sidePdf = chapter.sidePdf || (chapter.pdfs && chapter.pdfs.length > 1 ? chapter.pdfs.find(p => p !== floorPdf) : "");
 
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = url;
-      await img.decode();
-
-      const canvas2d = document.createElement("canvas");
-      canvas2d.width = img.naturalWidth;
-      canvas2d.height = img.naturalHeight;
-      canvas2d._viewerPageWidth = img.naturalWidth;
-      canvas2d._viewerPageHeight = img.naturalHeight;
-      canvas2d._viewerSourceKind = "image";
-
-      const ctx = canvas2d.getContext("2d", {alpha:true});
-      ctx.clearRect(0,0,canvas2d.width,canvas2d.height);
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0,0,canvas2d.width,canvas2d.height);
-      ctx.drawImage(img,0,0);
-      return processPdfCanvasForVisibility(canvas2d);
-    }
-
-    async function loadChapterPdfs(chapter){
-      clearPdf("all");
+      pdfFloorPathText.textContent = floorPdf || "未登録";
+      pdfSidePathText.textContent = sidePdf || "未登録";
 
       const jobs = [];
-      if (chapter.floorPdf) jobs.push(loadPdf(chapter.floorPdf, "floor"));
-      if (chapter.sidePdf && chapter.sidePdf !== chapter.floorPdf) jobs.push(loadPdf(chapter.sidePdf, "side"));
+      if (floorPdf) jobs.push(loadPdfPreview(floorPdf, pdfFloorPreview));
+      if (sidePdf && sidePdf !== floorPdf) jobs.push(loadPdfPreview(sidePdf, pdfSidePreview));
 
       if (jobs.length === 0){
         setPdfStatus("このチャプターにPDFはありません。");
@@ -2097,64 +1842,9 @@
       }
 
       await Promise.all(jobs);
-      updatePdfScaleReadout(parseFloat(pdfCurrentScaleInput.value) || 20, parseFloat(pdfTargetScaleInput.value) || 70, parseFloat(pdfPercentInput.value) || 28.571);
-      applyPdfTransform();
-      setPdfStatus(`PDF読込完了: ${pdfLayers.length}枚 / 初期PDFサイズ28.571% / 床 ${chapter.floorPdf ? getBaseName(chapter.floorPdf) : "なし"} / 側面 ${chapter.sidePdf ? getBaseName(chapter.sidePdf) : "なし"}`);
+      applyPdfScaleConversion();
+      setPdfStatus(`PDF PREVIEW: ${jobs.length}枚 / 床 ${floorPdf ? getBaseName(floorPdf) : "なし"} / 側面 ${sidePdf ? getBaseName(sidePdf) : "なし"}`);
     }
-
-    async function loadPdf(path, placement="floor"){
-      clearPdf(placement);
-
-      try{
-        setPdfStatus(`${placement} PDF LOADING: ${path}`);
-        const canvas2d = await renderPdfToCanvas(path);
-        const texture = new THREE.CanvasTexture(canvas2d);
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-
-        const material = new THREE.MeshBasicMaterial({
-          map:texture,
-          transparent:true,
-          opacity:parseFloat(pdfOpacityInput.value) || 0.65,
-          side:THREE.DoubleSide,
-          depthWrite:false,
-          depthTest: !pdfAlwaysOnTop
-        });
-
-        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1,1), material);
-        mesh.renderOrder = pdfAlwaysOnTop ? 200 : 0;
-        const group = new THREE.Group();
-        group.add(mesh);
-        pdfRoot.add(group);
-
-        const layer = {
-          path,
-          placement,
-          aspect: canvas2d.width / Math.max(1, canvas2d.height),
-          pageWidth: canvas2d._viewerPageWidth || canvas2d.width,
-          pageHeight: canvas2d._viewerPageHeight || canvas2d.height,
-          sourceKind: canvas2d._viewerSourceKind || "unknown",
-          texture,
-          material,
-          mesh,
-          group,
-          visible:true
-        };
-
-        pdfLayers.push(layer);
-
-        if (placement === "floor") pdfFloorNameText.textContent = getBaseName(path);
-        if (placement === "side") pdfSideNameText.textContent = getBaseName(path);
-
-        return layer;
-      }catch(err){
-        console.error(err);
-        setPdfStatus("PDF LOAD ERROR");
-        alert("PDFの読み込みに失敗しました。\n\n" + path + "\n\n" + err.message);
-        return null;
-      }
-    }
-
 
     function formatScaleNumber(value){
       const n = Number(value) || 0;
@@ -2170,7 +1860,7 @@
       }
 
       pdfScaleReadout.textContent =
-        `縮尺換算: 1/${formatScaleNumber(currentScale)} → 1/${formatScaleNumber(targetScale)} = PDFサイズ ${formatScaleNumber(percent)}%`;
+        `縮尺換算: 1/${formatScaleNumber(currentScale)} → 1/${formatScaleNumber(targetScale)} = プレビュー倍率 ${formatScaleNumber(percent)}%`;
     }
 
     function applyPdfScaleConversion(){
@@ -2182,304 +1872,151 @@
         return;
       }
 
-      // 例：取り込んだPDFが1/20、変更したい縮尺が1/14なら 20/14=1.42857倍 → 142.857%
       const percent = Math.max(1, Math.min(5000, 100 * currentScale / targetScale));
-      pdfPercentInput.value = formatScaleNumber(percent);
+      pdfFloorPreview.style.transform = `scale(${percent / 100})`;
+      pdfSidePreview.style.transform = `scale(${percent / 100})`;
+      pdfFloorPreview.style.marginBottom = `${Math.max(0, percent - 100) * 0.25}px`;
+      pdfSidePreview.style.marginBottom = `${Math.max(0, percent - 100) * 0.25}px`;
       updatePdfScaleReadout(currentScale, targetScale, percent);
-
-      applyPdfTransform();
-      fitView();
-      setPdfStatus(`縮尺反映: 1/${formatScaleNumber(currentScale)} → 1/${formatScaleNumber(targetScale)} / PDFサイズ ${formatScaleNumber(percent)}%`);
+      setPdfStatus(`縮尺反映: 1/${formatScaleNumber(currentScale)} → 1/${formatScaleNumber(targetScale)} / プレビュー倍率 ${formatScaleNumber(percent)}%`);
     }
 
     function resetPdfScaleConversion(){
       pdfCurrentScaleInput.value = "20";
       pdfTargetScaleInput.value = "70";
-      pdfPercentInput.value = "28.571";
+      pdfFloorPreview.style.transform = "scale(0.28571)";
+      pdfSidePreview.style.transform = "scale(0.28571)";
+      pdfFloorPreview.style.marginBottom = "0";
+      pdfSidePreview.style.marginBottom = "0";
       updatePdfScaleReadout(20, 70, 28.571);
-
-      applyPdfTransform();
-      fitView();
-      setPdfStatus("縮尺初期化: 1/20 → 1/70 / PDFサイズ 28.571%");
+      setPdfStatus("縮尺初期化: 1/20 → 1/70 / プレビュー倍率 28.571%");
     }
 
-    function getPdfOperationTargets(){
-      const mode = pdfPlacementSelect.value;
-      if (mode === "floor") return pdfLayers.filter(layer => layer.placement === "floor");
-      if (mode === "side") return pdfLayers.filter(layer => layer.placement === "side");
-      return pdfLayers;
-    }
-
-    function getFloorDimensions(){
-      const floor = pdfLayers.find(layer => layer.placement === "floor");
-      if (!floor) return null;
-      return { width: floor.width || 1, height: floor.height || 1 };
-    }
-
-    function getPdfReferenceLayer(){
-      // 床PDFを基準にする。床PDFがない場合だけ最初のPDFを基準にする。
-      return pdfLayers.find(layer => layer.placement === "floor") || pdfLayers[0] || null;
-    }
-
-    function getPdfWorldSizeByPageScale(layer){
-      const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 28.571);
-      const mode = pdfSizeModeSelect ? pdfSizeModeSelect.value : "model";
-
-      const reference = getPdfReferenceLayer();
-      const refPageWidth = Math.max(1, reference ? reference.pageWidth : layer.pageWidth || 1);
-      const layerPageWidth = Math.max(1, layer.pageWidth || 1);
-      const layerPageHeight = Math.max(1, layer.pageHeight || 1);
-      const pageWidthRatio = layerPageWidth / refPageWidth;
-
-      let baseWorldWidth;
-
-      if (mode === "fixed"){
-        baseWorldWidth = Math.max(0.01, parseFloat(pdfBaseWidthInput.value) || 6.0) * percent / 100;
-      } else if (mode === "pdf"){
-        // PDFページ実寸比を使う。床PDFを基準に同じ用紙・同じ縮尺なら同じ大きさになる。
-        baseWorldWidth = 6.0 * percent / 100;
-      } else {
-        // v58 default:
-        // PDFサイズは「補正前のモデル基準サイズ」に連動させる。
-        // これで、CH02のモデルだけ拡大してもPDFサイズは一緒に拡大されない。
-        baseWorldWidth = Math.max(2.5, modelRawSizeForPdf * 3.5) * percent / 100;
-      }
-
-      return {
-        width: baseWorldWidth * pageWidthRatio,
-        height: baseWorldWidth * (layerPageHeight / refPageWidth)
-      };
-    }
-
-    function applyPdfLayerTransform(layer){
-      const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 28.571);
-      const opacity = Math.max(0.05, Math.min(1, parseFloat(pdfOpacityInput.value) || 0.65));
-
-      const size = getPdfWorldSizeByPageScale(layer);
-      const width = size.width;
-      const height = size.height;
-      const floorDimensions = getFloorDimensions();
-
-      layer.mesh.geometry.dispose();
-      layer.mesh.geometry = new THREE.PlaneGeometry(width, height);
-      layer.material.opacity = opacity;
-      layer.material.depthTest = !pdfAlwaysOnTop;
-      layer.material.depthWrite = false;
-      layer.mesh.renderOrder = pdfAlwaysOnTop ? 200 : 0;
-      layer.group.visible = layer.visible;
-
-      const x = parseFloat(pdfXInput.value) || 0;
-      const y = parseFloat(pdfYInput.value) || 0;
-      const z = parseFloat(pdfZInput.value) || 0;
-
-      if (layer.placement === "floor"){
-        // PDFが床やグリッドの下に隠れないよう、少しだけ上に浮かせる。
-        layer.group.position.set(x, 0.01 + y, z);
-        layer.group.rotation.set(-Math.PI/2, 0, 0);
-      } else {
-        const floorEdgeZ = floorDimensions ? (-floorDimensions.height / 2) : (-height / 2);
-        layer.group.position.set(x, height/2 + y, floorEdgeZ + z);
-        layer.group.rotation.set(0, 0, 0);
-      }
-
-      layer.width = width;
-      layer.height = height;
-
-      if (pdfSizeBasisText){
-        const ref = getPdfReferenceLayer();
-        const refText = ref ? `${getBaseName(ref.path)} / ${Math.round(ref.pageWidth)}×${Math.round(ref.pageHeight)}` : "未設定";
-        const mode = pdfSizeModeSelect ? pdfSizeModeSelect.value : "model";
-        const modeText = mode === "model" ? "表示優先：モデル表示範囲基準" : (mode === "fixed" ? "固定基準幅" : "PDFページ実寸比");
-        pdfSizeBasisText.textContent = `${modeText}: ${refText}`;
-      }
-    }
-
-    function applyPdfTransform(){
-      if (pdfLayers.length === 0) return;
-
-      const targets = getPdfOperationTargets();
-      const targetSet = new Set(targets);
-
-      // 床寸法を先に決めるため、床は常に反映する。
-      for (const layer of pdfLayers.filter(layer => layer.placement === "floor")){
-        if (targetSet.has(layer) || pdfPlacementSelect.value === "auto" || pdfPlacementSelect.value === "both"){
-          applyPdfLayerTransform(layer);
-        } else {
-          applyPdfLayerTransform(layer);
-        }
-      }
-
-      for (const layer of pdfLayers.filter(layer => layer.placement === "side")){
-        if (targetSet.has(layer) || pdfPlacementSelect.value === "auto" || pdfPlacementSelect.value === "both"){
-          applyPdfLayerTransform(layer);
-        } else {
-          applyPdfLayerTransform(layer);
-        }
-      }
-
-      const percent = Math.max(1, parseFloat(pdfPercentInput.value) || 28.571);
-      const opacity = Math.max(0.05, Math.min(1, parseFloat(pdfOpacityInput.value) || 0.65));
-      setPdfStatus(`PDF反映: ${pdfLayers.length}枚 / ${pdfSizeModeSelect ? pdfSizeModeSelect.value : "model"}基準 / ${percent}% / opacity ${opacity} / 前面${pdfAlwaysOnTop ? "ON" : "OFF"}`);
-    }
-
-
-    function formatViewMagnification(value){
-      const n = Number(value) || 0;
-      if (n >= 100) return String(Math.round(n));
-      return n.toFixed(1).replace(/\.0$/, "");
-    }
-
-    function updateViewMagnificationHud(value, modeText="REALTIME"){
-      const safeValue = Math.max(1, Math.min(9999, Number(value) || 150));
-      realtimeViewMagnification = safeValue;
-
-      const text = `現在表示倍率 ${formatViewMagnification(safeValue)}%`;
-      if (viewMagnificationHud && lastHudText !== text + modeText){
-        viewMagnificationHud.innerHTML = `${text}<div class="hud-sub">表示倍率 / ${modeText}</div>`;
-        lastHudText = text + modeText;
-      }
-
-      if (viewMagnificationStatus){
-        viewMagnificationStatus.textContent = `表示倍率: ${formatViewMagnification(safeValue)}%`;
-      }
-
-      // 入力欄もズーム操作に追従。ただし、ユーザーが入力中のときは上書きしない。
-      if (viewMagnificationInput && document.activeElement !== viewMagnificationInput){
-        viewMagnificationInput.value = formatViewMagnification(safeValue);
-      }
-    }
-
-    function updateRealtimeViewMagnification(){
-      if (!camera || !controls) return;
-
-      const currentDistance = camera.position.distanceTo(controls.target);
-      if (!currentDistance || currentDistance <= 0 || !viewDistanceAtSet || viewDistanceAtSet <= 0) return;
-
-      // v58:
-      // 表示倍率は「最後に設定した倍率」を基準に、ホイール/ピンチで変化した距離だけ補正する。
-      // シーンサイズやPDFサイズに引っ張られないので、初期185%が185%として安定表示される。
-      const mag = viewMagnificationAtSet * (viewDistanceAtSet / currentDistance);
-      updateViewMagnificationHud(mag, "REALTIME");
-    }
-
-    function clampViewMagnification(value){
-      return Math.max(10, Math.min(500, Number(value) || 185));
-    }
-
-    function setViewMagnification(value, doFit=true){
-      viewMagnification = clampViewMagnification(value);
-      viewMagnificationAtSet = viewMagnification;
-      viewDistanceAtSet = camera && controls ? Math.max(0.0001, camera.position.distanceTo(controls.target)) : 1;
-
-      updateViewMagnificationHud(viewMagnification, "SET");
-      setObjectStatus(`3D表示倍率: ${formatViewMagnification(viewMagnification)}%`);
-
-      if (doFit){
-        fitView();
-      }
-    }
-
-    function changeViewMagnification(delta){
-      setViewMagnification(clampViewMagnification(viewMagnificationInput.value) + delta, true);
-    }
-
-    function fitView(){
-      const box = new THREE.Box3();
-      if (modelWrapper) box.expandByObject(modelWrapper);
-      for (const layer of pdfLayers){
-        if (layer.group && layer.group.visible) box.expandByObject(layer.group);
-      }
-
-      if (box.isEmpty()){
-        camera.position.set(1.8,1.2,1.8);
-        controls.target.set(0,0,0);
-        controls.update();
-        viewDistanceAtSet = camera.position.distanceTo(controls.target);
-        viewMagnificationAtSet = viewMagnification;
-        fitViewBaseDistance = viewDistanceAtSet * (viewMagnification / 100);
-        updateViewMagnificationHud(viewMagnification, "SET");
-        return;
-      }
-
-      const size = new THREE.Vector3();
-      const center = new THREE.Vector3();
-      box.getSize(size);
-      box.getCenter(center);
-
-      const maxDim = Math.max(size.x,size.y,size.z) || 2;
-      // 表示倍率が大きいほどカメラを近づける。
-      // 100% = 標準、185% = 初期近め、200% = さらに近め。
-      const mag = clampViewMagnification(viewMagnificationInput.value);
-      viewMagnification = mag;
-
-      // v58:
-      // fitView直後の「実カメラ距離」を、指定した表示倍率そのものとして基準化する。
-      // 表示倍率はカメラ距離の変化にだけ追従し、シーンサイズには左右されない。
-      const baseAxisDistance = maxDim * 1.15;
-      const dist = baseAxisDistance * (100 / mag);
-
-      controls.target.copy(center);
-      camera.position.set(center.x + dist, center.y + dist * 0.48, center.z + dist);
-      controls.update();
-
-      const actualDistance = camera.position.distanceTo(controls.target);
-      fitViewBaseDistance = actualDistance * (mag / 100);
-      viewDistanceAtSet = actualDistance;
-      viewMagnificationAtSet = mag;
-
-      updateViewMagnificationHud(mag, "SET");
-      camera.near = Math.max(0.001, maxDim / 1000);
-      camera.far = Math.max(1000, maxDim * 1000);
-      camera.updateProjectionMatrix();
-      controls.update();
-    }
-
-    function changeChapter(delta){
+    async function changeChapter(delta){
       if (chapters.length === 0) return;
       let next = currentChapterIndex + delta;
       if (next < 0) next = chapters.length - 1;
       if (next >= chapters.length) next = 0;
-      loadChapter(next);
+      await loadChapter(next);
     }
 
-    function openArViewer(){
+    function refreshAnimations(){
+      const animations = viewer.availableAnimations || [];
+      animationSelect.innerHTML = "";
+
+      if (animations.length === 0){
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "アニメーションなし";
+        animationSelect.appendChild(opt);
+        return;
+      }
+
+      for (const name of animations){
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        animationSelect.appendChild(opt);
+      }
+
+      animationSelect.value = animations[0];
+      viewer.animationName = animations[0];
+      viewer.timeScale = playSpeed;
+      viewer.play();
+      isPaused = false;
+      playPauseBtn.textContent = "一時停止";
+    }
+
+    async function openAR(){
+      const shouldContinue = await askOpenInSafariIfNeeded();
+      if (!shouldContinue) return;
+
+      const ios = isIOSLike();
+      const safari = isSafariLike();
+
+      if (!currentModel && !currentIosModel){
+        alert("先にチャプターを選んでモデルを読み込んでください。");
+        return;
+      }
+
+      if (ios && !currentIosModel){
+        alert("iPhone/iPadのARにはUSDZファイルが必要です。\n\nこのチャプターにはUSDZが見つかりません。\nChromeで試す場合も、同じCHフォルダ内に .usdz を入れてください。");
+        setObjectStatus("iOS AR ERROR: USDZがありません。");
+        return;
+      }
+
+      if (ios && !safari){
+        setObjectStatus("iPhone Chromeで直接AR起動を試します。失敗時はUSDZ直接起動へ切替できます。");
+      }
+
+      try{
+        markArLaunchPending();
+        await viewer.activateAR();
+        setObjectStatus(autoAdvanceAfterAR ? "AR起動要求を送信しました。戻ったら次CHへ進みます。" : "AR起動要求を送信しました。戻っても現在CHを保持します。");
+      }catch(err){
+        console.error(err);
+
+        const ios = isIOSLike();
+        const safari = isSafariLike();
+
+        if (ios && !safari && currentIosModel){
+          const ok = confirm(
+            "iPhone ChromeでAR起動に失敗しました。\n\n" +
+            "同じCHフォルダ内のUSDZを直接開いてARを試しますか？\n\n" +
+            "OK: USDZを直接開く\n" +
+            "キャンセル: 中止"
+          );
+          if (ok){
+            openUsdZDirectly();
+            return;
+          }
+        }
+
+        clearArLaunchPending();
+
+        alert(
+          "AR起動に失敗しました。\n\n" +
+          "iPhone Chromeでは端末やiOSの仕様により動かない場合があります。\n" +
+          "USDZが入っているか、ファイルサイズが大きすぎないか確認してください。"
+        );
+        setObjectStatus("AR START ERROR");
+      }
+    }
+
+    function open3D(){
       const ch = chapters[currentChapterIndex];
-      const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/ar.html"));
-      url.searchParams.set("v", "20260605_0036_v58");
+      const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
+      url.searchParams.set("v", "20260605_0043_v61");
       if (currentRoot) url.searchParams.set("root", currentRoot);
       if (ch) url.searchParams.set("chapter", ch.name);
       window.open(url.toString(), "_blank");
     }
 
-    function resize(){
-      const w = canvas.clientWidth || window.innerWidth;
-      const h = canvas.clientHeight || window.innerHeight;
-      camera.aspect = w / Math.max(1,h);
-      camera.updateProjectionMatrix();
-      renderer.setSize(w,h,false);
-    }
+    viewer.addEventListener("load", () => {
+      refreshAnimations();
+      setObjectStatus("読込完了: " + currentModel);
+    });
 
-    function animate(){
-      requestAnimationFrame(animate);
-      const delta = clock.getDelta();
+    viewer.addEventListener("finished", () => {
+      isPaused = true;
+      playPauseBtn.textContent = "再生";
+      if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
+      setObjectStatus("ANIMATION COMPLETE");
+    });
 
-      if (mixer && isPlaying){
-        // 途中停止の原因になっていた手動の経過時間判定をやめ、
-        // AnimationMixerのfinishedイベントで「対象Actionが全部完了したか」を判定する。
-        mixer.update(delta * animSpeed);
-        animElapsed += delta * animSpeed;
-      }
+    viewer.addEventListener("error", () => {
+      setObjectStatus("MODEL LOAD ERROR");
+    });
 
-      controls.update();
-      updateRealtimeViewMagnification();
-      renderer.render(scene,camera);
-    }
+    viewer.addEventListener("ar-status", event => {
+      setObjectStatus("AR STATUS: " + event.detail.status);
+    });
+
 
     function closeMobilePanels(){
       refbar.classList.remove("mobile-open");
       objectSide.classList.remove("mobile-open");
       pdfSide.classList.remove("mobile-open");
-      sideStorageBar.classList.remove("mobile-open");
       document.querySelector(".playbar")?.classList.remove("mobile-open");
       mobileQuickPanel?.classList.remove("mobile-open");
     }
@@ -2497,6 +2034,11 @@
         return;
       }
 
+      if (panel === "object"){
+        objectSide.classList.add("mobile-open");
+        return;
+      }
+
       if (panel === "pdf"){
         pdfSide.classList.add("mobile-open");
         return;
@@ -2508,20 +2050,18 @@
     }
 
     function toggleMobilePlay(){
-      if (isPlaying) pauseAnimation();
-      else playAnimation(false);
-    }
-
-    async function reloadCurrentPdfFromMobile(){
-      if (!chapters[currentChapterIndex]){
-        setPdfStatus("PDF再読込: チャプターが選択されていません。");
-        return;
+      if (!currentModel) return alert("GLB/GLTFが無いため、3Dプレビュー再生はできません。iPhone AR用USDZのみ読み込まれている可能性があります。");
+      if (isPaused){
+        viewer.play();
+        isPaused = false;
+        playPauseBtn.textContent = "一時停止";
+        if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
+      } else {
+        viewer.pause();
+        isPaused = true;
+        playPauseBtn.textContent = "再生";
+        if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
       }
-
-      await loadChapterPdfs(chapters[currentChapterIndex]);
-      applyPdfTransform();
-      fitView();
-      setPdfStatus("PDF再読込完了: v51安定PDF処理で再表示しました。");
     }
 
     collapseRefBtn.addEventListener("click", () => {
@@ -2535,255 +2075,156 @@
     prevChapterBtn.addEventListener("click", () => changeChapter(-1));
     nextChapterBtn.addEventListener("click", () => changeChapter(1));
     prevBottomBtn.addEventListener("click", () => changeChapter(-1));
-    nextBottomBtn.addEventListener("click", () => changeChapter(1));
 
-    applyModelScaleBtn.addEventListener("click", applyModelTransform);
-
-    modelNormalizeBtn.addEventListener("click", () => {
-      modelAutoNormalize = !modelAutoNormalize;
-      modelNormalizeBtn.textContent = modelAutoNormalize ? "自動正規化ON" : "自動正規化OFF";
-      modelNormalizeBtn.classList.toggle("lime", modelAutoNormalize);
-      modelRealScaleBtn.classList.toggle("lime", !modelAutoNormalize);
-      if (modelWrapper && modelScene) applyModelTransform();
+    arStartBtn.addEventListener("click", openAR);
+    modelUrlBtn.addEventListener("click", () => {
+      if (!currentModel) return alert("GLB/GLTFモデル未読込");
+      prompt("GLB/GLTF モデルURL", toAssetUrl(currentModel));
     });
-
-    modelRealScaleBtn.addEventListener("click", () => {
-      modelAutoNormalize = false;
-      modelNormalizeBtn.textContent = "自動正規化OFF";
-      modelNormalizeBtn.classList.toggle("lime", false);
-      modelRealScaleBtn.classList.toggle("lime", true);
-      if (modelWrapper && modelScene) applyModelTransform();
+    iosModelUrlBtn.addEventListener("click", showIosModelUrl);
+    directUsdZBtn.addEventListener("click", openUsdZDirectly);
+    clearModelBtn.addEventListener("click", () => {
+      currentModel = "";
+      currentIosModel = "";
+      viewer.removeAttribute("src");
+      viewer.removeAttribute("ios-src");
+      setObjectStatus("MODEL CLEARED");
+    });
+    resetViewBtn.addEventListener("click", () => {
+      viewer.cameraOrbit = "25deg 70deg 130%";
+      viewer.cameraTarget = "auto auto auto";
+      viewer.fieldOfView = "auto";
     });
 
     chapterCorrectionBtn.addEventListener("click", () => {
       chapterCorrectionEnabled = !chapterCorrectionEnabled;
       updateChapterCorrectionStatus();
-      if (modelWrapper && modelScene) applyModelTransform();
+      setObjectStatus(`ARモデル補正 ${chapterCorrectionEnabled ? "ON" : "OFF"} / ×${chapterCorrectionFactor.toFixed(4)}`);
     });
 
     chapterCorrectionApplyBtn.addEventListener("click", () => {
-      // PDF側は必ずCH01基準の 1/20→1/70 に戻す。
       pdfCurrentScaleInput.value = "20";
       pdfTargetScaleInput.value = "70";
-      pdfPercentInput.value = "28.571";
-      pdfSizeModeSelect.value = "model";
+      applyPdfScaleConversion();
       updateChapterCorrectionStatus();
-      if (modelWrapper && modelScene) applyModelTransform();
-      if (pdfLayers.length > 0) applyPdfTransform();
-      setPdfStatus("CH01基準を再反映: PDFは1/20→1/70固定、モデルだけ補正しました。");
-    });
-
-    snapGroundBtn.addEventListener("click", () => { snapModelGround(); fitView(); });
-    rotYMinusBtn.addEventListener("click", () => {
-      modelRotYInput.value = String((parseFloat(modelRotYInput.value) || 0) - 90);
-      applyModelTransform();
-    });
-    rotYPlusBtn.addEventListener("click", () => {
-      modelRotYInput.value = String((parseFloat(modelRotYInput.value) || 0) + 90);
-      applyModelTransform();
-    });
-    viewMagnificationInput.addEventListener("change", () => setViewMagnification(viewMagnificationInput.value, true));
-    applyViewMagnificationBtn.addEventListener("click", () => setViewMagnification(viewMagnificationInput.value, true));
-    viewMag100Btn.addEventListener("click", () => setViewMagnification(100, true));
-    viewMag185Btn.addEventListener("click", () => setViewMagnification(185, true));
-    viewMag200Btn.addEventListener("click", () => setViewMagnification(200, true));
-    nearViewBtn.addEventListener("click", () => changeViewMagnification(25));
-    farViewBtn.addEventListener("click", () => changeViewMagnification(-25));
-    viewMagResetBtn.addEventListener("click", () => setViewMagnification(185, true));
-    fitViewBtn.addEventListener("click", fitView);
-    modelSolidBtn.addEventListener("click", () => {
-      modelSolidMode = !modelSolidMode;
-      modelSolidBtn.textContent = modelSolidMode ? "ソリッド表示ON" : "ソリッド表示OFF";
-      modelSolidBtn.classList.toggle("lime", modelSolidMode);
-      refreshModelVisibility();
-    });
-
-    modelVisibilityBtn.addEventListener("click", () => {
-      modelVisibilityEnhanced = !modelVisibilityEnhanced;
-      modelVisibilityBtn.textContent = modelVisibilityEnhanced ? "視認性強調ON" : "視認性強調OFF";
-      modelVisibilityBtn.classList.toggle("lime", modelVisibilityEnhanced);
-      refreshModelVisibility();
-    });
-
-    modelOriginalBtn.addEventListener("click", () => {
-      modelSolidMode = false;
-      modelVisibilityEnhanced = false;
-      modelEdgesEnhanced = false;
-      modelSolidBtn.textContent = "ソリッド表示OFF";
-      modelVisibilityBtn.textContent = "視認性強調OFF";
-      modelEdgeBtn.textContent = "エッジ強調OFF";
-      modelSolidBtn.classList.toggle("lime", false);
-      modelVisibilityBtn.classList.toggle("lime", false);
-      modelEdgeBtn.classList.toggle("lime", false);
-      refreshModelVisibility();
-    });
-
-    modelEdgeBtn.addEventListener("click", () => {
-      modelEdgesEnhanced = !modelEdgesEnhanced;
-      modelEdgeBtn.textContent = modelEdgesEnhanced ? "エッジ強調ON" : "エッジ強調OFF";
-      modelEdgeBtn.classList.toggle("lime", modelEdgesEnhanced);
-      refreshModelVisibility();
-    });
-
-    clearModelBtn.addEventListener("click", clearModel);
-
-    applyPdfBtn.addEventListener("click", () => { applyPdfTransform(); fitView(); });
-
-    pdfSizeModeSelect.addEventListener("change", () => {
-      applyPdfTransform();
-      fitView();
-    });
-
-    pdfBaseWidthInput.addEventListener("change", () => {
-      applyPdfTransform();
-      fitView();
-    });
-
-    pdfAlwaysOnTopBtn.addEventListener("click", () => {
-      pdfAlwaysOnTop = !pdfAlwaysOnTop;
-      pdfAlwaysOnTopBtn.textContent = pdfAlwaysOnTop ? "PDF前面表示ON" : "PDF前面表示OFF";
-      pdfAlwaysOnTopBtn.classList.toggle("lime", pdfAlwaysOnTop);
-      applyPdfTransform();
-    });
-
-    pdfFitVisibleBtn.addEventListener("click", () => {
-      pdfSizeModeSelect.value = "model";
-      pdfAlwaysOnTop = true;
-      pdfAlwaysOnTopBtn.textContent = "PDF前面表示ON";
-      pdfAlwaysOnTopBtn.classList.toggle("lime", true);
-      pdfOpacityInput.value = "0.8";
-      applyPdfTransform();
-      fitView();
-      setPdfStatus("PDF表示復旧: PDFは補正前モデル基準 / 前面表示ON / 透明度0.8");
-    });
-
-    applyPdfScaleBtn.addEventListener("click", applyPdfScaleConversion);
-    resetPdfScaleBtn.addEventListener("click", resetPdfScaleConversion);
-
-    pdfTransparentBtn.addEventListener("click", async () => {
-      pdfWhiteTransparent = !pdfWhiteTransparent;
-      pdfTransparentBtn.textContent = pdfWhiteTransparent ? "白背景透過ON" : "白背景透過OFF";
-      pdfTransparentBtn.classList.toggle("lime", pdfWhiteTransparent);
-      const ch = chapters[currentChapterIndex];
-      if (ch) await loadChapterPdfs(ch);
-      fitView();
-    });
-
-    pdfLineColorBtn.addEventListener("click", async () => {
-      pdfLineCyan = !pdfLineCyan;
-      pdfLineColorBtn.textContent = pdfLineCyan ? "線シアン化ON" : "線シアン化OFF";
-      pdfLineColorBtn.classList.toggle("lime", pdfLineCyan);
-      const ch = chapters[currentChapterIndex];
-      if (ch) await loadChapterPdfs(ch);
-      fitView();
-    });
-
-    pdfCurrentScaleInput.addEventListener("change", applyPdfScaleConversion);
-    pdfTargetScaleInput.addEventListener("change", applyPdfScaleConversion);
-    resetPdfPosBtn.addEventListener("click", () => {
-      pdfXInput.value = "0";
-      pdfYInput.value = "0";
-      pdfZInput.value = "0";
-      applyPdfTransform();
-    });
-    togglePdfBtn.addEventListener("click", () => {
-      const targets = getPdfOperationTargets();
-      if (targets.length === 0) return;
-      const anyVisible = targets.some(layer => layer.visible);
-      for (const layer of targets){
-        layer.visible = !anyVisible;
-        layer.group.visible = layer.visible;
-      }
-      setPdfStatus(anyVisible ? "選択PDFを非表示" : "選択PDFを表示");
-    });
-    clearPdfBtn.addEventListener("click", () => clearPdf("all"));
-    pdfPlacementSelect.addEventListener("change", () => { applyPdfTransform(); fitView(); });
-
-    playPauseBtn.addEventListener("click", () => {
-      if (isPlaying) pauseAnimation();
-      else playAnimation(false);
+      setObjectStatus(`AR補正再反映: PDFは1/20→1/70固定 / モデルだけ×${chapterCorrectionFactor.toFixed(4)}`);
     });
 
     mobilePrevBtn.addEventListener("click", () => changeChapter(-1));
     mobileNextBtn.addEventListener("click", () => changeChapter(1));
-    mobileArBtn.addEventListener("click", openArViewer);
+    mobilePlayBtn.addEventListener("click", toggleMobilePlay);
+    mobileArBtn.addEventListener("click", openAR);
     mobilePanelBtn.addEventListener("click", () => {
       if (mobileQuickPanel.classList.contains("mobile-open")) closeMobilePanels();
       else openMobilePanel("quick");
     });
+    mobileBack3dBtn.addEventListener("click", open3D);
 
-    mobilePlayBtn.addEventListener("click", toggleMobilePlay);
+    afterArNextBtn.addEventListener("click", toggleAfterArNext);
+    mobileAfterArNextBtn.addEventListener("click", toggleAfterArNext);
+    mobileNextArBtn.addEventListener("click", nextChapterAndOpenAR);
+
     mobileOpenRefBtn.addEventListener("click", () => openMobilePanel("ref"));
-    mobileFitBtn.addEventListener("click", () => { closeMobilePanels(); fitView(); });
-    mobilePdfReloadBtn.addEventListener("click", reloadCurrentPdfFromMobile);
+    mobileOpenObjectBtn.addEventListener("click", () => openMobilePanel("object"));
     mobileOpenPdfBtn.addEventListener("click", () => openMobilePanel("pdf"));
     mobileOpenAnimBtn.addEventListener("click", () => openMobilePanel("anim"));
+    mobileDirectUsdZBtn.addEventListener("click", openUsdZDirectly);
+    mobileResetViewBtn.addEventListener("click", () => {
+      closeMobilePanels();
+      viewer.cameraOrbit = "25deg 70deg 130%";
+      viewer.cameraTarget = "auto auto auto";
+      viewer.fieldOfView = "auto";
+    });
     mobileClosePanelsBtn.addEventListener("click", closeMobilePanels);
 
-    restartBtn.addEventListener("click", restartAnimation);
+    playPauseBtn.addEventListener("click", () => {
+      if (!currentModel) return;
+      if (isPaused){
+        viewer.play();
+        isPaused = false;
+        playPauseBtn.textContent = "一時停止";
+        if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
+      } else {
+        viewer.pause();
+        isPaused = true;
+        playPauseBtn.textContent = "再生";
+        if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
+      }
+    });
+
+    restartBtn.addEventListener("click", () => {
+      viewer.currentTime = 0;
+      viewer.play();
+      isPaused = false;
+      playPauseBtn.textContent = "一時停止";
+      if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
+    });
 
     speedRange.addEventListener("input", () => {
-      animSpeed = parseFloat(speedRange.value) || 0.8;
-      speedText.textContent = animSpeed.toFixed(2) + "x";
+      playSpeed = parseFloat(speedRange.value) || 0.8;
+      speedText.textContent = playSpeed.toFixed(2) + "x";
+      viewer.timeScale = playSpeed;
     });
 
-    loopBtn.addEventListener("click", () => {
-      loopEnabled = !loopEnabled;
-      loopBtn.textContent = loopEnabled ? "ループON" : "ループOFF";
-      loopBtn.classList.toggle("lime", loopEnabled);
+    animationSelect.addEventListener("change", () => {
+      if (!animationSelect.value) return;
+      viewer.animationName = animationSelect.value;
+      viewer.currentTime = 0;
+      viewer.play();
+      isPaused = false;
+      playPauseBtn.textContent = "一時停止";
     });
 
-    animationSelect.addEventListener("change", restartAnimation);
-    openArBtn.addEventListener("click", openArViewer);
+    applyPdfScaleBtn.addEventListener("click", applyPdfScaleConversion);
+    resetPdfScaleBtn.addEventListener("click", resetPdfScaleConversion);
+    pdfCurrentScaleInput.addEventListener("change", applyPdfScaleConversion);
+    pdfTargetScaleInput.addEventListener("change", applyPdfScaleConversion);
 
-    window.addEventListener("resize", resize);
+    back3dBtn.addEventListener("click", open3D);
 
-    // v58: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
-    controls.addEventListener("change", updateRealtimeViewMagnification);
-    renderer.domElement.addEventListener("wheel", () => {
-      requestAnimationFrame(updateRealtimeViewMagnification);
-      setTimeout(updateRealtimeViewMagnification, 40);
-    }, {passive:true});
-    renderer.domElement.addEventListener("pointerup", () => {
-      requestAnimationFrame(updateRealtimeViewMagnification);
-      setTimeout(updateRealtimeViewMagnification, 40);
-    }, {passive:true});
-    renderer.domElement.addEventListener("touchend", () => {
-      requestAnimationFrame(updateRealtimeViewMagnification);
-      setTimeout(updateRealtimeViewMagnification, 40);
-    }, {passive:true});
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden){
+        if (arLaunchPending){
+          arReturnObservedHidden = true;
+        }
+      }else{
+        if (arLaunchPending && arReturnObservedHidden){
+          setTimeout(() => handleReturnFromAR("visibility"), 300);
+        }
+      }
+    });
+
+    window.addEventListener("focus", () => {
+      if (arLaunchPending && arReturnObservedHidden){
+        setTimeout(() => handleReturnFromAR("focus"), 300);
+      }
+    });
+
+    window.addEventListener("pageshow", (event) => {
+      if (event.persisted){
+        setTimeout(() => handleReturnFromAR("pageshow"), 300);
+      }
+    });
 
     if (initialRoot) rootInput.value = initialRoot;
-
-    setViewMagnification(185, false);
-    updateViewMagnificationHud(185, "READY");
-    modelNormalizeBtn.classList.toggle("lime", modelAutoNormalize);
-    modelRealScaleBtn.classList.toggle("lime", !modelAutoNormalize);
     chapterCorrectionBtn.classList.toggle("lime", chapterCorrectionEnabled);
     updateChapterCorrectionStatus();
-    modelSolidBtn.classList.toggle("lime", modelSolidMode);
-    modelVisibilityBtn.classList.toggle("lime", modelVisibilityEnhanced);
-    modelEdgeBtn.classList.toggle("lime", modelEdgesEnhanced);
-    pdfTransparentBtn.classList.toggle("lime", pdfWhiteTransparent);
-    pdfLineColorBtn.classList.toggle("lime", pdfLineCyan);
-    pdfAlwaysOnTopBtn.classList.toggle("lime", pdfAlwaysOnTop);
 
 
-    // Temporary: PDF loading is disabled.
-    const PDF_LOADING_DISABLED = true;
-    const __originalLoadChapterPdfs = typeof loadChapterPdfs === "function" ? loadChapterPdfs : null;
-    const __originalLoadPdf = typeof loadPdf === "function" ? loadPdf : null;
-    loadChapterPdfs = async function(){
-      clearPdf("all");
+    // Temporary: PDF preview loading is disabled.
+    const PDF_PREVIEW_DISABLED = true;
+    loadPdfPreview = async function(){
+      pdfFloorPreview.removeAttribute("src");
+      pdfSidePreview.removeAttribute("src");
       setPdfStatus("PDF読込OFF");
     };
-    loadPdf = async function(){
-      clearPdf("all");
+    loadChapterPdfPreviews = async function(){
+      pdfFloorPreview.removeAttribute("src");
+      pdfSidePreview.removeAttribute("src");
       setPdfStatus("PDF読込OFF");
     };
 
-    resize();
-    animate();
+    updateAfterArNextButtons();
     loadReferenceRoot();
   </script>
 </body>
