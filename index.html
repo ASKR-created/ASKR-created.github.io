@@ -1334,7 +1334,7 @@
 
     function toAssetUrl(path){
       if (!path) return "";
-      if (/^https?:///i.test(path)) return path;
+      if (/^https?:\/\//i.test(path)) return path;
       const assetPath = encodePath(path);
       if (location.protocol === "file:"){
         return `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_REF}/${assetPath}`;
