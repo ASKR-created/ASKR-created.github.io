@@ -1693,23 +1693,17 @@
     }
 
     function splitChapterTextPages(text){
-      const normalized = String(text || "").replace(/
-/g, "
-").trim();
+      const normalized = String(text || "").replaceAll("\r\n", "\n").replaceAll("\r", "\n").trim();
       if (!normalized) return ["解説TXTは空です。"];
-      const explicit = normalized.split(/
-s*---s*pages*---s*
-/i).map(s => s.trim()).filter(Boolean);
+      const pageBreakPattern = new RegExp("\\n\\s*---\\s*page\\s*---\\s*\\n", "i");
+      const explicit = normalized.split(pageBreakPattern).map(s => s.trim()).filter(Boolean);
       if (explicit.length > 1) return explicit;
-      const blocks = normalized.split(/
-{2,}/);
+      const blocks = normalized.split(new RegExp("\\n{2,}"));
       const pages = [];
       let current = "";
       const limit = 420;
       for (const block of blocks){
-        const next = current ? current + "
-
-" + block : block;
+        const next = current ? current + "\n\n" + block : block;
         if (next.length > limit && current){
           pages.push(current);
           current = block;
