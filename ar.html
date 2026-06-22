@@ -2033,6 +2033,32 @@
       await loadChapter(next);
     }
 
+    async function playSelectedAnimation(name, restart=true){
+      if (!name) return false;
+      viewer.animationName = name;
+      viewer.setAttribute("animation-name", name);
+      viewer.timeScale = playSpeed;
+      try{
+        if (viewer.updateComplete) await viewer.updateComplete;
+        if (restart) viewer.currentTime = 0;
+        await viewer.play();
+      }catch(err){
+        console.warn("Animation play retry", err);
+        setTimeout(() => {
+          try{
+            viewer.animationName = name;
+            viewer.setAttribute("animation-name", name);
+            viewer.timeScale = playSpeed;
+            if (restart) viewer.currentTime = 0;
+            viewer.play();
+          }catch(e){ console.warn(e); }
+        }, 250);
+      }
+      isPaused = false;
+      playPauseBtn.textContent = "一時停止";
+      if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
+      return true;
+    }
     function refreshAnimations(){
       const animations = viewer.availableAnimations || [];
       animationSelect.innerHTML = "";
@@ -2053,10 +2079,7 @@
       }
 
       animationSelect.value = animations[0];
-      viewer.animationName = animations[0];
-      viewer.timeScale = playSpeed;
-      viewer.play();
-      isPaused = false;
+      playSelectedAnimation(animations[0], true);
       playPauseBtn.textContent = "一時停止";
     }
 
@@ -2125,7 +2148,8 @@
       window.open(url.toString(), "_blank");
     }
 
-    viewer.addEventListener("load", () => {
+    viewer.addEventListener("load", async () => {
+      try{ if (viewer.updateComplete) await viewer.updateComplete; }catch(e){}
       refreshAnimations();
       setObjectStatus("読込完了: " + currentModel);
     });
@@ -2185,10 +2209,7 @@
     function toggleMobilePlay(){
       if (!currentModel) return alert("GLB/GLTFが無いため、3Dプレビュー再生はできません。iPhone AR用USDZのみ読み込まれている可能性があります。");
       if (isPaused){
-        viewer.play();
-        isPaused = false;
-        playPauseBtn.textContent = "一時停止";
-        if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
+        playSelectedAnimation(animationSelect.value || viewer.animationName, false);
       } else {
         viewer.pause();
         isPaused = true;
@@ -2286,11 +2307,7 @@
     });
 
     restartBtn.addEventListener("click", () => {
-      viewer.currentTime = 0;
-      viewer.play();
-      isPaused = false;
-      playPauseBtn.textContent = "一時停止";
-      if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
+      playSelectedAnimation(animationSelect.value || viewer.animationName, true);
     });
 
     speedRange.addEventListener("input", () => {
@@ -2301,11 +2318,7 @@
 
     animationSelect.addEventListener("change", () => {
       if (!animationSelect.value) return;
-      viewer.animationName = animationSelect.value;
-      viewer.currentTime = 0;
-      viewer.play();
-      isPaused = false;
-      playPauseBtn.textContent = "一時停止";
+      playSelectedAnimation(animationSelect.value, true);
     });
 
     applyPdfScaleBtn.addEventListener("click", applyPdfScaleConversion);
