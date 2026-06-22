@@ -1692,6 +1692,9 @@
       }
     }
 
+    let chapterTextPages = ["CHフォルダ内のTXTを読み込みます。"];
+    let chapterTextPageIndex = 0;
+
     function splitChapterTextPages(text){
       const normalized = String(text || "").replaceAll("\r\n", "\n").replaceAll("\r", "\n").trim();
       if (!normalized) return ["解説TXTは空です。"];
