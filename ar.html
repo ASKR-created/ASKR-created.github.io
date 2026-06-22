@@ -1155,7 +1155,6 @@
       id="viewer"
       camera-controls
       touch-action="pan-y"
-      auto-rotate
       shadow-intensity="0.75"
       exposure="1.1"
       ar
@@ -1164,6 +1163,7 @@
       ar-placement="floor"
       scale="1 1 1"
       autoplay
+      crossorigin="anonymous"
       camera-orbit="25deg 70deg 130%"
       min-camera-orbit="auto auto 80%"
       max-camera-orbit="auto auto 500%"
@@ -1230,6 +1230,11 @@
         <div class="grid2">
           <button class="btn lime" id="arStartBtn">ARで見る</button>
           <button class="btn" id="resetViewBtn">視点リセット</button>
+        </div>
+
+        <div class="grid2">
+          <button class="btn" id="recordStartBtn">録画開始</button>
+          <button class="btn magenta" id="recordStopBtn" disabled>録画停止</button>
         </div>
 
         <div class="grid2">
@@ -1311,6 +1316,8 @@
       <button class="btn lime" id="mobileOpenPdfBtn">PDF表示</button>
       <button class="btn" id="mobileOpenAnimBtn">再生詳細</button>
       <button class="btn" id="mobileResetViewBtn">視点リセット</button>
+      <button class="btn" id="mobileRecordStartBtn">録画開始</button>
+      <button class="btn magenta" id="mobileRecordStopBtn" disabled>録画停止</button>
       <button class="btn" id="mobileDirectUsdZBtn">USDZ直接</button>
       <button class="btn magenta" id="mobileBack3dBtn">3Dへ戻る</button>
       <button class="btn magenta" id="mobileClosePanelsBtn">閉じる</button>
@@ -1377,6 +1384,8 @@
     const pdfStatus = document.getElementById("pdfStatus");
     const arStartBtn = document.getElementById("arStartBtn");
     const resetViewBtn = document.getElementById("resetViewBtn");
+    const recordStartBtn = document.getElementById("recordStartBtn");
+    const recordStopBtn = document.getElementById("recordStopBtn");
     const modelUrlBtn = document.getElementById("modelUrlBtn");
     const iosModelUrlBtn = document.getElementById("iosModelUrlBtn");
     const directUsdZBtn = document.getElementById("directUsdZBtn");
@@ -1400,6 +1409,8 @@
     const mobileArBtn = document.getElementById("mobileArBtn");
     const mobilePanelBtn = document.getElementById("mobilePanelBtn");
     const mobileBack3dBtn = document.getElementById("mobileBack3dBtn");
+    const mobileRecordStartBtn = document.getElementById("mobileRecordStartBtn");
+    const mobileRecordStopBtn = document.getElementById("mobileRecordStopBtn");
     const mobileAfterArNextBtn = document.getElementById("mobileAfterArNextBtn");
     const mobileNextArBtn = document.getElementById("mobileNextArBtn");
     const mobileOpenRefBtn = document.getElementById("mobileOpenRefBtn");
@@ -1904,7 +1915,9 @@
       updateChapterCorrectionStatus();
 
       if (currentModel && GLB_EXTS.includes(getExt(currentModel))){
-        viewer.src = toAssetUrl(currentModel);
+        const modelUrl = toAssetUrl(currentModel);
+        viewer.setAttribute("src", modelUrl);
+        viewer.src = modelUrl;
       } else if (currentIosModel){
         // USDZしか無い場合、iPhone AR用として保持する。
         // 3DプレビューにはGLB/GLTFが必要なので、プレビューは未設定になる。
@@ -2083,6 +2096,85 @@
       playPauseBtn.textContent = "一時停止";
     }
 
+    function setRecordingUi(isRecording){
+      if (recordStartBtn) recordStartBtn.disabled = isRecording;
+      if (recordStopBtn) recordStopBtn.disabled = !isRecording;
+      if (mobileRecordStartBtn) mobileRecordStartBtn.disabled = isRecording;
+      if (mobileRecordStopBtn) mobileRecordStopBtn.disabled = !isRecording;
+      if (recordStartBtn) recordStartBtn.textContent = isRecording ? "録画中" : "録画開始";
+      if (mobileRecordStartBtn) mobileRecordStartBtn.textContent = isRecording ? "録画中" : "録画開始";
+    }
+
+    function getRecordingMimeType(){
+      const candidates = [
+        "video/webm;codecs=vp9",
+        "video/webm;codecs=vp8",
+        "video/webm"
+      ];
+      return candidates.find(type => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || "";
+    }
+
+    async function startRecording(){
+      if (mediaRecorder && mediaRecorder.state === "recording") return;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia || !window.MediaRecorder){
+        alert("このブラウザでは録画機能が使えません。PC版Chrome/Edgeなどで試してください。");
+        setObjectStatus("RECORDING UNSUPPORTED");
+        return;
+      }
+      try{
+        recordingStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { frameRate: 30 },
+          audio: false
+        });
+        recordedChunks = [];
+        const mimeType = getRecordingMimeType();
+        mediaRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
+        mediaRecorder.addEventListener("dataavailable", event => {
+          if (event.data && event.data.size > 0) recordedChunks.push(event.data);
+        });
+        mediaRecorder.addEventListener("stop", saveRecording);
+        recordingStream.getVideoTracks()[0]?.addEventListener("ended", stopRecording);
+        mediaRecorder.start(250);
+        setRecordingUi(true);
+        setObjectStatus("録画中: ブラウザ画面を記録しています。");
+      }catch(err){
+        console.error(err);
+        setRecordingUi(false);
+        setObjectStatus("RECORDING CANCELLED");
+      }
+    }
+
+    function stopRecording(){
+      if (mediaRecorder && mediaRecorder.state !== "inactive"){
+        mediaRecorder.stop();
+      } else {
+        saveRecording();
+      }
+    }
+
+    function saveRecording(){
+      setRecordingUi(false);
+      if (recordingStream){
+        recordingStream.getTracks().forEach(track => track.stop());
+        recordingStream = null;
+      }
+      if (!recordedChunks.length){
+        setObjectStatus("録画データがありません。");
+        return;
+      }
+      const blob = new Blob(recordedChunks, { type: recordedChunks[0]?.type || "video/webm" });
+      recordedChunks = [];
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const ch = chapters[currentChapterIndex]?.name || "chapter";
+      a.href = url;
+      a.download = `ar-viewer_${ch}_${new Date().toISOString().replace(/[:.]/g,"-")}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setObjectStatus("録画を保存しました: " + a.download);
+    }
     async function openAR(){
       const shouldContinue = await askOpenInSafariIfNeeded();
       if (!shouldContinue) return;
@@ -2161,8 +2253,9 @@
       setObjectStatus("ANIMATION COMPLETE");
     });
 
-    viewer.addEventListener("error", () => {
-      setObjectStatus("MODEL LOAD ERROR");
+    viewer.addEventListener("error", event => {
+      console.error("model-viewer error", event.detail || event);
+      setObjectStatus("MODEL LOAD ERROR: " + (currentModel || "GLBなし"));
     });
 
     viewer.addEventListener("ar-status", event => {
@@ -2231,6 +2324,8 @@
     prevBottomBtn.addEventListener("click", () => changeChapter(-1));
 
     arStartBtn.addEventListener("click", openAR);
+    recordStartBtn?.addEventListener("click", startRecording);
+    recordStopBtn?.addEventListener("click", stopRecording);
     modelUrlBtn.addEventListener("click", () => {
       if (!currentModel) return alert("GLB/GLTFモデル未読込");
       prompt("GLB/GLTF モデルURL", toAssetUrl(currentModel));
@@ -2268,6 +2363,8 @@
     mobileNextBtn.addEventListener("click", () => changeChapter(1));
     mobilePlayBtn.addEventListener("click", toggleMobilePlay);
     mobileArBtn.addEventListener("click", openAR);
+    mobileRecordStartBtn?.addEventListener("click", startRecording);
+    mobileRecordStopBtn?.addEventListener("click", stopRecording);
     mobilePanelBtn.addEventListener("click", () => {
       if (mobileQuickPanel.classList.contains("mobile-open")) closeMobilePanels();
       else openMobilePanel("quick");
