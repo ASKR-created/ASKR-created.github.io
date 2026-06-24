@@ -16,17 +16,18 @@
 
   <style>
     :root{
-      --bg:#030712;
-      --panel:rgba(8,16,32,.88);
-      --panel2:rgba(10,22,44,.94);
-      --cyan:#22f8ff;
-      --lime:#a6ff2d;
-      --magenta:#ff2deb;
-      --yellow:#ffe66d;
-      --text:#eafbff;
-      --sub:#96a8c8;
-      --line:rgba(34,248,255,.34);
-      --shadow:0 0 18px rgba(34,248,255,.18),0 0 30px rgba(255,45,235,.08);
+      --bg:#f6f2ea;
+      --panel:rgba(255,252,246,.94);
+      --panel2:rgba(250,247,240,.98);
+      --cyan:#6f927f;
+      --lime:#5f8f45;
+      --magenta:#9a6a5b;
+      --yellow:#d8b45b;
+      --text:#26322f;
+      --sub:#66756f;
+      --line:rgba(112,126,116,.30);
+      --shadow:0 10px 28px rgba(57,67,62,.10);
+      --radius:8px;
     }
 
     *{box-sizing:border-box}
@@ -36,36 +37,15 @@
       margin:0;
       overflow:hidden;
       background:
-        radial-gradient(circle at 18% 18%, rgba(34,248,255,.10), transparent 28%),
-        radial-gradient(circle at 86% 76%, rgba(255,45,235,.10), transparent 32%),
-        linear-gradient(135deg,#02030a,#061020 58%,#050616);
+        linear-gradient(rgba(116,132,118,.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(116,132,118,.045) 1px, transparent 1px),
+        linear-gradient(180deg,#f8f4ec 0%,#eee7da 100%);
+      background-size:32px 32px,32px 32px,100% 100%;
       color:var(--text);
       font-family:"MS UI Gothic","Yu Gothic UI","Meiryo",sans-serif;
     }
 
-    body::before{
-      content:"";
-      position:fixed;
-      inset:0;
-      pointer-events:none;
-      z-index:50;
-      background:
-        linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
-        linear-gradient(90deg,rgba(34,248,255,.022) 1px,transparent 1px);
-      background-size:4px 4px,18px 18px;
-      mix-blend-mode:screen;
-    }
-
-    body::after{
-      content:"";
-      position:fixed;
-      inset:0;
-      pointer-events:none;
-      z-index:51;
-      background:linear-gradient(to bottom,rgba(255,255,255,.032),transparent 1px);
-      background-size:100% 5px;
-      opacity:.28;
-    }
+    body::before, body::after{display:none}
 
     #app{
       position:relative;
@@ -87,12 +67,12 @@
       align-items:center;
       justify-content:center;
       min-height:38px;
-      border:1px solid rgba(34,248,255,.40);
-      background:linear-gradient(180deg,rgba(15,28,58,.94),rgba(3,8,18,.94));
+      border:1px solid rgba(91,111,100,.34);
+      background:#fffdf8;
       color:var(--text);
       font-weight:bold;
       cursor:pointer;
-      letter-spacing:.04em;
+      letter-spacing:0;
       padding:0 12px;
       white-space:nowrap;
       user-select:none;
@@ -100,7 +80,7 @@
 
     .storage-label:hover{
       border-color:var(--cyan);
-      box-shadow:0 0 14px rgba(34,248,255,.22);
+      box-shadow:0 0 0 3px rgba(111,146,127,.12);
     }
 
     .storage-label .closed{
@@ -110,9 +90,9 @@
     #hideObjectSide:checked ~ .refbar .storage-label.object,
     #hidePdfSide:checked ~ .refbar .storage-label.pdf,
     #focusViewer:checked ~ .refbar .storage-label.focus{
-      border-color:rgba(166,255,45,.62)!important;
+      border-color:rgba(95,143,69,.48)!important;
       color:var(--lime)!important;
-      box-shadow:0 0 16px rgba(166,255,45,.16)!important;
+      box-shadow:0 0 16px rgba(95,143,69,.12)!important;
     }
 
     #hideObjectSide:checked ~ .refbar .storage-label.object .opened,
@@ -150,15 +130,15 @@
       right:18px;
       z-index:24;
       min-width:170px;
-      border:1px solid rgba(166,255,45,.58);
-      background:rgba(4,10,20,.82);
+      border:1px solid rgba(95,143,69,.42);
+      background:rgba(255,252,246,.94);
       color:var(--lime);
-      box-shadow:0 0 18px rgba(166,255,45,.18),0 0 24px rgba(34,248,255,.08);
+      box-shadow:0 0 18px rgba(95,143,69,.12),0 0 24px rgba(112,126,116,.12);
       padding:8px 12px;
       font-family:Consolas,"MS UI Gothic",monospace;
       font-size:13px;
       font-weight:bold;
-      letter-spacing:.08em;
+      letter-spacing:0;
       text-align:center;
       pointer-events:none;
       backdrop-filter:blur(10px);
@@ -169,7 +149,7 @@
       margin-top:3px;
       color:var(--sub);
       font-size:10px;
-      letter-spacing:.04em;
+      letter-spacing:0;
       font-weight:normal;
     }
 
@@ -180,11 +160,11 @@
       right:10px;
       z-index:20;
       border:1px solid var(--line);
-      background:linear-gradient(90deg,rgba(8,16,32,.86),rgba(12,28,56,.64));
+      background:linear-gradient(90deg,rgba(255,252,246,.94),rgba(250,247,240,.86));
       box-shadow:var(--shadow);
       backdrop-filter:blur(12px);
       -webkit-backdrop-filter:blur(12px);
-      clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));
+      border-radius:var(--radius);
     }
 
     .refbar-head{
@@ -203,15 +183,15 @@
     .rgb-line{
       height:3px;
       margin-bottom:6px;
-      background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--lime));
-      box-shadow:0 0 12px rgba(34,248,255,.60);
+      background:linear-gradient(90deg,#7e9f86,#d8c28d,#b98e74);
+      box-shadow:none;
     }
 
     .title{
       font-size:17px;
       font-weight:bold;
-      letter-spacing:.12em;
-      text-shadow:0 0 8px rgba(34,248,255,.7);
+      letter-spacing:0;
+      text-shadow:none;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
@@ -248,7 +228,7 @@
       z-index:23;
       width:auto;
       min-height:44px;
-      border:1px solid rgba(34,248,255,.34);
+      border:1px solid rgba(112,126,116,.30);
       background:rgba(4,10,20,.84);
       box-shadow:var(--shadow);
       backdrop-filter:blur(12px);
@@ -301,12 +281,12 @@
       justify-content:space-between;
       gap:8px;
       padding:10px 12px;
-      border-bottom:1px solid rgba(34,248,255,.20);
-      background:linear-gradient(90deg,rgba(34,248,255,.10),rgba(255,45,235,.07));
+      border-bottom:1px solid rgba(112,126,116,.24);
+      background:linear-gradient(90deg,rgba(111,146,127,.08),rgba(154,106,91,.07));
       color:var(--cyan);
       font-weight:bold;
-      letter-spacing:.12em;
-      text-shadow:0 0 8px rgba(34,248,255,.6);
+      letter-spacing:0;
+      text-shadow:none;
     }
 
     .side-body{
@@ -322,58 +302,87 @@
       right:10px;
       bottom:10px;
       z-index:22;
-      min-height:66px;
+      min-height:96px;
       border:1px solid var(--line);
-      background:rgba(4,10,20,.82);
+      background:rgba(255,252,246,.94);
       box-shadow:var(--shadow);
       backdrop-filter:blur(12px);
       -webkit-backdrop-filter:blur(12px);
       display:grid;
-      grid-template-columns:auto auto auto 1fr auto auto auto auto;
+      grid-template-columns:repeat(12, minmax(72px, auto));
       gap:8px;
       align-items:center;
       padding:8px;
+      overflow-x:auto;
+    }
+
+    .playbar .btn{
+      min-width:78px;
+      white-space:nowrap;
+    }
+
+    #playPauseBtn{
+      min-width:96px;
+      font-size:16px;
+      grid-column:auto;
+    }
+
+    #autoRunBtn,
+    #loadObjBtn,
+    #objSlideBtn{
+      min-width:96px;
+    }
+
+    #objSlideIntervalInput{
+      width:64px !important;
+      min-width:64px;
     }
 
     .playbar .speedbox{
       display:grid;
-      grid-template-columns:auto 1fr auto;
+      grid-template-columns:auto minmax(160px,1fr) auto;
       gap:8px;
       align-items:center;
-      min-width:260px;
+      min-width:250px;
+      grid-column:span 3;
+    }
+
+    .playbar #animationSelect{
+      min-width:130px;
+      grid-column:span 2;
     }
 
     button,.btn{
       min-height:38px;
-      border:1px solid rgba(34,248,255,.40);
-      background:linear-gradient(180deg,rgba(15,28,58,.94),rgba(3,8,18,.94));
+      border:1px solid rgba(91,111,100,.34);
+      background:#fffdf8;
       color:var(--text);
       font-weight:bold;
       cursor:pointer;
-      letter-spacing:.04em;
+      letter-spacing:0;
       padding:0 12px;
     }
 
     button:hover,.btn:hover{
       border-color:var(--cyan);
-      box-shadow:0 0 14px rgba(34,248,255,.22);
+      box-shadow:0 0 0 3px rgba(111,146,127,.12);
     }
 
     button.lime,.btn.lime{
-      border-color:rgba(166,255,45,.52);
+      border-color:rgba(95,143,69,.38);
       color:var(--lime);
     }
 
     button.magenta,.btn.magenta{
-      border-color:rgba(255,45,235,.52);
-      color:#ffd4fb;
+      border-color:rgba(154,106,91,.36);
+      color:#855446;
     }
 
     input,select{
       width:100%;
       min-height:34px;
-      border:1px solid rgba(34,248,255,.35);
-      background:rgba(1,5,14,.88);
+      border:1px solid rgba(91,111,100,.32);
+      background:rgba(255,253,248,.92);
       color:var(--text);
       padding:6px 8px;
       outline:none;
@@ -382,7 +391,7 @@
 
     input:focus,select:focus{
       border-color:var(--magenta);
-      box-shadow:0 0 12px rgba(255,45,235,.16);
+      box-shadow:0 0 12px rgba(154,106,91,.12);
     }
 
     input[type="range"]{
@@ -413,8 +422,8 @@
 
     .status{
       margin-top:8px;
-      border:1px solid rgba(166,255,45,.26);
-      background:rgba(166,255,45,.045);
+      border:1px solid rgba(95,143,69,.22);
+      background:rgba(95,143,69,.07);
       color:var(--lime);
       padding:8px;
       font-size:12px;
@@ -428,7 +437,7 @@
       grid-template-columns:92px 1fr;
       gap:8px;
       padding:5px 0;
-      border-bottom:1px solid rgba(34,248,255,.08);
+      border-bottom:1px solid rgba(112,126,116,.12);
       font-size:12px;
     }
 
@@ -572,7 +581,7 @@
         grid-template-columns:repeat(5,1fr);
         gap:6px;
         padding:6px;
-        border:1px solid rgba(34,248,255,.34);
+        border:1px solid rgba(112,126,116,.30);
         background:rgba(4,10,20,.88);
         box-shadow:var(--shadow);
         backdrop-filter:blur(12px);
@@ -593,7 +602,7 @@
         right:8px;
         bottom:76px;
         z-index:58;
-        border:1px solid rgba(34,248,255,.34);
+        border:1px solid rgba(112,126,116,.30);
         background:rgba(4,10,20,.94);
         box-shadow:var(--shadow);
         padding:8px;
@@ -1242,7 +1251,7 @@
 
     <section class="playbar">
       <button class="btn" id="prevBottomBtn">前CH</button>
-      <button class="btn lime" id="playPauseBtn">再生</button>
+      <button class="btn lime" id="playPauseBtn" title="現在のCHの選択Actionを再生">通常再生</button>
       <button class="btn" id="restartBtn">最初から</button>
       <button class="btn lime" id="autoRunBtn">通し再生</button>
       <button class="btn" id="loadObjBtn">OBJ表示</button>
@@ -1495,7 +1504,7 @@
     key.castShadow = true;
     scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0x22f8ff,.75);
+    const fill = new THREE.DirectionalLight(0x7fa18a,.75);
     fill.position.set(-5,2,-4);
     scene.add(fill);
 
@@ -1503,7 +1512,7 @@
     magenta.position.set(-3,2.5,3);
     scene.add(magenta);
 
-    const grid = new THREE.GridHelper(10,20,0x22f8ff,0x18324f);
+    const grid = new THREE.GridHelper(10,20,0x7fa18a,0x18324f);
     grid.material.transparent = true;
     grid.material.opacity = .22;
     scene.add(grid);
@@ -1820,10 +1829,10 @@
 
 
     function makeViewerSolidMaterial(originalMaterial){
-      const baseColor = new THREE.Color(0xcfefff);
+      const baseColor = new THREE.Color(0xdfe9dc);
 
       if (originalMaterial && originalMaterial.color){
-        baseColor.copy(originalMaterial.color).lerp(new THREE.Color(0x8fdcff), 0.45);
+        baseColor.copy(originalMaterial.color).lerp(new THREE.Color(0x9fbe9f), 0.45);
       }
 
       const material = new THREE.MeshStandardMaterial({
@@ -1833,7 +1842,7 @@
         transparent: false,
         opacity: 1.0,
         side: THREE.DoubleSide,
-        emissive: new THREE.Color(0x06131a),
+        emissive: new THREE.Color(0x26322f),
         emissiveIntensity: 0.28
       });
 
@@ -1866,13 +1875,13 @@
             const cloned = mat.clone();
 
             if (cloned.color){
-              cloned.color.lerp(new THREE.Color(0x7fdcff), 0.22);
+              cloned.color.lerp(new THREE.Color(0x92b893), 0.22);
             }
 
             if ("roughness" in cloned) cloned.roughness = Math.max(0.72, cloned.roughness || 0.72);
             if ("metalness" in cloned) cloned.metalness = Math.min(0.25, cloned.metalness || 0.05);
             if ("emissive" in cloned && cloned.emissive){
-              cloned.emissive.setHex(0x06131a);
+              cloned.emissive.setHex(0x26322f);
               if ("emissiveIntensity" in cloned) cloned.emissiveIntensity = 0.25;
             }
 
@@ -1901,7 +1910,7 @@
           try{
             const edgeGeo = new THREE.EdgesGeometry(obj.geometry, 22);
             const edgeMat = new THREE.LineBasicMaterial({
-              color:0x22f8ff,
+              color:0x7fa18a,
               transparent:true,
               opacity:0.56,
               depthTest:true
@@ -2011,7 +2020,7 @@
       isPlaying = false;
       serialPlayback = false;
       serialChapterIndex = 0;
-      playPauseBtn.textContent = "再生";
+      playPauseBtn.textContent = "通常再生";
       if (autoRunBtn) autoRunBtn.textContent = "通し再生";
       if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
       updateAnimationSelect();
@@ -2039,7 +2048,7 @@
         modelScene = obj;
         clips = []; mixer = null; actions = []; activeRunActions = []; finishedRunActions = new Set();
         isPlaying = false; serialPlayback = false;
-        playPauseBtn.textContent = "再生";
+        playPauseBtn.textContent = "通常再生";
         if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
         enhanceModelVisibility(modelScene);
         modelWrapper = new THREE.Group();
@@ -2238,7 +2247,7 @@
             restartAnimation();
           } else {
             isPlaying = false;
-            playPauseBtn.textContent = "再生";
+            playPauseBtn.textContent = "通常再生";
             setObjectStatus("ANIMATION COMPLETE");
           }
         }
@@ -2314,7 +2323,7 @@
       activeRunActions = [];
       finishedRunActions = new Set();
       isPlaying = false;
-      playPauseBtn.textContent = "再生";
+      playPauseBtn.textContent = "通常再生";
       if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
       if (autoRunBtn) autoRunBtn.textContent = "通し再生";
       setObjectStatus(message);
@@ -2383,7 +2392,7 @@
       serialPlayback = false;
       actions.forEach(a => a.paused = true);
       isPlaying = false;
-      playPauseBtn.textContent = "再生";
+      playPauseBtn.textContent = "通常再生";
       if (autoRunBtn) autoRunBtn.textContent = "通し再生";
       setObjectStatus("ANIMATION PAUSE");
     }
