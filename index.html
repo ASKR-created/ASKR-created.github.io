@@ -1244,6 +1244,10 @@
       <button class="btn" id="prevBottomBtn">前CH</button>
       <button class="btn lime" id="playPauseBtn">再生</button>
       <button class="btn" id="restartBtn">最初から</button>
+      <button class="btn lime" id="autoRunBtn">通し再生</button>
+      <button class="btn" id="loadObjBtn">OBJ表示</button>
+      <button class="btn" id="objSlideBtn">OBJスライド</button>
+      <input id="objSlideIntervalInput" type="number" min="1" max="60" step="1" value="5" title="OBJスライド秒" style="width:64px">
 
       <div class="speedbox">
         <span class="mini">速度</span>
@@ -1281,6 +1285,8 @@
     import * as THREE from "three";
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
     import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+    import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -1300,6 +1306,8 @@
     ];
 
     const MODEL_EXTS = [".glb", ".gltf"];
+    const OBJ_EXTS = [".obj"];
+    const MTL_EXTS = [".mtl"];
     const PDF_EXTS = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
     const TXT_EXTS = [".txt"];
 
@@ -1381,6 +1389,10 @@
     const prevBottomBtn = document.getElementById("prevBottomBtn");
     const playPauseBtn = document.getElementById("playPauseBtn");
     const restartBtn = document.getElementById("restartBtn");
+    const autoRunBtn = document.getElementById("autoRunBtn");
+    const loadObjBtn = document.getElementById("loadObjBtn");
+    const objSlideBtn = document.getElementById("objSlideBtn");
+    const objSlideIntervalInput = document.getElementById("objSlideIntervalInput");
     const speedRange = document.getElementById("speedRange");
     const speedText = document.getElementById("speedText");
     const animationSelect = document.getElementById("animationSelect");
@@ -1591,6 +1603,8 @@
       const files = Array.isArray(items) ? items.filter(item => item.type === "file") : [];
 
       const model = files.find(f => MODEL_EXTS.includes(getExt(f.path))) || null;
+      const objModel = files.find(f => OBJ_EXTS.includes(getExt(f.path))) || null;
+      const mtlFile = files.find(f => MTL_EXTS.includes(getExt(f.path))) || null;
       const pdfFiles = files.filter(f => PDF_EXTS.includes(getExt(f.path)));
       const textFile = files.find(f => TXT_EXTS.includes(getExt(f.path))) || null;
       const chosen = chooseFloorAndSidePdfs(pdfFiles);
@@ -1599,6 +1613,8 @@
         name:getBaseName(chapterPath),
         path:chapterPath,
         model:model ? model.path : "",
+        objModel:objModel ? objModel.path : "",
+        mtlPath:mtlFile ? mtlFile.path : "",
         pdf:chosen.floorPdf,
         floorPdf:chosen.floorPdf,
         sidePdf:chosen.sidePdf,
@@ -1687,10 +1703,15 @@
         const ch = chapters[i];
         const opt = document.createElement("option");
         opt.value = String(i);
-        opt.textContent = `${ch.name} / ${ch.model ? getBaseName(ch.model) : "modelなし"} / PDF ${ch.pdfs ? ch.pdfs.length : (ch.pdf ? 1 : 0)}枚`;
+        opt.textContent = `${ch.name} / ${ch.model ? getBaseName(ch.model) : "modelなし"}${ch.objModel ? " / OBJあり" : ""} / PDF ${ch.pdfs ? ch.pdfs.length : (ch.pdf ? 1 : 0)}枚`;
         chapterSelect.appendChild(opt);
       }
     }
+
+    let objSlideshowTimer = null;
+    let objSlideshowIndex = -1;
+    let serialPlayback = false;
+    let serialActionIndex = 0;
 
     let chapterTextPages = ["CHフォルダ内のTXTを読み込みます。"];
     let chapterTextPageIndex = 0;
@@ -1985,10 +2006,116 @@
       activeRunActions = [];
       finishedRunActions = new Set();
       isPlaying = false;
+      serialPlayback = false;
+      serialActionIndex = 0;
       playPauseBtn.textContent = "再生";
+      if (autoRunBtn) autoRunBtn.textContent = "通し再生";
       if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
       updateAnimationSelect();
       setObjectStatus("モデル消去");
+    }
+
+    async function loadObjModel(objPath, mtlPath=""){
+      clearModel();
+      const objLoader = new OBJLoader();
+      try{
+        setObjectStatus("OBJ LOADING: " + objPath);
+        if (mtlPath){
+          try{
+            const mtlLoader = new MTLLoader();
+            mtlLoader.setResourcePath(toAssetUrl(mtlPath).replace(/[^/]*$/, ""));
+            const materials = await mtlLoader.loadAsync(toAssetUrl(mtlPath));
+            materials.preload();
+            objLoader.setMaterials(materials);
+          }catch(err){
+            console.warn("MTL load skipped", err);
+          }
+        }
+        const obj = await objLoader.loadAsync(toAssetUrl(objPath));
+        currentModelPath = objPath;
+        modelScene = obj;
+        clips = []; mixer = null; actions = []; activeRunActions = []; finishedRunActions = new Set();
+        isPlaying = false; serialPlayback = false;
+        playPauseBtn.textContent = "再生";
+        if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
+        enhanceModelVisibility(modelScene);
+        modelWrapper = new THREE.Group();
+        modelWrapper.name = "TEACHING_OBJ_COMPLETED_WRAPPER";
+        modelWrapper.add(modelScene);
+        scene.add(modelWrapper);
+        const box = new THREE.Box3().setFromObject(modelScene);
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        box.getSize(size); box.getCenter(center);
+        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+        modelBaseScale = modelAutoNormalize ? (2.0 / maxDim) : 1.0;
+        modelUserScale = parseFloat(modelScaleInput.value) || 1;
+        updateChapterCorrectionStatus();
+        const rawScale = modelBaseScale * modelUserScale;
+        const finalScale = rawScale * chapterCorrectionFactor;
+        modelRawSizeForPdf = maxDim * rawScale;
+        modelSize = maxDim * finalScale;
+        modelWrapper.scale.setScalar(finalScale);
+        modelWrapper.position.set(-center.x * finalScale, -box.min.y * finalScale, -center.z * finalScale);
+        const rotY = THREE.MathUtils.degToRad(parseFloat(modelRotYInput.value) || 0);
+        modelWrapper.rotation.y = rotY;
+        updateAnimationSelect();
+        fitView();
+        setObjectStatus("OBJ完成形表示: " + objPath);
+      }catch(err){
+        console.error(err);
+        setObjectStatus("OBJ LOAD ERROR");
+        alert("OBJの読み込みに失敗しました。\n\n" + objPath + "\n\n" + err.message);
+      }
+    }
+
+    async function loadCurrentChapterObj(){
+      const ch = chapters[currentChapterIndex];
+      if (!ch || !ch.objModel){
+        setObjectStatus("このCHにOBJはありません");
+        alert("このチャプターにOBJファイルがありません。");
+        return;
+      }
+      await loadObjModel(ch.objModel, ch.mtlPath || "");
+    }
+
+    function getObjChapterIndexes(){
+      return chapters.map((ch, i) => ch.objModel ? i : -1).filter(i => i >= 0);
+    }
+
+    async function showNextObjSlide(){
+      const indexes = getObjChapterIndexes();
+      if (indexes.length === 0){
+        stopObjSlideshow();
+        setObjectStatus("OBJスライド: OBJが見つかりません");
+        return;
+      }
+      const currentPos = indexes.indexOf(currentChapterIndex);
+      const nextPos = currentPos >= 0 ? (currentPos + 1) % indexes.length : (objSlideshowIndex + 1) % indexes.length;
+      objSlideshowIndex = nextPos;
+      await loadChapter(indexes[nextPos]);
+      await loadCurrentChapterObj();
+    }
+
+    function startObjSlideshow(){
+      if (objSlideshowTimer) return;
+      objSlideBtn.textContent = "OBJ停止";
+      objSlideBtn.classList.add("lime");
+      showNextObjSlide();
+      const sec = Math.max(1, Math.min(60, parseFloat(objSlideIntervalInput?.value) || 5));
+      objSlideshowTimer = setInterval(showNextObjSlide, sec * 1000);
+      setObjectStatus("OBJスライド開始: " + sec + "秒間隔");
+    }
+
+    function stopObjSlideshow(){
+      if (objSlideshowTimer){ clearInterval(objSlideshowTimer); objSlideshowTimer = null; }
+      objSlideBtn.textContent = "OBJスライド";
+      objSlideBtn.classList.remove("lime");
+    }
+
+    function toggleObjSlideshow(){
+      if (objSlideshowTimer) stopObjSlideshow();
+      else startObjSlideshow();
     }
 
     async function loadModel(path){
@@ -2089,6 +2216,11 @@
       mixer.addEventListener("finished", event => {
         if (!isPlaying || activeRunActions.length === 0) return;
 
+        if (serialPlayback){
+          playNextSerialAction();
+          return;
+        }
+
         const finishedAction = event.action;
         if (!activeRunActions.includes(finishedAction)) return;
 
@@ -2121,7 +2253,52 @@
       return one ? [one] : [];
     }
 
+    function playSerialAnimation(){
+      if (!mixer || actions.length === 0){ setObjectStatus("通し再生: アニメーションなし"); return; }
+      mixer.stopAllAction();
+      serialPlayback = true;
+      serialActionIndex = 0;
+      isPlaying = true;
+      playPauseBtn.textContent = "一時停止";
+      if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
+      if (autoRunBtn) autoRunBtn.textContent = "通し停止";
+      playNextSerialAction();
+    }
+
+    function playNextSerialAction(){
+      if (!serialPlayback || !mixer || actions.length === 0) return;
+      if (serialActionIndex >= actions.length){
+        if (loopEnabled) serialActionIndex = 0;
+        else {
+          serialPlayback = false; isPlaying = false;
+          playPauseBtn.textContent = "再生";
+          if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
+          if (autoRunBtn) autoRunBtn.textContent = "通し再生";
+          setObjectStatus("通し再生完了");
+          return;
+        }
+      }
+      mixer.stopAllAction();
+      const action = actions[serialActionIndex];
+      activeRunActions = [action];
+      finishedRunActions = new Set();
+      action.enabled = true; action.paused = false; action.reset();
+      action.setLoop(THREE.LoopOnce, 1);
+      action.clampWhenFinished = true;
+      action.setEffectiveTimeScale(1); action.setEffectiveWeight(1); action.play();
+      const clipName = action.getClip()?.name || ("Action " + (serialActionIndex + 1));
+      setObjectStatus("通し再生: " + (serialActionIndex + 1) + "/" + actions.length + " " + clipName);
+      serialActionIndex += 1;
+    }
+
+    function toggleAutoRun(){
+      if (serialPlayback || isPlaying){ pauseAnimation(); serialPlayback = false; if (autoRunBtn) autoRunBtn.textContent = "通し再生"; return; }
+      playSerialAnimation();
+    }
+
     function playAnimation(restart=false){
+      serialPlayback = false;
+      if (autoRunBtn) autoRunBtn.textContent = "通し再生";
       if (!mixer || actions.length === 0){
         setObjectStatus("アニメーションなし");
         return;
@@ -2175,6 +2352,7 @@
       actions.forEach(a => a.paused = true);
       isPlaying = false;
       playPauseBtn.textContent = "再生";
+      if (autoRunBtn) autoRunBtn.textContent = "通し再生";
       setObjectStatus("ANIMATION PAUSE");
     }
 
@@ -2981,6 +3159,9 @@
     mobileClosePanelsBtn.addEventListener("click", closeMobilePanels);
 
     restartBtn.addEventListener("click", restartAnimation);
+    autoRunBtn?.addEventListener("click", toggleAutoRun);
+    loadObjBtn?.addEventListener("click", loadCurrentChapterObj);
+    objSlideBtn?.addEventListener("click", toggleObjSlideshow);
 
     speedRange.addEventListener("input", () => {
       animSpeed = parseFloat(speedRange.value) || 0.8;
