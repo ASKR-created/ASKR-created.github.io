@@ -1711,7 +1711,7 @@
     let objSlideshowTimer = null;
     let objSlideshowIndex = -1;
     let serialPlayback = false;
-    let serialActionIndex = 0;
+    let serialChapterIndex = 0;
 
     let chapterTextPages = ["CHフォルダ内のTXTを読み込みます。"];
     let chapterTextPageIndex = 0;
@@ -1784,6 +1784,7 @@
 
     async function loadChapter(index){
       if (index < 0 || index >= chapters.length) return;
+      const keepSerialPlayback = serialPlayback;
 
       currentChapterIndex = index;
       const ch = chapters[index];
@@ -1800,6 +1801,8 @@
 
       if (ch.model) await loadModel(ch.model);
       else clearModel();
+      serialPlayback = keepSerialPlayback;
+      if (serialPlayback && autoRunBtn) autoRunBtn.textContent = "通し停止";
 
       clearPdf("all");
       setPdfStatus("PDF読込OFF");
@@ -2007,7 +2010,7 @@
       finishedRunActions = new Set();
       isPlaying = false;
       serialPlayback = false;
-      serialActionIndex = 0;
+      serialChapterIndex = 0;
       playPauseBtn.textContent = "再生";
       if (autoRunBtn) autoRunBtn.textContent = "通し再生";
       if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
@@ -2217,7 +2220,10 @@
         if (!isPlaying || activeRunActions.length === 0) return;
 
         if (serialPlayback){
-          playNextSerialAction();
+          finishedRunActions.add(event.action);
+          if (finishedRunActions.size >= activeRunActions.length){
+            playNextSerialChapter();
+          }
           return;
         }
 
@@ -2253,52 +2259,77 @@
       return one ? [one] : [];
     }
 
-    function playSerialAnimation(){
-      if (!mixer || actions.length === 0){ setObjectStatus("通し再生: アニメーションなし"); return; }
-      mixer.stopAllAction();
-      serialPlayback = true;
-      serialActionIndex = 0;
-      isPlaying = true;
-      playPauseBtn.textContent = "一時停止";
-      if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
-      if (autoRunBtn) autoRunBtn.textContent = "通し停止";
-      playNextSerialAction();
+    function getPlayableChapterIndexes(){
+      return chapters.map((ch, i) => ch.model ? i : -1).filter(i => i >= 0);
     }
 
-    function playNextSerialAction(){
-      if (!serialPlayback || !mixer || actions.length === 0) return;
-      if (serialActionIndex >= actions.length){
-        if (loopEnabled) serialActionIndex = 0;
-        else {
-          serialPlayback = false; isPlaying = false;
-          playPauseBtn.textContent = "再生";
-          if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
-          if (autoRunBtn) autoRunBtn.textContent = "通し再生";
-          setObjectStatus("通し再生完了");
+    async function startChapterSerialPlayback(){
+      const indexes = getPlayableChapterIndexes();
+      if (indexes.length === 0){
+        setObjectStatus("通し再生: GLB/GLTFモデルが見つかりません");
+        return;
+      }
+      serialPlayback = true;
+      const currentPos = indexes.indexOf(currentChapterIndex);
+      serialChapterIndex = currentPos >= 0 ? currentPos : 0;
+      if (autoRunBtn) autoRunBtn.textContent = "通し停止";
+      await loadAndPlaySerialChapter(indexes[serialChapterIndex]);
+    }
+
+    async function loadAndPlaySerialChapter(chapterIndex){
+      if (!serialPlayback) return;
+      await loadChapter(chapterIndex);
+      if (!serialPlayback) return;
+      if (!mixer || actions.length === 0){
+        setObjectStatus("通し再生: " + chapters[chapterIndex].name + " はアニメーションなし、次へ");
+        setTimeout(playNextSerialChapter, 450);
+        return;
+      }
+      animationSelect.value = "__ALL__";
+      playAnimation(true, {keepSerial:true});
+      if (autoRunBtn) autoRunBtn.textContent = "通し停止";
+      setObjectStatus("通し再生: " + chapters[chapterIndex].name + " / Action " + actions.length);
+    }
+
+    function playNextSerialChapter(){
+      if (!serialPlayback) return;
+      const indexes = getPlayableChapterIndexes();
+      if (indexes.length === 0){ stopChapterSerialPlayback("通し再生: 対象なし"); return; }
+      serialChapterIndex += 1;
+      if (serialChapterIndex >= indexes.length){
+        if (loopEnabled){
+          serialChapterIndex = 0;
+        } else {
+          stopChapterSerialPlayback("通し再生完了");
           return;
         }
       }
-      mixer.stopAllAction();
-      const action = actions[serialActionIndex];
-      activeRunActions = [action];
+      loadAndPlaySerialChapter(indexes[serialChapterIndex]);
+    }
+
+    function stopChapterSerialPlayback(message="通し再生停止"){
+      serialPlayback = false;
+      if (mixer) mixer.stopAllAction();
+      actions.forEach(a => a.paused = true);
+      activeRunActions = [];
       finishedRunActions = new Set();
-      action.enabled = true; action.paused = false; action.reset();
-      action.setLoop(THREE.LoopOnce, 1);
-      action.clampWhenFinished = true;
-      action.setEffectiveTimeScale(1); action.setEffectiveWeight(1); action.play();
-      const clipName = action.getClip()?.name || ("Action " + (serialActionIndex + 1));
-      setObjectStatus("通し再生: " + (serialActionIndex + 1) + "/" + actions.length + " " + clipName);
-      serialActionIndex += 1;
+      isPlaying = false;
+      playPauseBtn.textContent = "再生";
+      if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
+      if (autoRunBtn) autoRunBtn.textContent = "通し再生";
+      setObjectStatus(message);
     }
 
     function toggleAutoRun(){
-      if (serialPlayback || isPlaying){ pauseAnimation(); serialPlayback = false; if (autoRunBtn) autoRunBtn.textContent = "通し再生"; return; }
-      playSerialAnimation();
+      if (serialPlayback){ stopChapterSerialPlayback(); return; }
+      if (isPlaying) pauseAnimation();
+      startChapterSerialPlayback();
     }
-
-    function playAnimation(restart=false){
-      serialPlayback = false;
-      if (autoRunBtn) autoRunBtn.textContent = "通し再生";
+    function playAnimation(restart=false, options={}){
+      if (!options.keepSerial){
+        serialPlayback = false;
+        if (autoRunBtn) autoRunBtn.textContent = "通し再生";
+      }
       if (!mixer || actions.length === 0){
         setObjectStatus("アニメーションなし");
         return;
@@ -2349,6 +2380,7 @@
     }
 
     function pauseAnimation(){
+      serialPlayback = false;
       actions.forEach(a => a.paused = true);
       isPlaying = false;
       playPauseBtn.textContent = "再生";
