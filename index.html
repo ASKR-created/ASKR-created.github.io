@@ -1477,7 +1477,7 @@
     const initialChapter = params.get("chapter") ? decodeURIComponent(params.get("chapter")) : "";
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x02030a);
+    scene.background = null;
 
     const camera = new THREE.PerspectiveCamera(55, 1, 0.01, 100000);
     camera.position.set(4, 3, 5);
@@ -1485,12 +1485,51 @@
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias:true,
-      alpha:false,
+      alpha:true,
       powerPreference:"high-performance"
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
+    renderer.setClearColor(0x000000, 0);
+
+    function makeHorizonGradientTexture(){
+      const c = document.createElement("canvas");
+      c.width = 16;
+      c.height = 512;
+      const ctx = c.getContext("2d");
+      const g = ctx.createLinearGradient(0, 0, 0, c.height);
+      g.addColorStop(0.00, "#ffffff");
+      g.addColorStop(0.34, "#f4f1ea");
+      g.addColorStop(0.52, "#b9b7af");
+      g.addColorStop(0.64, "#1c1c1b");
+      g.addColorStop(1.00, "#000000");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, c.width, c.height);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.magFilter = THREE.LinearFilter;
+      tex.minFilter = THREE.LinearFilter;
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    const horizonGradient = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2),
+      new THREE.MeshBasicMaterial({
+        map: makeHorizonGradientTexture(),
+        depthWrite:false,
+        depthTest:false,
+        fog:false
+      })
+    );
+    horizonGradient.name = "HORIZON_BLACK_TO_WHITE_BACKGROUND";
+    horizonGradient.renderOrder = -10000;
+    horizonGradient.frustumCulled = false;
+    camera.add(horizonGradient);
+    horizonGradient.position.set(0, 0, -1);
+    scene.add(camera);
+
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -1508,11 +1547,7 @@
     fill.position.set(-5,2,-4);
     scene.add(fill);
 
-    const magenta = new THREE.PointLight(0xff2deb,.75,18);
-    magenta.position.set(-3,2.5,3);
-    scene.add(magenta);
-
-    const grid = new THREE.GridHelper(10,20,0x7fa18a,0x18324f);
+        const grid = new THREE.GridHelper(10,20,0x5f7f68,0x202020);
     grid.material.transparent = true;
     grid.material.opacity = .22;
     scene.add(grid);
