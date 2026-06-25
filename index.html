@@ -1016,6 +1016,55 @@
       border-radius:6px;
     }
 
+
+    /* UI_AUTO_HIDE_PATCH */
+    #app.ui-auto-hidden .refbar,
+    #app.ui-auto-hidden .side-storage-bar,
+    #app.ui-auto-hidden .side,
+    #app.ui-auto-hidden .view-hud,
+    #app.ui-auto-hidden .playbar{
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .22s ease, transform .22s ease;
+    }
+
+    #app.ui-auto-hidden .refbar{
+      transform:translateY(-110%);
+    }
+
+    #app.ui-auto-hidden .side.left{
+      transform:translateX(-105%);
+    }
+
+    #app.ui-auto-hidden .side.right,
+    #app.ui-auto-hidden .side.explanation{
+      transform:translateX(105%);
+    }
+
+    #app.ui-auto-hidden .side-storage-bar,
+    #app.ui-auto-hidden .view-hud,
+    #app.ui-auto-hidden .playbar{
+      transform:translateY(120%);
+    }
+
+    #app.ui-active .refbar,
+    #app.ui-active .side-storage-bar,
+    #app.ui-active .side,
+    #app.ui-active .view-hud,
+    #app.ui-active .playbar{
+      opacity:1;
+      pointer-events:auto;
+      transform:none;
+      transition:opacity .18s ease, transform .18s ease;
+    }
+
+    .ui-peek-zone{
+      position:absolute;
+      inset:0;
+      z-index:2;
+      pointer-events:none;
+    }
+
   </style>
 </head>
 <body>
@@ -1320,6 +1369,7 @@
     const PDF_EXTS = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
     const TXT_EXTS = [".txt"];
 
+    const app = document.getElementById("app");
     const canvas = document.getElementById("viewer");
 
     const refbar = document.getElementById("refbar");
@@ -3049,6 +3099,37 @@
       }
     }
 
+
+    const UI_AUTO_HIDE_DELAY = 2800;
+    let uiAutoHideTimer = null;
+
+    function showUiBars(){
+      if (!app) return;
+      app.classList.add("ui-active");
+      app.classList.remove("ui-auto-hidden");
+    }
+
+    function hideUiBars(){
+      if (!app) return;
+      app.classList.remove("ui-active");
+      app.classList.add("ui-auto-hidden");
+    }
+
+    function activateAutoHideUi(){
+      showUiBars();
+      clearTimeout(uiAutoHideTimer);
+      uiAutoHideTimer = setTimeout(hideUiBars, UI_AUTO_HIDE_DELAY);
+    }
+
+    function keepUiVisibleWhileFocused(event){
+      const target = event.target;
+      if (!target) return;
+      if (target.closest && target.closest("button,input,select,textarea,.side,.refbar,.playbar,.side-storage-bar")){
+        showUiBars();
+        clearTimeout(uiAutoHideTimer);
+      }
+    }
+
     function toggleMobilePlay(){
       if (isPlaying) pauseAnimation();
       else playAnimation(false);
@@ -3285,6 +3366,12 @@
     nextTextPageBtn?.addEventListener("click", () => changeChapterTextPage(1));
 
     window.addEventListener("resize", resize);
+    window.addEventListener("pointermove", activateAutoHideUi, {passive:true});
+    window.addEventListener("pointerdown", activateAutoHideUi, {passive:true});
+    window.addEventListener("touchstart", activateAutoHideUi, {passive:true});
+    window.addEventListener("keydown", activateAutoHideUi);
+    document.addEventListener("focusin", keepUiVisibleWhileFocused);
+    document.addEventListener("focusout", activateAutoHideUi);
 
     // v58: 表示倍率HUDをホイール・ドラッグ・ピンチ後にも強制更新。
     controls.addEventListener("change", updateRealtimeViewMagnification);
@@ -3331,6 +3418,7 @@
     };
 
     resize();
+    activateAutoHideUi();
     animate();
     loadReferenceRoot();
   </script>
