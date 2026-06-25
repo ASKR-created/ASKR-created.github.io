@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "root": "teaching-contest",
+  "generatedAt": "2026-06-25T00:23:09.031Z",
+  "chapters": [
+    {
+      "name": "CH01",
+      "path": "teaching-contest/CH01",
+      "model": "teaching-contest/CH01/01ベース筋.glb",
+      "objModel": "",
+      "mtlPath": "",
+      "pdf": "teaching-contest/CH01/01ベース筋.pdf",
+      "floorPdf": "teaching-contest/CH01/01ベース筋.pdf",
+      "sidePdf": "teaching-contest/CH01/01ベース筋.png",
+      "pdfs": [
+        "teaching-contest/CH01/01ベース筋.pdf",
+        "teaching-contest/CH01/01ベース筋.png"
+      ],
+      "textPath": "teaching-contest/CH01/01ベース筋.txt",
+      "files": [
+        "teaching-contest/CH01/01ベース筋.glb",
+        "teaching-contest/CH01/01ベース筋.pdf",
+        "teaching-contest/CH01/01ベース筋.png",
+        "teaching-contest/CH01/01ベース筋.txt",
+        "teaching-contest/CH01/ベース筋.usdz"
+      ]
+    },
+    {
+      "name": "CH02",
+      "path": "teaching-contest/CH02",
+      "model": "teaching-contest/CH02/02フープ.glb",
+      "objModel": "teaching-contest/CH02/02フープ筋.obj",
+      "mtlPath": "teaching-contest/CH02/02フープ筋.mtl",
+      "pdf": "teaching-contest/CH02/02フープ筋.pdf",
+      "floorPdf": "teaching-contest/CH02/02フープ筋.pdf",
+      "sidePdf": "teaching-contest/CH02/02フープ筋.png",
+      "pdfs": [
+        "teaching-contest/CH02/02フープ筋.pdf",
+        "teaching-contest/CH02/02フープ筋.png"
+      ],
+      "textPath": "teaching-contest/CH02/02フープ筋.txt",
+      "files": [
+        "teaching-contest/CH02/02フープ.glb",
+        "teaching-contest/CH02/02フープ.usdz",
+        "teaching-contest/CH02/02フープ筋.mtl",
+        "teaching-contest/CH02/02フープ筋.obj",
+        "teaching-contest/CH02/02フープ筋.pdf",
+        "teaching-contest/CH02/02フープ筋.png",
+        "teaching-contest/CH02/02フープ筋.txt"
+      ]
+    },
+    {
+      "name": "CH03",
+      "path": "teaching-contest/CH03",
+      "model": "teaching-contest/CH03/03柱主筋.glb",
+      "objModel": "",
+      "mtlPath": "",
+      "pdf": "teaching-contest/CH03/03柱主筋.pdf",
+      "floorPdf": "teaching-contest/CH03/03柱主筋.pdf",
+      "sidePdf": "teaching-contest/CH03/03柱主筋.png",
+      "pdfs": [
+        "teaching-contest/CH03/03柱主筋.pdf",
+        "teaching-contest/CH03/03柱主筋.png"
+      ],
+      "textPath": "teaching-contest/CH03/03柱主筋.txt",
+      "files": [
+        "teaching-contest/CH03/03柱主筋.glb",
+        "teaching-contest/CH03/03柱主筋.pdf",
+        "teaching-contest/CH03/03柱主筋.png",
+        "teaching-contest/CH03/03柱主筋.txt",
+        "teaching-contest/CH03/03柱主筋.usdz"
+      ]
+    },
+    {
+      "name": "CH04",
+      "path": "teaching-contest/CH04",
+      "model": "",
+      "objModel": "",
+      "mtlPath": "",
+      "pdf": "",
+      "floorPdf": "",
+      "sidePdf": "",
+      "pdfs": [],
+      "textPath": "",
+      "files": []
+    },
+    {
+      "name": "CH05",
+      "path": "teaching-contest/CH05",
+      "model": "",
+      "objModel": "",
+      "mtlPath": "",
+      "pdf": "",
+      "floorPdf": "",
+      "sidePdf": "",
+      "pdfs": [],
+      "textPath": "",
+      "files": []
+    },
+    {
+      "name": "CH99",
+      "path": "teaching-contest/CH99",
+      "model": "",
+      "objModel": "",
+      "mtlPath": "",
+      "pdf": "teaching-contest/CH99/99完成　平面.pdf",
+      "floorPdf": "teaching-contest/CH99/99完成　平面.pdf",
+      "sidePdf": "teaching-contest/CH99/99D通り.pdf",
+      "pdfs": [
+        "teaching-contest/CH99/99D通り.pdf",
+        "teaching-contest/CH99/99完成　平面.pdf"
+      ],
+      "textPath": "",
+      "files": [
+        "teaching-contest/CH99/99D通り.pdf",
+        "teaching-contest/CH99/99完成　平面.pdf"
+      ]
+    }
+  ]
+}
