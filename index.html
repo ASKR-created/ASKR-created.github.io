@@ -1717,7 +1717,7 @@
     }
     async function fetchViewerManifest(root){
       const manifestPath = normalizePath(root) + "/viewer_manifest.json";
-      const res = await fetch(toAssetUrl(manifestPath), {cache:"no-store"});
+      const res = await fetch(toAssetUrl(manifestPath) + (toAssetUrl(manifestPath).includes("?") ? "&" : "?") + "_=" + Date.now(), {cache:"no-store"});
       if (!res.ok) throw new Error("manifest " + res.status + ": " + manifestPath);
       const manifest = await res.json();
       if (!manifest || !Array.isArray(manifest.chapters)) throw new Error("manifest format error: " + manifestPath);
@@ -1733,7 +1733,7 @@
         pdfs:Array.isArray(ch.pdfs) ? ch.pdfs : (ch.pdf ? [ch.pdf] : []),
         textPath:ch.textPath || "",
         files:Array.isArray(ch.files) ? ch.files : []
-      })).filter(ch => ch.model || ch.objModel || ch.pdf || (ch.pdfs && ch.pdfs.length) || ch.textPath);
+      }));
     }
 
     function pdfRoleScore(path, role){
@@ -1802,12 +1802,35 @@
       };
     }
 
+    function ensureExpectedChapters(list, root){
+      const result = Array.isArray(list) ? [...list] : [];
+      const expected = ["CH01", "CH02", "CH03", "CH04", "CH05"];
+      for (const name of expected){
+        if (!result.some(ch => ch.name === name)){
+          result.push({
+            name,
+            path:normalizePath(root) + "/" + name,
+            model:"",
+            objModel:"",
+            mtlPath:"",
+            pdf:"",
+            floorPdf:"",
+            sidePdf:"",
+            pdfs:[],
+            textPath:"",
+            files:[]
+          });
+        }
+      }
+      result.sort((a,b) => a.name.localeCompare(b.name, "ja"));
+      return result;
+    }
     async function scanRoot(root){
       root = normalizePath(root);
       try{
         const manifestChapters = await fetchViewerManifest(root);
         manifestChapters.sort((a,b) => a.name.localeCompare(b.name, "ja"));
-        return manifestChapters;
+        return ensureExpectedChapters(manifestChapters, root);
       }catch(manifestErr){
         console.warn("viewer_manifest fallback to GitHub API:", manifestErr.message);
       }
@@ -1822,7 +1845,7 @@
       }
 
       result.sort((a,b) => a.name.localeCompare(b.name, "ja"));
-      return result;
+      return ensureExpectedChapters(result, root);
     }
 
     async function autoDetectRoot(){
