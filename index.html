@@ -1566,6 +1566,26 @@
       if (!res.ok) throw new Error(`GitHub API ${res.status}: ${path || "/"}`);
       return await res.json();
     }
+    async function fetchViewerManifest(root){
+      const manifestPath = normalizePath(root) + "/viewer_manifest.json";
+      const res = await fetch(toAssetUrl(manifestPath), {cache:"no-store"});
+      if (!res.ok) throw new Error("manifest " + res.status + ": " + manifestPath);
+      const manifest = await res.json();
+      if (!manifest || !Array.isArray(manifest.chapters)) throw new Error("manifest format error: " + manifestPath);
+      return manifest.chapters.map(ch => ({
+        name:ch.name || getBaseName(ch.path || ""),
+        path:ch.path || "",
+        model:ch.model || "",
+        objModel:ch.objModel || "",
+        mtlPath:ch.mtlPath || "",
+        pdf:ch.pdf || ch.floorPdf || "",
+        floorPdf:ch.floorPdf || ch.pdf || "",
+        sidePdf:ch.sidePdf || "",
+        pdfs:Array.isArray(ch.pdfs) ? ch.pdfs : (ch.pdf ? [ch.pdf] : []),
+        textPath:ch.textPath || "",
+        files:Array.isArray(ch.files) ? ch.files : []
+      })).filter(ch => ch.model || ch.objModel || ch.pdf || (ch.pdfs && ch.pdfs.length) || ch.textPath);
+    }
 
     function pdfRoleScore(path, role){
       const name = getBaseName(path).toLowerCase();
@@ -1635,13 +1655,21 @@
 
     async function scanRoot(root){
       root = normalizePath(root);
+      try{
+        const manifestChapters = await fetchViewerManifest(root);
+        manifestChapters.sort((a,b) => a.name.localeCompare(b.name, "ja"));
+        return manifestChapters;
+      }catch(manifestErr){
+        console.warn("viewer_manifest fallback to GitHub API:", manifestErr.message);
+      }
+
       const items = await fetchGitHubContents(root);
       const dirs = Array.isArray(items) ? items.filter(item => item.type === "dir") : [];
       const result = [];
 
       for (const d of dirs){
         const ch = await scanChapter(d.path);
-        if (ch.model || ch.pdf) result.push(ch);
+        if (ch.model || ch.objModel || ch.pdf) result.push(ch);
       }
 
       result.sort((a,b) => a.name.localeCompare(b.name, "ja"));
@@ -1693,7 +1721,7 @@
       }catch(err){
         console.error(err);
         setObjectStatus("参照読込失敗: " + err.message);
-        alert("参照フォルダの読み込みに失敗しました。\n\n" + root + "\n\n" + err.message);
+        alert("参照フォルダの読み込みに失敗しました。\n\n" + root + "\n\n" + err.message + "\n\nGitHub API 403の場合は teaching-contest/viewer_manifest.json をアップロードしてください。");
       }
     }
 
