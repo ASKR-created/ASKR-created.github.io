@@ -1185,6 +1185,25 @@
           <button class="btn magenta" id="clearModelBtn">モデル消去</button>
         </div>
 
+        <label>簡易ライティング</label>
+        <select id="lightingPresetSelect">
+          <option value="natural">ナチュラル</option>
+          <option value="bright">明るめ</option>
+          <option value="soft">やわらか</option>
+          <option value="shadow">影強め</option>
+        </select>
+        <label>全体明るさ</label>
+        <input id="lightIntensityInput" type="range" min="0.2" max="2.5" step="0.05" value="1.0">
+        <label>環境光</label>
+        <input id="ambientLightInput" type="range" min="0" max="2.5" step="0.05" value="1.25">
+        <label>キーライト</label>
+        <input id="keyLightInput" type="range" min="0" max="4" step="0.05" value="1.75">
+        <div class="grid2">
+          <button class="btn lime" id="applyLightingBtn">ライト反映</button>
+          <button class="btn lime" id="shadowToggleBtn">影ON</button>
+        </div>
+        <div class="status" id="lightingStatus">ライト: ナチュラル</div>
+
         <label>モデル視認性</label>
         <div class="grid2">
           <button class="btn lime" id="modelSolidBtn">ソリッド表示ON</button>
@@ -1416,6 +1435,13 @@
     const nearViewBtn = document.getElementById("nearViewBtn");
     const farViewBtn = document.getElementById("farViewBtn");
     const viewMagResetBtn = document.getElementById("viewMagResetBtn");
+    const lightingPresetSelect = document.getElementById("lightingPresetSelect");
+    const lightIntensityInput = document.getElementById("lightIntensityInput");
+    const ambientLightInput = document.getElementById("ambientLightInput");
+    const keyLightInput = document.getElementById("keyLightInput");
+    const applyLightingBtn = document.getElementById("applyLightingBtn");
+    const shadowToggleBtn = document.getElementById("shadowToggleBtn");
+    const lightingStatus = document.getElementById("lightingStatus");
     const modelSolidBtn = document.getElementById("modelSolidBtn");
     const modelVisibilityBtn = document.getElementById("modelVisibilityBtn");
     const modelEdgeBtn = document.getElementById("modelEdgeBtn");
@@ -1586,16 +1612,19 @@
     controls.dampingFactor = 0.08;
     controls.screenSpacePanning = true;
 
-    scene.add(new THREE.HemisphereLight(0xddeeff,0x101018,1.55));
+    const ambientLight = new THREE.HemisphereLight(0xf7f1e6,0x514b42,1.25);
+    scene.add(ambientLight);
 
-    const key = new THREE.DirectionalLight(0xffffff,2.0);
-    key.position.set(4,8,6);
-    key.castShadow = true;
-    scene.add(key);
+    const keyLight = new THREE.DirectionalLight(0xffffff,1.75);
+    keyLight.position.set(4,8,6);
+    keyLight.castShadow = true;
+    scene.add(keyLight);
 
-    const fill = new THREE.DirectionalLight(0x7fa18a,.75);
-    fill.position.set(-5,2,-4);
-    scene.add(fill);
+    const fillLight = new THREE.DirectionalLight(0xb7c7aa,.55);
+    fillLight.position.set(-5,2,-4);
+    scene.add(fillLight);
+
+    let shadowsEnabled = true;
 
         const grid = new THREE.GridHelper(10,20,0x5f7f68,0x202020);
     grid.material.transparent = true;
@@ -1607,6 +1636,41 @@
 
     const clock = new THREE.Clock();
 
+    function applyLightingSettings(){
+      const master = parseFloat(lightIntensityInput?.value) || 1;
+      const ambient = parseFloat(ambientLightInput?.value) || 0;
+      const keyValue = parseFloat(keyLightInput?.value) || 0;
+      ambientLight.intensity = ambient * master;
+      keyLight.intensity = keyValue * master;
+      fillLight.intensity = Math.max(0.05, keyValue * 0.32 * master);
+      keyLight.castShadow = shadowsEnabled;
+      renderer.shadowMap.enabled = shadowsEnabled;
+      if (modelScene){
+        modelScene.traverse(obj => { if (obj.isMesh){ obj.castShadow = shadowsEnabled; obj.receiveShadow = shadowsEnabled; } });
+      }
+      if (shadowToggleBtn){
+        shadowToggleBtn.textContent = shadowsEnabled ? "影ON" : "影OFF";
+        shadowToggleBtn.classList.toggle("lime", shadowsEnabled);
+      }
+      if (lightingStatus){
+        lightingStatus.textContent = `ライト: ${lightingPresetSelect?.value || "custom"} / 全体${master.toFixed(2)} / 環境${ambient.toFixed(2)} / キー${keyValue.toFixed(2)} / 影${shadowsEnabled ? "ON" : "OFF"}`;
+      }
+    }
+
+    function setLightingPreset(name){
+      const presets = {
+        natural:{master:1.0, ambient:1.25, key:1.75, shadow:true},
+        bright:{master:1.18, ambient:1.75, key:2.25, shadow:false},
+        soft:{master:0.92, ambient:1.65, key:1.05, shadow:false},
+        shadow:{master:1.0, ambient:0.75, key:2.45, shadow:true}
+      };
+      const p = presets[name] || presets.natural;
+      if (lightIntensityInput) lightIntensityInput.value = p.master;
+      if (ambientLightInput) ambientLightInput.value = p.ambient;
+      if (keyLightInput) keyLightInput.value = p.key;
+      shadowsEnabled = p.shadow;
+      applyLightingSettings();
+    }
     function setObjectStatus(text){
       objectStatus.textContent = text;
       console.log("[OBJECT]", text);
@@ -2164,6 +2228,7 @@
         playPauseBtn.textContent = "通常再生";
         if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
         enhanceModelVisibility(modelScene);
+        applyLightingSettings();
         modelWrapper = new THREE.Group();
         modelWrapper.name = "TEACHING_OBJ_COMPLETED_WRAPPER";
         modelWrapper.add(modelScene);
@@ -2258,6 +2323,7 @@
         clips = gltf.animations || [];
 
         enhanceModelVisibility(modelScene);
+        applyLightingSettings();
 
         modelWrapper = new THREE.Group();
         modelWrapper.name = "TEACHING_CHAPTER_MODEL_WRAPPER";
@@ -3248,6 +3314,12 @@
       refreshModelVisibility();
     });
 
+    applyLightingBtn?.addEventListener("click", applyLightingSettings);
+    lightingPresetSelect?.addEventListener("change", () => setLightingPreset(lightingPresetSelect.value));
+    lightIntensityInput?.addEventListener("input", applyLightingSettings);
+    ambientLightInput?.addEventListener("input", applyLightingSettings);
+    keyLightInput?.addEventListener("input", applyLightingSettings);
+    shadowToggleBtn?.addEventListener("click", () => { shadowsEnabled = !shadowsEnabled; applyLightingSettings(); });
     clearModelBtn.addEventListener("click", clearModel);
 
     applyPdfBtn.addEventListener("click", () => { applyPdfTransform(); fitView(); });
@@ -3418,6 +3490,7 @@
     };
 
     resize();
+    setLightingPreset("natural");
     activateAutoHideUi();
     animate();
     loadReferenceRoot();
