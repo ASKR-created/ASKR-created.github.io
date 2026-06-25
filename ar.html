@@ -1729,19 +1729,108 @@
       };
     }
 
+
+    /* AR_CH_MANIFEST_HELPER_V1: root manifest + per-CH manifest fallback. */
+    async function fetchViewerManifest(root){
+      const manifestPath = normalizePath(root) + "/viewer_manifest.json";
+      const manifestUrl = toAssetUrl(manifestPath);
+      const url = manifestUrl + (manifestUrl.includes("?") ? "&" : "?") + "_=" + Date.now();
+      const res = await fetch(url, {cache:"no-store"});
+      if (!res.ok) throw new Error("viewer_manifest " + res.status);
+      const data = await res.json();
+      const list = Array.isArray(data.chapters) ? data.chapters : [];
+      return list.map(ch => ({
+        name: ch.name || getBaseName(ch.path || ""),
+        path: normalizePath(ch.path || (normalizePath(root) + "/" + (ch.name || ""))),
+        model: normalizePath(ch.model || ch.glb || ch.gltf || ""),
+        iosModel: normalizePath(ch.iosModel || ch.usdz || ""),
+        pdf: normalizePath(ch.pdf || ch.floorPdf || ""),
+        floorPdf: normalizePath(ch.floorPdf || ch.pdf || ""),
+        sidePdf: normalizePath(ch.sidePdf || ""),
+        pdfs: Array.isArray(ch.pdfs) ? ch.pdfs.map(normalizePath) : [],
+        textPath: normalizePath(ch.textPath || ch.txt || ""),
+        files: Array.isArray(ch.files) ? ch.files.map(normalizePath) : []
+      }));
+    }
+
+    async function fetchChapterManifest(root, chapterName){
+      const chapterRoot = normalizePath(root) + "/" + chapterName;
+      const manifestPath = chapterRoot + "/viewer_manifest.json";
+      const manifestUrl = toAssetUrl(manifestPath);
+      const url = manifestUrl + (manifestUrl.includes("?") ? "&" : "?") + "_=" + Date.now();
+      const res = await fetch(url, {cache:"no-store"});
+      if (!res.ok) return null;
+      const data = await res.json();
+      const withRoot = p => {
+        const v = String(p || "").trim();
+        if (!v) return "";
+        return v.includes("/") ? normalizePath(v) : chapterRoot + "/" + v;
+      };
+      const files = [];
+      const addFile = p => { const v = withRoot(p); if (v && !files.includes(v)) files.push(v); };
+      const explicitFiles = data.files || data.items || data.assets || data.entries || [];
+      explicitFiles.forEach(addFile);
+      [data.model, data.glb, data.gltf, data.iosModel, data.usdz, data.pdf, data.floorPdf, data.sidePdf, data.textPath, data.txt].forEach(addFile);
+      (data.pdfs || data.pdfFiles || []).forEach(addFile);
+      const findExt = exts => files.find(p => exts.includes(getExt(p))) || "";
+      const pdfs = [...new Set((data.pdfs || data.pdfFiles || files.filter(p => PDF_EXTS.includes(getExt(p)))).map(withRoot).filter(Boolean))];
+      const chosen = chooseFloorAndSidePdfs(pdfs.map(p => ({path:p})));
+      return {
+        name: chapterName,
+        path: chapterRoot,
+        model: withRoot(data.model || data.glb || data.gltf) || findExt(GLB_EXTS) || findExt(MODEL_EXTS),
+        iosModel: withRoot(data.iosModel || data.usdz) || findExt(USDZ_EXTS),
+        pdf: withRoot(data.pdf) || chosen.floorPdf,
+        floorPdf: withRoot(data.floorPdf) || chosen.floorPdf,
+        sidePdf: withRoot(data.sidePdf) || chosen.sidePdf,
+        pdfs: chosen.pdfs,
+        textPath: withRoot(data.textPath || data.txt) || findExt(TXT_EXTS),
+        files
+      };
+    }
+
+    function ensureExpectedChapters(list, root){
+      const result = Array.isArray(list) ? [...list] : [];
+      const expected = Array.from({length:60}, (_v, i) => "CH" + String(i + 1).padStart(2, "0"));
+      expected.forEach(name => {
+        if (!result.some(ch => ch.name === name)) result.push({name, path: normalizePath(root) + "/" + name, model:"", iosModel:"", pdf:"", floorPdf:"", sidePdf:"", pdfs:[], textPath:"", files:[]});
+      });
+      result.sort((a,b)=>String(a.name || "").localeCompare(String(b.name || ""), "ja", {numeric:true}));
+      return result;
+    }
+
+    async function mergeChapterManifests(root, baseList){
+      const result = Array.isArray(baseList) ? [...baseList] : [];
+      const expected = Array.from({length:60}, (_v, i) => "CH" + String(i + 1).padStart(2, "0"));
+      await Promise.all(expected.map(async name => {
+        try{
+          const ch = await fetchChapterManifest(root, name);
+          if (!ch) return;
+          const idx = result.findIndex(item => item.name === name);
+          if (idx >= 0) result[idx] = {...result[idx], ...ch};
+          else result.push(ch);
+        }catch(err){ console.warn("chapter manifest skipped:", name, err.message); }
+      }));
+      return ensureExpectedChapters(result, root);
+    }
+
     async function scanRoot(root){
       root = normalizePath(root);
+      try{
+        const manifestChapters = await fetchViewerManifest(root);
+        return await mergeChapterManifests(root, manifestChapters);
+      }catch(manifestErr){
+        console.warn("viewer_manifest fallback to GitHub API:", manifestErr.message);
+      }
       const items = await fetchGitHubContents(root);
       const dirs = Array.isArray(items) ? items.filter(item => item.type === "dir") : [];
       const result = [];
-
       for (const d of dirs){
         const ch = await scanChapter(d.path);
         if (ch.model || ch.iosModel || ch.pdf) result.push(ch);
       }
-
       result.sort((a,b) => a.name.localeCompare(b.name, "ja"));
-      return result;
+      return await mergeChapterManifests(root, result);
     }
 
     async function autoDetectRoot(){
