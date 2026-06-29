@@ -1107,6 +1107,37 @@
   .title{font-size:19px !important;}
 }
 
+
+/* capture and pen overlay */
+#drawLayer{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:2;
+  display:block;
+  pointer-events:none;
+  touch-action:none;
+}
+#app.pen-active #drawLayer{
+  pointer-events:auto;
+  cursor:crosshair;
+}
+#penToggleBtn.lime{
+  border-color:rgba(95,143,69,.55) !important;
+  background:#f1f7ec !important;
+}
+.pen-color-input{
+  width:44px !important;
+  min-width:44px !important;
+  height:42px !important;
+  padding:4px !important;
+}
+.pen-size-input{
+  width:58px !important;
+  min-width:58px !important;
+}
+
 </style>
 </head>
 <body>
@@ -1116,6 +1147,7 @@
     <input class="storage-check" type="checkbox" id="hideTextSide">
     <input class="storage-check" type="checkbox" id="focusViewer">
     <canvas id="viewer"></canvas>
+    <canvas id="drawLayer" aria-label="ペン書き込みレイヤー"></canvas>
 
     <section class="refbar" id="refbar">
       <div class="refbar-head">
@@ -1366,6 +1398,11 @@
       <button class="btn lime" id="autoRunBtn">通し再生</button>
       <button class="btn" id="loadObjBtn">OBJ表示</button>
       <button class="btn" id="objSlideBtn">OBJスライド</button>
+      <button class="btn" id="penToggleBtn">ペンOFF</button>
+      <input class="pen-color-input" id="penColorInput" type="color" value="#d83b2d" title="ペン色">
+      <input class="pen-size-input" id="penSizeInput" type="number" min="1" max="40" step="1" value="5" title="ペン太さ">
+      <button class="btn" id="clearPenBtn">ペン消去</button>
+      <button class="btn lime" id="saveViewImageBtn">画像保存</button>
       <input id="objSlideIntervalInput" type="number" min="1" max="60" step="1" value="5" title="OBJスライド秒" style="width:64px">
 
       <div class="speedbox">
@@ -1432,6 +1469,7 @@
 
     const app = document.getElementById("app");
     const canvas = document.getElementById("viewer");
+    const drawCanvas = document.getElementById("drawLayer");
 
     const refbar = document.getElementById("refbar");
     const collapseRefBtn = document.getElementById("collapseRefBtn");
@@ -1520,6 +1558,11 @@
     const loadObjBtn = document.getElementById("loadObjBtn");
     const objSlideBtn = document.getElementById("objSlideBtn");
     const objSlideIntervalInput = document.getElementById("objSlideIntervalInput");
+    const penToggleBtn = document.getElementById("penToggleBtn");
+    const penColorInput = document.getElementById("penColorInput");
+    const penSizeInput = document.getElementById("penSizeInput");
+    const clearPenBtn = document.getElementById("clearPenBtn");
+    const saveViewImageBtn = document.getElementById("saveViewImageBtn");
     const speedRange = document.getElementById("speedRange");
     const speedText = document.getElementById("speedText");
     const animationSelect = document.getElementById("animationSelect");
@@ -1589,6 +1632,9 @@
     let runSerial = 0;
 
     let pdfLayers = [];
+    let penEnabled = false;
+    let isDrawing = false;
+    let lastDrawPoint = null;
 
     const params = new URLSearchParams(location.search);
     const initialRoot = params.get("root") ? decodeURIComponent(params.get("root")) : "";
@@ -1604,7 +1650,8 @@
       canvas,
       antialias:true,
       alpha:true,
-      powerPreference:"high-performance"
+      powerPreference:"high-performance",
+      preserveDrawingBuffer:true
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -3231,12 +3278,111 @@ async function mergeChapterManifests(root, baseList){
       window.open(url.toString(), "_blank");
     }
 
+
+    function resizeDrawLayer(preserve=true){
+      if (!drawCanvas) return;
+      const old = document.createElement("canvas");
+      const oldW = drawCanvas.width;
+      const oldH = drawCanvas.height;
+      if (preserve && oldW && oldH){
+        old.width = oldW;
+        old.height = oldH;
+        old.getContext("2d").drawImage(drawCanvas, 0, 0);
+      }
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.max(1, Math.round((canvas.clientWidth || window.innerWidth) * pixelRatio));
+      const h = Math.max(1, Math.round((canvas.clientHeight || window.innerHeight) * pixelRatio));
+      drawCanvas.width = w;
+      drawCanvas.height = h;
+      drawCanvas.style.width = (canvas.clientWidth || window.innerWidth) + "px";
+      drawCanvas.style.height = (canvas.clientHeight || window.innerHeight) + "px";
+      if (preserve && oldW && oldH){
+        const ctx = drawCanvas.getContext("2d");
+        ctx.drawImage(old, 0, 0, oldW, oldH, 0, 0, w, h);
+      }
+    }
+
+    function setPenEnabled(enabled){
+      penEnabled = !!enabled;
+      app.classList.toggle("pen-active", penEnabled);
+      penToggleBtn.textContent = penEnabled ? "ペンON" : "ペンOFF";
+      penToggleBtn.classList.toggle("lime", penEnabled);
+      if (controls) controls.enabled = !penEnabled;
+    }
+
+    function drawPointerPosition(event){
+      const rect = drawCanvas.getBoundingClientRect();
+      const sx = drawCanvas.width / Math.max(1, rect.width);
+      const sy = drawCanvas.height / Math.max(1, rect.height);
+      return { x: (event.clientX - rect.left) * sx, y: (event.clientY - rect.top) * sy };
+    }
+
+    function beginPenStroke(event){
+      if (!penEnabled || !drawCanvas) return;
+      event.preventDefault();
+      isDrawing = true;
+      drawCanvas.setPointerCapture?.(event.pointerId);
+      const p = drawPointerPosition(event);
+      lastDrawPoint = p;
+      const ctx = drawCanvas.getContext("2d");
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = penColorInput?.value || "#d83b2d";
+      ctx.lineWidth = Math.max(1, parseFloat(penSizeInput?.value || "5")) * Math.min(window.devicePixelRatio || 1, 2);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+    }
+
+    function movePenStroke(event){
+      if (!isDrawing || !lastDrawPoint) return;
+      event.preventDefault();
+      const p = drawPointerPosition(event);
+      const ctx = drawCanvas.getContext("2d");
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      lastDrawPoint = p;
+    }
+
+    function endPenStroke(event){
+      if (!isDrawing) return;
+      event.preventDefault();
+      isDrawing = false;
+      lastDrawPoint = null;
+    }
+
+    function clearPenLayer(){
+      if (!drawCanvas) return;
+      drawCanvas.getContext("2d").clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    }
+
+    function saveCurrentViewImage(){
+      renderer.render(scene, camera);
+      const out = document.createElement("canvas");
+      out.width = canvas.width;
+      out.height = canvas.height;
+      const ctx = out.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(canvas, 0, 0, out.width, out.height);
+      if (drawCanvas) ctx.drawImage(drawCanvas, 0, 0, out.width, out.height);
+      const ch = chapters[currentChapterIndex]?.name || "CH";
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const a = document.createElement("a");
+      a.href = out.toDataURL("image/png");
+      a.download = "3Dビュー_" + ch + "_" + stamp + ".png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setObjectStatus("画像保存: " + a.download);
+    }
+
     function resize(){
       const w = canvas.clientWidth || window.innerWidth;
       const h = canvas.clientHeight || window.innerHeight;
       camera.aspect = w / Math.max(1,h);
       camera.updateProjectionMatrix();
       renderer.setSize(w,h,false);
+      resizeDrawLayer(true);
     }
 
     function animate(){
@@ -3541,6 +3687,14 @@ async function mergeChapterManifests(root, baseList){
     autoRunBtn?.addEventListener("click", toggleAutoRun);
     loadObjBtn?.addEventListener("click", loadCurrentChapterObj);
     objSlideBtn?.addEventListener("click", toggleObjSlideshow);
+    penToggleBtn?.addEventListener("click", () => setPenEnabled(!penEnabled));
+    clearPenBtn?.addEventListener("click", clearPenLayer);
+    saveViewImageBtn?.addEventListener("click", saveCurrentViewImage);
+    drawCanvas?.addEventListener("pointerdown", beginPenStroke);
+    drawCanvas?.addEventListener("pointermove", movePenStroke);
+    drawCanvas?.addEventListener("pointerup", endPenStroke);
+    drawCanvas?.addEventListener("pointercancel", endPenStroke);
+    drawCanvas?.addEventListener("pointerleave", endPenStroke);
 
     speedRange.addEventListener("input", () => {
       animSpeed = parseFloat(speedRange.value) || 0.8;
@@ -3584,6 +3738,8 @@ async function mergeChapterManifests(root, baseList){
 
     if (initialRoot) rootInput.value = initialRoot;
 
+    resizeDrawLayer(false);
+    setPenEnabled(false);
     setViewMagnification(185, false);
     updateViewMagnificationHud(185, "READY");
     modelNormalizeBtn.classList.toggle("lime", modelAutoNormalize);
