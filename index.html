@@ -1804,7 +1804,7 @@
 
     function ensureExpectedChapters(list, root){
       const result = Array.isArray(list) ? [...list] : [];
-      const expected = Array.from({length:60}, (_v, i) => "CH" + String(i + 1).padStart(2, "0"));
+      const expected = Array.from({length:7}, (_v, i) => "CH" + String(i + 1).padStart(2, "0"));
       for (const name of expected){
         if (!result.some(ch => ch.name === name)){
           result.push({
@@ -1866,7 +1866,7 @@ async function fetchChapterManifest(root, chapterName){
 
 async function mergeChapterManifests(root, baseList){
   const result = Array.isArray(baseList) ? [...baseList] : [];
-  const expected = Array.from({length:60}, (_v, i) => "CH" + String(i + 1).padStart(2, "0"));
+  const expected = Array.from({length:7}, (_v, i) => "CH" + String(i + 1).padStart(2, "0"));
   await Promise.all(expected.map(async name => {
     try{
       const ch = await fetchChapterManifest(root, name);
