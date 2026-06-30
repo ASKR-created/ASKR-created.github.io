@@ -1856,6 +1856,7 @@ html,body{
       <input class="pen-size-input" id="penSizeInput" type="number" min="1" max="40" step="1" value="5" title="ペン太さ">
       <button class="btn" id="clearPenBtn">ペン消去</button>
       <button class="btn lime" id="saveViewImageBtn">画像保存</button>
+      <button class="btn" id="copyViewImageBtn">コピー</button>
       <input id="objSlideIntervalInput" type="number" min="1" max="60" step="1" value="5" title="OBJスライド秒" style="width:64px">
 
       <div class="speedbox">
@@ -2016,6 +2017,7 @@ html,body{
     const penSizeInput = document.getElementById("penSizeInput");
     const clearPenBtn = document.getElementById("clearPenBtn");
     const saveViewImageBtn = document.getElementById("saveViewImageBtn");
+    const copyViewImageBtn = document.getElementById("copyViewImageBtn");
     const speedRange = document.getElementById("speedRange");
     const speedText = document.getElementById("speedText");
     const animationSelect = document.getElementById("animationSelect");
@@ -2088,6 +2090,8 @@ html,body{
     let penEnabled = false;
     let isDrawing = false;
     let lastDrawPoint = null;
+    let drawStartPoint = null;
+    let drawSnapshot = null;
 
     const params = new URLSearchParams(location.search);
     const initialRoot = params.get("root") ? decodeURIComponent(params.get("root")) : "";
@@ -3805,6 +3809,35 @@ async function mergeChapterManifests(root, baseList){
       return { x: (event.clientX - rect.left) * sx, y: (event.clientY - rect.top) * sy };
     }
 
+    function configurePenContext(ctx){
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = penColorInput?.value || "#d83b2d";
+      ctx.lineWidth = Math.max(1, parseFloat(penSizeInput?.value || "5")) * Math.min(window.devicePixelRatio || 1, 2);
+    }
+
+    function restoreDrawSnapshot(ctx){
+      if (!drawSnapshot) return;
+      ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+      ctx.putImageData(drawSnapshot, 0, 0);
+    }
+
+    function drawConstrainedShape(event, preview=true){
+      if (!drawStartPoint) return;
+      const p = drawPointerPosition(event);
+      const ctx = drawCanvas.getContext("2d");
+      restoreDrawSnapshot(ctx);
+      configurePenContext(ctx);
+      ctx.beginPath();
+      if (event.ctrlKey || event.metaKey){
+        ctx.rect(drawStartPoint.x, drawStartPoint.y, p.x - drawStartPoint.x, p.y - drawStartPoint.y);
+      } else {
+        ctx.moveTo(drawStartPoint.x, drawStartPoint.y);
+        ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+    }
+
     function beginPenStroke(event){
       if (!penEnabled || !drawCanvas) return;
       event.preventDefault();
@@ -3812,11 +3845,10 @@ async function mergeChapterManifests(root, baseList){
       drawCanvas.setPointerCapture?.(event.pointerId);
       const p = drawPointerPosition(event);
       lastDrawPoint = p;
+      drawStartPoint = p;
       const ctx = drawCanvas.getContext("2d");
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.strokeStyle = penColorInput?.value || "#d83b2d";
-      ctx.lineWidth = Math.max(1, parseFloat(penSizeInput?.value || "5")) * Math.min(window.devicePixelRatio || 1, 2);
+      configurePenContext(ctx);
+      drawSnapshot = (event.shiftKey || event.ctrlKey || event.metaKey) ? ctx.getImageData(0, 0, drawCanvas.width, drawCanvas.height) : null;
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
     }
@@ -3824,8 +3856,13 @@ async function mergeChapterManifests(root, baseList){
     function movePenStroke(event){
       if (!isDrawing || !lastDrawPoint) return;
       event.preventDefault();
+      if (event.shiftKey || event.ctrlKey || event.metaKey){
+        drawConstrainedShape(event, true);
+        return;
+      }
       const p = drawPointerPosition(event);
       const ctx = drawCanvas.getContext("2d");
+      configurePenContext(ctx);
       ctx.lineTo(p.x, p.y);
       ctx.stroke();
       lastDrawPoint = p;
@@ -3834,8 +3871,11 @@ async function mergeChapterManifests(root, baseList){
     function endPenStroke(event){
       if (!isDrawing) return;
       event.preventDefault();
+      if (event.shiftKey || event.ctrlKey || event.metaKey) drawConstrainedShape(event, false);
       isDrawing = false;
       lastDrawPoint = null;
+      drawStartPoint = null;
+      drawSnapshot = null;
     }
 
     function clearPenLayer(){
@@ -3843,7 +3883,7 @@ async function mergeChapterManifests(root, baseList){
       drawCanvas.getContext("2d").clearRect(0, 0, drawCanvas.width, drawCanvas.height);
     }
 
-    function saveCurrentViewImage(){
+    function makeCurrentViewCanvas(){
       renderer.render(scene, camera);
       const out = document.createElement("canvas");
       out.width = canvas.width;
@@ -3853,6 +3893,28 @@ async function mergeChapterManifests(root, baseList){
       ctx.fillRect(0, 0, out.width, out.height);
       ctx.drawImage(canvas, 0, 0, out.width, out.height);
       if (drawCanvas) ctx.drawImage(drawCanvas, 0, 0, out.width, out.height);
+      return out;
+    }
+
+    function canvasToBlob(canvasLike){
+      return new Promise(resolve => canvasLike.toBlob(resolve, "image/png"));
+    }
+
+    async function copyCurrentViewImage(){
+      try{
+        const out = makeCurrentViewCanvas();
+        const blob = await canvasToBlob(out);
+        if (!blob || !navigator.clipboard || !window.ClipboardItem) throw new Error("このブラウザでは画像コピーに対応していません。");
+        await navigator.clipboard.write([new ClipboardItem({"image/png": blob})]);
+        setObjectStatus("画像コピー: Wordへ貼り付けできます");
+      }catch(err){
+        console.error(err);
+        alert("画像コピーに失敗しました。\n" + err.message);
+      }
+    }
+
+    async function saveCurrentViewImage(){
+      const out = makeCurrentViewCanvas();
       const ch = chapters[currentChapterIndex]?.name || "CH";
       const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
       const a = document.createElement("a");
@@ -4187,6 +4249,7 @@ async function mergeChapterManifests(root, baseList){
     penToggleBtn?.addEventListener("click", () => setPenEnabled(!penEnabled));
     clearPenBtn?.addEventListener("click", clearPenLayer);
     saveViewImageBtn?.addEventListener("click", saveCurrentViewImage);
+    copyViewImageBtn?.addEventListener("click", copyCurrentViewImage);
     drawCanvas?.addEventListener("pointerdown", beginPenStroke);
     drawCanvas?.addEventListener("pointermove", movePenStroke);
     drawCanvas?.addEventListener("pointerup", endPenStroke);
