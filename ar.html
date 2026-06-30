@@ -1394,6 +1394,41 @@ html,body{
   .refbar.collapsed{height:52px !important; min-height:52px !important; max-height:52px !important;}
 }
 
+
+/* explanation panel hide/collapse */
+#explanationSide.text-empty,
+#objectSide.text-empty,
+.side.explanation.text-empty{
+  display:none !important;
+}
+#explanationSide.text-collapsed .side-body,
+#objectSide.text-collapsed .side-body,
+.side.explanation.text-collapsed .side-body{
+  display:none !important;
+}
+#explanationSide.text-collapsed,
+#objectSide.text-collapsed,
+.side.explanation.text-collapsed{
+  max-height:44px !important;
+  min-height:0 !important;
+  overflow:hidden !important;
+}
+.text-collapse-btn{
+  margin-left:auto !important;
+  width:34px !important;
+  min-width:34px !important;
+  height:30px !important;
+  padding:0 !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  border:1px solid var(--quiet-line, rgba(112,126,116,.24)) !important;
+  border-radius:8px !important;
+  background:rgba(255,250,242,.94) !important;
+  color:var(--quiet-text,#292720) !important;
+  font-weight:800 !important;
+}
+.side-head{gap:8px !important;}
+
 </style>
 </head>
 <body>
@@ -2194,23 +2229,58 @@ html,body{
       }
     }
 
+
+    function getExplanationPanel(){
+      return document.getElementById("explanationSide") || document.getElementById("objectSide");
+    }
+
+    function ensureExplanationCollapseButton(){
+      const panel = getExplanationPanel();
+      const head = panel?.querySelector(".side-head");
+      if (!head || head.querySelector(".text-collapse-btn")) return;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "text-collapse-btn";
+      btn.textContent = "▲";
+      btn.title = "解説文を収納";
+      btn.addEventListener("click", () => {
+        panel.classList.toggle("text-collapsed");
+        const collapsed = panel.classList.contains("text-collapsed");
+        btn.textContent = collapsed ? "▼" : "▲";
+        btn.title = collapsed ? "解説文を展開" : "解説文を収納";
+      });
+      head.appendChild(btn);
+    }
+
+    function setExplanationVisible(hasText){
+      const panel = getExplanationPanel();
+      if (!panel) return;
+      panel.classList.toggle("text-empty", !hasText);
+      if (hasText) ensureExplanationCollapseButton();
+    }
+
     async function loadChapterText(chapter){
       if (!chapterTextPathText || !chapterTextBox) return;
       const textPath = chapter && chapter.textPath ? chapter.textPath : "";
       chapterTextPathText.textContent = textPath || "未登録";
       if (!textPath){
-        chapterTextBox.textContent = "このチャプターに解説TXTはありません。";
+        chapterTextBox.textContent = "";
+        setExplanationVisible(false);
         return;
       }
       try{
+        setExplanationVisible(true);
         chapterTextBox.textContent = "解説文を読み込み中...";
         const res = await fetch(toAssetUrl(textPath), {cache:"no-store"});
         if (!res.ok) throw new Error("TXT " + res.status + ": " + textPath);
         const text = await res.text();
-        chapterTextBox.textContent = text.trim() || "解説TXTは空です。";
+        const trimmed = text.trim();
+        setExplanationVisible(trimmed.length > 0);
+        chapterTextBox.textContent = trimmed;
       }catch(err){
         console.error(err);
-        chapterTextBox.textContent = "解説TXTの読み込みに失敗しました。\n" + textPath + "\n" + err.message;
+        chapterTextBox.textContent = "";
+        setExplanationVisible(false);
       }
     }
 
@@ -2798,6 +2868,8 @@ html,body{
     });
 
     syncTopBarsCollapsed();
+    ensureExplanationCollapseButton();
+    setExplanationVisible(false);
     if (initialRoot) rootInput.value = initialRoot;
     chapterCorrectionBtn.classList.toggle("lime", chapterCorrectionEnabled);
     updateChapterCorrectionStatus();
