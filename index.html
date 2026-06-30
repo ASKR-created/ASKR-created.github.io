@@ -1556,6 +1556,41 @@ html,body{
   .refbar.collapsed{height:52px !important; min-height:52px !important; max-height:52px !important;}
 }
 
+
+/* explanation panel hide/collapse */
+#explanationSide.text-empty,
+#objectSide.text-empty,
+.side.explanation.text-empty{
+  display:none !important;
+}
+#explanationSide.text-collapsed .side-body,
+#objectSide.text-collapsed .side-body,
+.side.explanation.text-collapsed .side-body{
+  display:none !important;
+}
+#explanationSide.text-collapsed,
+#objectSide.text-collapsed,
+.side.explanation.text-collapsed{
+  max-height:44px !important;
+  min-height:0 !important;
+  overflow:hidden !important;
+}
+.text-collapse-btn{
+  margin-left:auto !important;
+  width:34px !important;
+  min-width:34px !important;
+  height:30px !important;
+  padding:0 !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  border:1px solid var(--quiet-line, rgba(112,126,116,.24)) !important;
+  border-radius:8px !important;
+  background:rgba(255,250,242,.94) !important;
+  color:var(--quiet-text,#292720) !important;
+  font-weight:800 !important;
+}
+.side-head{gap:8px !important;}
+
 </style>
 </head>
 <body>
@@ -2527,30 +2562,65 @@ async function mergeChapterManifests(root, baseList){
       renderChapterTextPage();
     }
 
+
+    function getExplanationPanel(){
+      return document.getElementById("explanationSide") || document.getElementById("objectSide");
+    }
+
+    function ensureExplanationCollapseButton(){
+      const panel = getExplanationPanel();
+      const head = panel?.querySelector(".side-head");
+      if (!head || head.querySelector(".text-collapse-btn")) return;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "text-collapse-btn";
+      btn.textContent = "▲";
+      btn.title = "解説文を収納";
+      btn.addEventListener("click", () => {
+        panel.classList.toggle("text-collapsed");
+        const collapsed = panel.classList.contains("text-collapsed");
+        btn.textContent = collapsed ? "▼" : "▲";
+        btn.title = collapsed ? "解説文を展開" : "解説文を収納";
+      });
+      head.appendChild(btn);
+    }
+
+    function setExplanationVisible(hasText){
+      const panel = getExplanationPanel();
+      if (!panel) return;
+      panel.classList.toggle("text-empty", !hasText);
+      if (hasText) ensureExplanationCollapseButton();
+    }
+
     async function loadChapterText(chapter){
       if (!chapterTextPathText || !chapterTextBox) return;
       const textPath = chapter && chapter.textPath ? chapter.textPath : "";
       chapterTextPathText.textContent = textPath || "未登録";
       if (!textPath){
-        chapterTextPages = ["このチャプターに解説TXTはありません。"];
+        chapterTextPages = [""];
         chapterTextPageIndex = 0;
         renderChapterTextPage();
+        setExplanationVisible(false);
         return;
       }
       try{
         chapterTextPages = ["解説文を読み込み中..."];
         chapterTextPageIndex = 0;
+        setExplanationVisible(true);
         renderChapterTextPage();
         const res = await fetch(toAssetUrl(textPath), {cache:"no-store"});
         if (!res.ok) throw new Error("TXT " + res.status + ": " + textPath);
         const text = await res.text();
-        chapterTextPages = splitChapterTextPages(text);
+        const hasText = String(text || "").trim().length > 0;
+        chapterTextPages = hasText ? splitChapterTextPages(text) : [""];
         chapterTextPageIndex = 0;
+        setExplanationVisible(hasText);
         renderChapterTextPage();
       }catch(err){
         console.error(err);
-        chapterTextPages = ["解説TXTの読み込みに失敗しました。\n" + textPath + "\n" + err.message];
+        chapterTextPages = [""];
         chapterTextPageIndex = 0;
+        setExplanationVisible(false);
         renderChapterTextPage();
       }
     }
@@ -4166,6 +4236,8 @@ async function mergeChapterManifests(root, baseList){
     if (initialRoot) rootInput.value = initialRoot;
 
     syncTopBarsCollapsed();
+    ensureExplanationCollapseButton();
+    setExplanationVisible(false);
     resizeDrawLayer(false);
     setPenEnabled(false);
     setViewMagnification(185, false);
