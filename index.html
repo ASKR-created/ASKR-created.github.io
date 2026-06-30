@@ -1340,6 +1340,81 @@ html,body{
   .side.explanation{left:10px !important; right:10px !important; bottom:10px !important;}
 }
 
+
+/* bar overlap fix and usable collapse */
+.refbar{
+  display:grid !important;
+  grid-template-columns:auto minmax(260px,1fr) auto auto 40px !important;
+  align-items:center !important;
+  gap:10px !important;
+  min-height:64px !important;
+  padding:10px 14px !important;
+}
+.refbar-head,
+.refbar-body{
+  display:contents !important;
+  margin:0 !important;
+}
+.ref-title{grid-column:1 !important; min-width:120px !important;}
+.refbar-body > div:has(#chapterSelect){grid-column:2 !important; min-width:0 !important;}
+#prevChapterBtn{grid-column:3 !important;}
+#nextChapterBtn{grid-column:4 !important;}
+#collapseRefBtn{
+  grid-column:5 !important;
+  position:static !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  min-width:40px !important;
+  width:40px !important;
+  height:40px !important;
+  padding:0 !important;
+  color:transparent !important;
+  overflow:hidden !important;
+}
+#collapseRefBtn::after{
+  content:"▲" !important;
+  color:var(--quiet-text,#292720) !important;
+  font-size:15px !important;
+  line-height:1 !important;
+}
+.refbar.collapsed #collapseRefBtn::after{content:"▼" !important;}
+.refbar.collapsed{
+  grid-template-columns:1fr 40px !important;
+  min-height:52px !important;
+}
+.refbar.collapsed .ref-title{display:block !important; grid-column:1 !important;}
+.refbar.collapsed .refbar-body > div:has(#chapterSelect),
+.refbar.collapsed #prevChapterBtn,
+.refbar.collapsed #nextChapterBtn{
+  display:none !important;
+}
+.refbar.collapsed #collapseRefBtn{grid-column:2 !important;}
+.refbar.collapsed ~ .playbar{
+  display:none !important;
+}
+.playbar{
+  top:76px !important;
+  left:14px !important;
+  right:14px !important;
+  z-index:19 !important;
+}
+.refbar:not(.collapsed) ~ .playbar{
+  display:flex !important;
+}
+@media (max-width:900px){
+  .refbar{
+    grid-template-columns:1fr auto auto 40px !important;
+    min-height:112px !important;
+  }
+  .ref-title{grid-column:1 / 4 !important;}
+  .refbar-body > div:has(#chapterSelect){grid-column:1 / -1 !important; grid-row:2 !important;}
+  #prevChapterBtn{grid-column:2 !important; grid-row:3 !important;}
+  #nextChapterBtn{grid-column:3 !important; grid-row:3 !important;}
+  #collapseRefBtn{grid-column:4 !important; grid-row:1 !important;}
+  .playbar{top:124px !important;}
+  .refbar.collapsed{min-height:52px !important; grid-template-columns:1fr 40px !important;}
+}
+
 </style>
 </head>
 <body>
@@ -3603,6 +3678,14 @@ async function mergeChapterManifests(root, baseList){
       renderer.render(scene,camera);
     }
 
+
+    function syncTopBarsCollapsed(){
+      const collapsed = refbar.classList.contains("collapsed");
+      app.classList.toggle("bars-collapsed", collapsed);
+      collapseRefBtn?.setAttribute("aria-label", collapsed ? "バーを展開" : "バーを収納");
+      collapseRefBtn?.setAttribute("title", collapsed ? "バーを展開" : "バーを収納");
+    }
+
     function closeMobilePanels(){
       refbar.classList.remove("mobile-open");
       objectSide.classList.remove("mobile-open");
@@ -3686,6 +3769,7 @@ async function mergeChapterManifests(root, baseList){
     collapseRefBtn.addEventListener("click", () => {
       refbar.classList.toggle("collapsed");
       collapseRefBtn.textContent = refbar.classList.contains("collapsed") ? "上部バー展開" : "上部バー収納";
+      syncTopBarsCollapsed();
     });
 
     scanBtn.addEventListener("click", loadReferenceRoot);
@@ -3940,6 +4024,7 @@ async function mergeChapterManifests(root, baseList){
 
     if (initialRoot) rootInput.value = initialRoot;
 
+    syncTopBarsCollapsed();
     resizeDrawLayer(false);
     setPenEnabled(false);
     setViewMagnification(185, false);
