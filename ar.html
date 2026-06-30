@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>AR教材ビューアー - Natural Teaching UI</title>
+  <title>ARビュアー</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
@@ -1144,7 +1144,127 @@
     }
     @media (max-width:980px){ .chapter-text{ max-height:32dvh; } }
 
-  </style>
+  
+/* quiet AR layout matching 3D viewer */
+:root{
+  --quiet-bg:#f4f1eb;
+  --quiet-surface:rgba(255,250,242,.92);
+  --quiet-strong:#f7efe3;
+  --quiet-text:#292720;
+  --quiet-muted:#746f63;
+  --quiet-line:#ddd2c2;
+  --quiet-accent:#7f8f68;
+  --quiet-shadow:0 18px 44px rgba(75,61,43,.14);
+}
+html,body{
+  background:radial-gradient(circle at 12% 8%, rgba(181,138,100,.18), transparent 32%), linear-gradient(135deg,#f7f3ec 0%,#ece4d7 100%) !important;
+}
+#app{background:transparent !important;}
+#viewer{background:transparent !important;}
+.refbar{
+  top:0 !important;
+  left:0 !important;
+  right:0 !important;
+  display:grid !important;
+  grid-template-columns:auto minmax(260px,1fr) auto auto 40px !important;
+  align-items:center !important;
+  gap:10px !important;
+  min-height:64px !important;
+  padding:10px 14px !important;
+  border:0 !important;
+  border-bottom:1px solid rgba(221,210,194,.85) !important;
+  border-radius:0 !important;
+  background:var(--quiet-surface) !important;
+  box-shadow:0 8px 30px rgba(80,70,52,.08) !important;
+  backdrop-filter:blur(14px) !important;
+  -webkit-backdrop-filter:blur(14px) !important;
+}
+.refbar-head,.refbar-body{display:contents !important; margin:0 !important;}
+.refbar-head > div:first-child{grid-column:1 !important; min-width:128px !important;}
+.rgb-line,.subtitle,#scanBtn,#autoRootBtn,.refbar-body > div:first-child{display:none !important;}
+.title{font-size:18px !important; line-height:1 !important; white-space:nowrap !important; color:var(--quiet-text) !important;}
+.refbar-body > div:has(#chapterSelect){grid-column:2 !important; min-width:0 !important;}
+.refbar-body label{display:none !important;}
+#prevChapterBtn{grid-column:3 !important;}
+#nextChapterBtn{grid-column:4 !important;}
+#collapseRefBtn{
+  grid-column:5 !important;
+  position:static !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  min-width:40px !important;
+  width:40px !important;
+  height:40px !important;
+  padding:0 !important;
+  color:transparent !important;
+  overflow:hidden !important;
+}
+#collapseRefBtn::after{content:"▲" !important; color:var(--quiet-text) !important; font-size:15px !important; line-height:1 !important; font-weight:800 !important;}
+.refbar.collapsed #collapseRefBtn::after{content:"▼" !important;}
+.refbar select,.refbar .btn,.playbar .btn,.playbar select,.playbar input{
+  height:40px !important;
+  border:1px solid var(--quiet-line) !important;
+  border-radius:8px !important;
+  background:rgba(255,250,242,.94) !important;
+  color:var(--quiet-text) !important;
+  box-shadow:none !important;
+}
+.refbar .btn,.playbar .btn{min-width:86px !important; padding:0 12px !important; font-weight:700 !important;}
+.refbar.collapsed{grid-template-columns:1fr 40px !important; min-height:52px !important;}
+.refbar.collapsed .refbar-head > div:first-child{display:block !important; grid-column:1 !important;}
+.refbar.collapsed .refbar-body > div:has(#chapterSelect),
+.refbar.collapsed #prevChapterBtn,
+.refbar.collapsed #nextChapterBtn{display:none !important;}
+.refbar.collapsed #collapseRefBtn{grid-column:2 !important;}
+.playbar{
+  top:76px !important;
+  bottom:auto !important;
+  left:14px !important;
+  right:14px !important;
+  min-height:0 !important;
+  padding:8px !important;
+  display:flex !important;
+  flex-wrap:wrap !important;
+  gap:8px !important;
+  align-items:center !important;
+  border:1px solid rgba(221,210,194,.85) !important;
+  border-radius:8px !important;
+  background:var(--quiet-surface) !important;
+  box-shadow:0 8px 24px rgba(80,70,52,.08) !important;
+  backdrop-filter:blur(14px) !important;
+  -webkit-backdrop-filter:blur(14px) !important;
+  z-index:19 !important;
+}
+.refbar.collapsed ~ .playbar{display:none !important;}
+.refbar:not(.collapsed) ~ .playbar{display:flex !important;}
+.side-storage-bar,
+#objectSide,
+#pdfSide,
+#restartBtn,
+.playbar .speedbox,
+#animationSelect,
+#afterArNextBtn{display:none !important;}
+#back3dBtn{display:inline-flex !important; align-items:center !important; justify-content:center !important; border-color:rgba(184,95,84,.36) !important; background:#fff4ef !important; color:#8e5146 !important;}
+.ar-button{
+  right:22px !important;
+  bottom:22px !important;
+  border-radius:8px !important;
+  background:#7f8f68 !important;
+  color:#fffdf8 !important;
+  box-shadow:var(--quiet-shadow) !important;
+}
+@media (max-width:900px){
+  .refbar{grid-template-columns:1fr auto auto 40px !important; min-height:112px !important;}
+  .refbar-head > div:first-child{grid-column:1 / 4 !important;}
+  .refbar-body > div:has(#chapterSelect){grid-column:1 / -1 !important; grid-row:2 !important;}
+  #prevChapterBtn{grid-column:2 !important; grid-row:3 !important;}
+  #nextChapterBtn{grid-column:3 !important; grid-row:3 !important;}
+  #collapseRefBtn{grid-column:4 !important; grid-row:1 !important;}
+  .playbar{top:124px !important; left:10px !important; right:10px !important;}
+  .refbar.collapsed{min-height:52px !important; grid-template-columns:1fr 40px !important;}
+}
+
+</style>
 </head>
 <body>
   <div id="app">
@@ -1175,7 +1295,7 @@
       <div class="refbar-head">
         <div>
           <div class="rgb-line"></div>
-          <div class="title">AR教材ビューアー</div>
+          <div class="title">ARビュアー</div>
           <div class="subtitle">AR表示前にモデルと図面を確認できます</div>
         </div>
         <button class="btn" id="collapseRefBtn">上部バー収納</button>
@@ -2352,6 +2472,14 @@
     });
 
 
+
+    function syncTopBarsCollapsed(){
+      const collapsed = refbar.classList.contains("collapsed");
+      app.classList.toggle("bars-collapsed", collapsed);
+      collapseRefBtn?.setAttribute("aria-label", collapsed ? "バーを展開" : "バーを収納");
+      collapseRefBtn?.setAttribute("title", collapsed ? "バーを展開" : "バーを収納");
+    }
+
     function closeMobilePanels(){
       refbar.classList.remove("mobile-open");
       objectSide.classList.remove("mobile-open");
@@ -2403,6 +2531,7 @@
     collapseRefBtn.addEventListener("click", () => {
       refbar.classList.toggle("collapsed");
       collapseRefBtn.textContent = refbar.classList.contains("collapsed") ? "上部バー展開" : "上部バー収納";
+      syncTopBarsCollapsed();
     });
 
     scanBtn.addEventListener("click", loadReferenceRoot);
@@ -2538,6 +2667,7 @@
       }
     });
 
+    syncTopBarsCollapsed();
     if (initialRoot) rootInput.value = initialRoot;
     chapterCorrectionBtn.classList.toggle("lime", chapterCorrectionEnabled);
     updateChapterCorrectionStatus();
