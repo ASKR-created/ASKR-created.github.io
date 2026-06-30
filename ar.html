@@ -1429,6 +1429,27 @@ html,body{
 }
 .side-head{gap:8px !important;}
 
+
+/* AR pen and clipboard */
+#drawLayer{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  z-index:2 !important;
+  display:block !important;
+  pointer-events:none !important;
+  touch-action:none !important;
+  background:transparent !important;
+}
+#app.pen-active #drawLayer{
+  pointer-events:auto !important;
+  cursor:crosshair !important;
+}
+#penToggleBtn.lime{background:#f1f7ec !important;}
+.pen-color-input{width:44px !important; min-width:44px !important; height:40px !important; padding:4px !important;}
+.pen-size-input{width:64px !important; min-width:64px !important; text-align:center !important;}
+
 </style>
 </head>
 <body>
@@ -1455,6 +1476,7 @@ html,body{
     >
       <button slot="ar-button" class="ar-button" id="nativeArButton">ARで見る</button>
     </model-viewer>
+    <canvas id="drawLayer" aria-label="ペン書き込みレイヤー"></canvas>
 
     <section class="refbar" id="refbar">
       <div class="refbar-head">
@@ -1578,6 +1600,11 @@ html,body{
     <section class="playbar">
       <button class="btn" id="prevBottomBtn">前CH</button>
       <button class="btn lime" id="playPauseBtn">再生</button>
+      <button class="btn" id="penToggleBtn">ペンOFF</button>
+      <input class="pen-color-input" id="penColorInput" type="color" value="#d83b2d" title="ペン色">
+      <input class="pen-size-input" id="penSizeInput" type="number" min="1" max="40" step="1" value="5" title="ペン太さ">
+      <button class="btn" id="clearPenBtn">ペン消去</button>
+      <button class="btn" id="copyViewImageBtn">コピー</button>
       <button class="btn" id="restartBtn">最初から</button>
 
       <div class="speedbox">
@@ -1642,7 +1669,9 @@ html,body{
     const PDF_EXTS = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
     const TXT_EXTS = [".txt"];
 
+    const app = document.getElementById("app");
     const viewer = document.getElementById("viewer");
+    const drawCanvas = document.getElementById("drawLayer");
     const refbar = document.getElementById("refbar");
     const collapseRefBtn = document.getElementById("collapseRefBtn");
     const scanBtn = document.getElementById("scanBtn");
@@ -1686,6 +1715,11 @@ html,body{
     const animationSelect = document.getElementById("animationSelect");
     const afterArNextBtn = document.getElementById("afterArNextBtn");
     const back3dBtn = document.getElementById("back3dBtn");
+    const penToggleBtn = document.getElementById("penToggleBtn");
+    const penColorInput = document.getElementById("penColorInput");
+    const penSizeInput = document.getElementById("penSizeInput");
+    const clearPenBtn = document.getElementById("clearPenBtn");
+    const copyViewImageBtn = document.getElementById("copyViewImageBtn");
 
     const mobileQuickPanel = document.getElementById("mobileQuickPanel");
     const mobilePrevBtn = document.getElementById("mobilePrevBtn");
@@ -1713,6 +1747,11 @@ html,body{
     let currentIosModel = "";
     let playSpeed = 0.8;
     let isPaused = false;
+    let penEnabled = false;
+    let isDrawing = false;
+    let lastDrawPoint = null;
+    let drawStartPoint = null;
+    let drawSnapshot = null;
 
     const AR_AFTER_NEXT_KEY = "teachingContestArAfterNext_v61";
     const AR_PENDING_KEY = "teachingContestArPending_v61";
@@ -2230,6 +2269,176 @@ html,body{
     }
 
 
+
+    function resizeDrawLayer(preserve=true){
+      if (!drawCanvas) return;
+      const old = document.createElement("canvas");
+      const oldW = drawCanvas.width;
+      const oldH = drawCanvas.height;
+      if (preserve && oldW && oldH){
+        old.width = oldW;
+        old.height = oldH;
+        old.getContext("2d").drawImage(drawCanvas, 0, 0);
+      }
+      const rect = viewer.getBoundingClientRect();
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.max(1, Math.round(rect.width * pixelRatio));
+      const h = Math.max(1, Math.round(rect.height * pixelRatio));
+      drawCanvas.width = w;
+      drawCanvas.height = h;
+      drawCanvas.style.width = rect.width + "px";
+      drawCanvas.style.height = rect.height + "px";
+      if (preserve && oldW && oldH){
+        drawCanvas.getContext("2d").drawImage(old, 0, 0, oldW, oldH, 0, 0, w, h);
+      }
+    }
+
+    function setPenEnabled(enabled){
+      penEnabled = !!enabled;
+      app.classList.toggle("pen-active", penEnabled);
+      if (penToggleBtn){
+        penToggleBtn.textContent = penEnabled ? "ペンON" : "ペンOFF";
+        penToggleBtn.classList.toggle("lime", penEnabled);
+      }
+      viewer.toggleAttribute("camera-controls", !penEnabled);
+    }
+
+    function configurePenContext(ctx){
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = penColorInput?.value || "#d83b2d";
+      ctx.lineWidth = Math.max(1, parseFloat(penSizeInput?.value || "5")) * Math.min(window.devicePixelRatio || 1, 2);
+    }
+
+    function drawPointerPosition(event){
+      const rect = drawCanvas.getBoundingClientRect();
+      const sx = drawCanvas.width / Math.max(1, rect.width);
+      const sy = drawCanvas.height / Math.max(1, rect.height);
+      return {x:(event.clientX - rect.left) * sx, y:(event.clientY - rect.top) * sy};
+    }
+
+    function restoreDrawSnapshot(ctx){
+      if (!drawSnapshot) return;
+      ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+      ctx.putImageData(drawSnapshot, 0, 0);
+    }
+
+    function drawConstrainedShape(event){
+      if (!drawStartPoint) return;
+      const p = drawPointerPosition(event);
+      const ctx = drawCanvas.getContext("2d");
+      restoreDrawSnapshot(ctx);
+      configurePenContext(ctx);
+      ctx.beginPath();
+      if (event.ctrlKey || event.metaKey) ctx.rect(drawStartPoint.x, drawStartPoint.y, p.x - drawStartPoint.x, p.y - drawStartPoint.y);
+      else { ctx.moveTo(drawStartPoint.x, drawStartPoint.y); ctx.lineTo(p.x, p.y); }
+      ctx.stroke();
+    }
+
+    function beginPenStroke(event){
+      if (!penEnabled || !drawCanvas) return;
+      event.preventDefault();
+      isDrawing = true;
+      drawCanvas.setPointerCapture?.(event.pointerId);
+      const p = drawPointerPosition(event);
+      lastDrawPoint = p;
+      drawStartPoint = p;
+      const ctx = drawCanvas.getContext("2d");
+      configurePenContext(ctx);
+      drawSnapshot = (event.shiftKey || event.ctrlKey || event.metaKey) ? ctx.getImageData(0, 0, drawCanvas.width, drawCanvas.height) : null;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+    }
+
+    function movePenStroke(event){
+      if (!isDrawing || !lastDrawPoint) return;
+      event.preventDefault();
+      if (event.shiftKey || event.ctrlKey || event.metaKey){ drawConstrainedShape(event); return; }
+      const p = drawPointerPosition(event);
+      const ctx = drawCanvas.getContext("2d");
+      configurePenContext(ctx);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      lastDrawPoint = p;
+    }
+
+    function endPenStroke(event){
+      if (!isDrawing) return;
+      event.preventDefault();
+      if (event.shiftKey || event.ctrlKey || event.metaKey) drawConstrainedShape(event);
+      isDrawing = false;
+      lastDrawPoint = null;
+      drawStartPoint = null;
+      drawSnapshot = null;
+    }
+
+    function clearPenLayer(){
+      if (!drawCanvas) return;
+      drawCanvas.getContext("2d").clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    }
+
+    async function blobToImage(blob){
+      const img = new Image();
+      img.src = URL.createObjectURL(blob);
+      await img.decode();
+      URL.revokeObjectURL(img.src);
+      return img;
+    }
+
+    function dataUrlToBlob(dataUrl){
+      const parts = dataUrl.split(",");
+      const mime = (parts[0].match(/:(.*?);/) || [])[1] || "image/png";
+      const bin = atob(parts[1]);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return new Blob([arr], {type:mime});
+    }
+
+    async function captureModelViewerImage(){
+      if (typeof viewer.toBlob === "function"){
+        const maybe = viewer.toBlob({mimeType:"image/png"});
+        const blob = maybe && typeof maybe.then === "function" ? await maybe : maybe;
+        if (blob instanceof Blob) return await blobToImage(blob);
+      }
+      if (typeof viewer.toDataURL === "function"){
+        const dataUrl = await viewer.toDataURL("image/png");
+        return await blobToImage(dataUrlToBlob(dataUrl));
+      }
+      const canvas = viewer.shadowRoot?.querySelector("canvas");
+      if (canvas) return canvas;
+      throw new Error("ARビューの画像取得に対応していません。");
+    }
+
+    async function makeCurrentViewCanvas(){
+      const base = await captureModelViewerImage();
+      const out = document.createElement("canvas");
+      out.width = drawCanvas?.width || base.width || viewer.clientWidth;
+      out.height = drawCanvas?.height || base.height || viewer.clientHeight;
+      const ctx = out.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(base, 0, 0, out.width, out.height);
+      if (drawCanvas) ctx.drawImage(drawCanvas, 0, 0, out.width, out.height);
+      return out;
+    }
+
+    function canvasToBlob(canvasLike){
+      return new Promise(resolve => canvasLike.toBlob(resolve, "image/png"));
+    }
+
+    async function copyCurrentViewImage(){
+      try{
+        const out = await makeCurrentViewCanvas();
+        const blob = await canvasToBlob(out);
+        if (!blob || !navigator.clipboard || !window.ClipboardItem) throw new Error("このブラウザでは画像コピーに対応していません。");
+        await navigator.clipboard.write([new ClipboardItem({"image/png": blob})]);
+        setObjectStatus("画像コピー: Wordへ貼り付けできます");
+      }catch(err){
+        console.error(err);
+        alert("画像コピーに失敗しました。\n" + err.message);
+      }
+    }
+
     function getExplanationPanel(){
       return document.getElementById("explanationSide") || document.getElementById("objectSide");
     }
@@ -2732,6 +2941,8 @@ html,body{
       refbar.classList.toggle("collapsed");
       collapseRefBtn.textContent = refbar.classList.contains("collapsed") ? "上部バー展開" : "上部バー収納";
       syncTopBarsCollapsed();
+    resizeDrawLayer(false);
+    setPenEnabled(false);
     });
 
     scanBtn.addEventListener("click", loadReferenceRoot);
@@ -2868,6 +3079,8 @@ html,body{
     });
 
     syncTopBarsCollapsed();
+    resizeDrawLayer(false);
+    setPenEnabled(false);
     ensureExplanationCollapseButton();
     setExplanationVisible(false);
     if (initialRoot) rootInput.value = initialRoot;
