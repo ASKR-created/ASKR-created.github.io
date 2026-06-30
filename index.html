@@ -1415,6 +1415,44 @@ html,body{
   .refbar.collapsed{min-height:52px !important; grid-template-columns:1fr 40px !important;}
 }
 
+
+/* final non-overlap toolbar layout */
+.refbar{
+  min-height:68px !important;
+  height:auto !important;
+  padding:10px 14px !important;
+  z-index:30 !important;
+}
+.playbar{
+  top:86px !important;
+  bottom:auto !important;
+  left:22px !important;
+  right:22px !important;
+  z-index:29 !important;
+  margin:0 !important;
+  transform:none !important;
+  max-height:none !important;
+  overflow:visible !important;
+}
+.refbar:not(.collapsed) ~ .playbar{
+  display:flex !important;
+}
+.refbar.collapsed ~ .playbar{
+  display:none !important;
+}
+.side.explanation{
+  bottom:22px !important;
+  z-index:18 !important;
+}
+#viewer,
+#drawLayer{
+  top:0 !important;
+}
+@media (max-width:900px){
+  .refbar{min-height:112px !important;}
+  .playbar{top:132px !important; left:10px !important; right:10px !important;}
+}
+
 </style>
 </head>
 <body>
