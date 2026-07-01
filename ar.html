@@ -1495,10 +1495,37 @@ html,body{
   box-shadow:0 8px 24px rgba(80,70,52,.06) !important;
 }
 
+
+/* always-visible restore controls */
+#restoreBarsBtn{
+  position:absolute !important;
+  top:10px !important;
+  right:10px !important;
+  z-index:90 !important;
+  min-width:64px !important;
+  height:40px !important;
+  padding:0 12px !important;
+  border:1px solid var(--quiet-line,#ddd2c2) !important;
+  border-radius:8px !important;
+  background:rgba(255,250,242,.96) !important;
+  color:var(--quiet-text,#292720) !important;
+  font-weight:800 !important;
+  box-shadow:0 8px 24px rgba(80,70,52,.12) !important;
+  display:none !important;
+}
+#app.all-bars-collapsed #restoreBarsBtn{
+  display:inline-grid !important;
+  place-items:center !important;
+}
+#app.all-bars-collapsed .refbar{
+  display:none !important;
+}
+
 </style>
 </head>
 <body>
   <div id="app">
+    <button class="btn" id="restoreBarsBtn" type="button" title="バーを表示">表示</button>
     <input class="storage-check" type="checkbox" id="hideObjectSide">
     <input class="storage-check" type="checkbox" id="hidePdfSide">
     <input class="storage-check" type="checkbox" id="focusViewer">
@@ -1737,6 +1764,7 @@ html,body{
     const TXT_EXTS = [".txt"];
 
     const app = document.getElementById("app");
+    const restoreBarsBtn = document.getElementById("restoreBarsBtn");
     const viewer = document.getElementById("viewer");
     const drawCanvas = document.getElementById("drawLayer");
     const refbar = document.getElementById("refbar");
@@ -3026,6 +3054,11 @@ html,body{
         if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
       }
     }
+
+    restoreBarsBtn?.addEventListener("click", () => {
+      refbar.classList.remove("collapsed");
+      syncTopBarsCollapsed();
+    });
 
     collapseRefBtn.addEventListener("click", () => {
       refbar.classList.toggle("collapsed");
