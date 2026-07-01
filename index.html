@@ -1620,6 +1620,22 @@ html,body{
 .pen-style-select{width:112px !important; min-width:112px !important;}
 .pen-size-input{width:112px !important; min-width:112px !important;}
 
+
+/* all auxiliary bars collapse */
+#app.all-bars-collapsed .playbar,
+#app.all-bars-collapsed .side-storage-bar,
+#app.all-bars-collapsed .view-hud,
+#app.all-bars-collapsed #explanationSide,
+#app.all-bars-collapsed #objectSide,
+#app.all-bars-collapsed #pdfSide,
+#app.all-bars-collapsed .mobile-dock,
+#app.all-bars-collapsed .mobile-quick-panel{
+  display:none !important;
+}
+#app.all-bars-collapsed .refbar{
+  box-shadow:0 8px 24px rgba(80,70,52,.06) !important;
+}
+
 </style>
 </head>
 <body>
@@ -2301,7 +2317,7 @@ html,body{
 
     function toRawAssetUrl(path){
       if (!path) return "";
-      if (/^https?:///i.test(path)) return path;
+      if (/^https?:\/\//i.test(path)) return path;
       return `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_REF}/${encodePath(path)}`;
     }
 
@@ -2334,7 +2350,7 @@ html,body{
     }
     async function fetchViewerManifest(root){
       const manifestPath = normalizePath(root) + "/viewer_manifest.json";
-      const res = await fetch(toAssetUrl(manifestPath) + (toAssetUrl(manifestPath).includes("?") ? "&" : "?") + "_=" + Date.now(), {cache:"no-store"});
+      const res = await fetchManifestResponse(manifestPath);
       if (!res.ok) throw new Error("manifest " + res.status + ": " + manifestPath);
       const manifest = await res.json();
       if (!manifest || !Array.isArray(manifest.chapters)) throw new Error("manifest format error: " + manifestPath);
@@ -4030,6 +4046,7 @@ async function mergeChapterManifests(root, baseList){
     function syncTopBarsCollapsed(){
       const collapsed = refbar.classList.contains("collapsed");
       app.classList.toggle("bars-collapsed", collapsed);
+      app.classList.toggle("all-bars-collapsed", collapsed);
       collapseRefBtn?.setAttribute("aria-label", collapsed ? "バーを展開" : "バーを収納");
       collapseRefBtn?.setAttribute("title", collapsed ? "バーを展開" : "バーを収納");
     }
