@@ -1591,6 +1591,35 @@ html,body{
 }
 .side-head{gap:8px !important;}
 
+
+/* pen palette and line controls */
+.pen-palette{
+  display:flex !important;
+  align-items:center !important;
+  gap:5px !important;
+  height:40px !important;
+  padding:0 7px !important;
+  border:1px solid var(--quiet-line,#ddd2c2) !important;
+  border-radius:8px !important;
+  background:rgba(255,250,242,.94) !important;
+}
+.pen-swatch{
+  width:24px !important;
+  min-width:24px !important;
+  height:24px !important;
+  padding:0 !important;
+  border:2px solid rgba(41,39,32,.18) !important;
+  border-radius:50% !important;
+  background:var(--swatch) !important;
+  box-shadow:inset 0 0 0 3px rgba(255,250,242,.72) !important;
+}
+.pen-swatch.active{
+  border-color:#292720 !important;
+  outline:2px solid rgba(127,143,104,.28) !important;
+}
+.pen-style-select{width:112px !important; min-width:112px !important;}
+.pen-size-input{width:112px !important; min-width:112px !important;}
+
 </style>
 </head>
 <body>
@@ -1852,8 +1881,30 @@ html,body{
       <button class="btn" id="loadObjBtn">OBJ表示</button>
       <button class="btn" id="objSlideBtn">OBJスライド</button>
       <button class="btn" id="penToggleBtn">ペンOFF</button>
-      <input class="pen-color-input" id="penColorInput" type="color" value="#d83b2d" title="ペン色">
-      <input class="pen-size-input" id="penSizeInput" type="number" min="1" max="40" step="1" value="5" title="ペン太さ">
+      <input id="penColorInput" type="hidden" value="#d83b2d">
+      <div class="pen-palette" id="penColorPalette" title="ペン色">
+        <button class="pen-swatch active" type="button" data-color="#d83b2d" style="--swatch:#d83b2d" aria-label="赤色"></button>
+        <button class="pen-swatch" type="button" data-color="#3bbbd6" style="--swatch:#3bbbd6" aria-label="水色"></button>
+        <button class="pen-swatch" type="button" data-color="#111111" style="--swatch:#111111" aria-label="黒色"></button>
+        <button class="pen-swatch" type="button" data-color="#8d4cc2" style="--swatch:#8d4cc2" aria-label="紫色"></button>
+        <button class="pen-swatch" type="button" data-color="#f2c84b" style="--swatch:#f2c84b" aria-label="黄色"></button>
+        <button class="pen-swatch" type="button" data-color="#3f9b5f" style="--swatch:#3f9b5f" aria-label="緑色"></button>
+        <button class="pen-swatch" type="button" data-color="#2f75d6" style="--swatch:#2f75d6" aria-label="青色"></button>
+      </div>
+      <select class="pen-style-select" id="penLineStyleSelect" title="線の種類">
+        <option value="solid">実線</option>
+        <option value="dash">破線</option>
+        <option value="dashdot">一点鎖線</option>
+        <option value="dot">点線</option>
+      </select>
+      <select class="pen-size-input" id="penSizeInput" title="線の太さ">
+        <option value="2">極細線</option>
+        <option value="4">細線</option>
+        <option value="6" selected>中線</option>
+        <option value="9">太線</option>
+        <option value="13">極太線</option>
+        <option value="18">超極太線</option>
+      </select>
       <button class="btn" id="clearPenBtn">ペン消去</button>
       <button class="btn lime" id="saveViewImageBtn">画像保存</button>
       <button class="btn" id="copyViewImageBtn">コピー</button>
@@ -2015,6 +2066,8 @@ html,body{
     const penToggleBtn = document.getElementById("penToggleBtn");
     const penColorInput = document.getElementById("penColorInput");
     const penSizeInput = document.getElementById("penSizeInput");
+    const penLineStyleSelect = document.getElementById("penLineStyleSelect");
+    const penColorPalette = document.getElementById("penColorPalette");
     const clearPenBtn = document.getElementById("clearPenBtn");
     const saveViewImageBtn = document.getElementById("saveViewImageBtn");
     const copyViewImageBtn = document.getElementById("copyViewImageBtn");
@@ -2240,9 +2293,27 @@ html,body{
       if (/^https?:\/\//i.test(path)) return path;
       const assetPath = encodePath(path);
       if (location.protocol === "file:"){
-        return `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_REF}/${assetPath}`;
+        return `https://${GITHUB_REPO}/${assetPath}`;
       }
       return `${location.origin}/${assetPath}`;
+    }
+
+
+    function toRawAssetUrl(path){
+      if (!path) return "";
+      if (/^https?:///i.test(path)) return path;
+      return `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_REF}/${encodePath(path)}`;
+    }
+
+    async function fetchManifestResponse(manifestPath){
+      const assetUrl = toAssetUrl(manifestPath);
+      const url = assetUrl + (assetUrl.includes("?") ? "&" : "?") + "_=" + Date.now();
+      let res = await fetch(url, {cache:"no-store"});
+      if (!res.ok && location.protocol === "file:"){
+        const rawUrl = toRawAssetUrl(manifestPath) + "?_=" + Date.now();
+        res = await fetch(rawUrl, {cache:"no-store"});
+      }
+      return res;
     }
 
     function getExt(path){
@@ -2375,9 +2446,7 @@ html,body{
 async function fetchChapterManifest(root, chapterName){
   const chapterRoot = normalizePath(root) + "/" + chapterName;
   const manifestPath = chapterRoot + "/viewer_manifest.json";
-  const manifestUrl = toAssetUrl(manifestPath);
-  const url = manifestUrl + (manifestUrl.includes("?") ? "&" : "?") + "_=" + Date.now();
-  const res = await fetch(url, {cache:"no-store"});
+  const res = await fetchManifestResponse(manifestPath);
   if (!res.ok) return null;
   const data = await res.json();
   const withRoot = p => {
@@ -3813,7 +3882,13 @@ async function mergeChapterManifests(root, baseList){
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.strokeStyle = penColorInput?.value || "#d83b2d";
-      ctx.lineWidth = Math.max(1, parseFloat(penSizeInput?.value || "5")) * Math.min(window.devicePixelRatio || 1, 2);
+      ctx.lineWidth = Math.max(1, parseFloat(penSizeInput?.value || "6")) * Math.min(window.devicePixelRatio || 1, 2);
+      const lineScale = ctx.lineWidth;
+      const style = penLineStyleSelect?.value || "solid";
+      if (style === "dash") ctx.setLineDash([lineScale * 3, lineScale * 2]);
+      else if (style === "dashdot") ctx.setLineDash([lineScale * 4, lineScale * 1.6, lineScale * .7, lineScale * 1.6]);
+      else if (style === "dot") ctx.setLineDash([lineScale * .6, lineScale * 1.8]);
+      else ctx.setLineDash([]);
     }
 
     function restoreDrawSnapshot(ctx){
@@ -4248,6 +4323,12 @@ async function mergeChapterManifests(root, baseList){
     objSlideBtn?.addEventListener("click", toggleObjSlideshow);
     penToggleBtn?.addEventListener("click", () => setPenEnabled(!penEnabled));
     clearPenBtn?.addEventListener("click", clearPenLayer);
+    penColorPalette?.addEventListener("click", event => {
+      const swatch = event.target.closest(".pen-swatch");
+      if (!swatch) return;
+      penColorInput.value = swatch.dataset.color || "#d83b2d";
+      penColorPalette.querySelectorAll(".pen-swatch").forEach(btn => btn.classList.toggle("active", btn === swatch));
+    });
     saveViewImageBtn?.addEventListener("click", saveCurrentViewImage);
     copyViewImageBtn?.addEventListener("click", copyCurrentViewImage);
     drawCanvas?.addEventListener("pointerdown", beginPenStroke);
