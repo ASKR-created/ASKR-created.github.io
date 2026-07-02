@@ -1662,6 +1662,23 @@ html,body{
   display:none !important;
 }
 
+
+/* Mobile index viewer: hide and disable pen tools on smartphone sizes. */
+@media (max-width: 900px){
+  #penToggleBtn,
+  #penColorPalette,
+  #penLineStyleSelect,
+  #penSizeInput,
+  #clearPenBtn,
+  #saveViewImageBtn,
+  #copyViewImageBtn{
+    display:none !important;
+  }
+  #drawLayer,
+  #app.pen-active #drawLayer{
+    pointer-events:none !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -3915,6 +3932,11 @@ async function mergeChapterManifests(root, baseList){
       if (controls) controls.enabled = !penEnabled;
     }
 
+    function syncPenAvailability(){
+      const penUnavailable = window.matchMedia("(max-width: 900px)").matches;
+      app.classList.toggle("pen-unavailable", penUnavailable);
+      if (penUnavailable && penEnabled) setPenEnabled(false);
+    }
     function drawPointerPosition(event){
       const rect = drawCanvas.getBoundingClientRect();
       const sx = drawCanvas.width / Math.max(1, rect.width);
@@ -4405,6 +4427,7 @@ async function mergeChapterManifests(root, baseList){
     nextTextPageBtn?.addEventListener("click", () => changeChapterTextPage(1));
 
     window.addEventListener("resize", resize);
+    window.addEventListener("resize", syncPenAvailability);
     window.addEventListener("pointermove", activateAutoHideUi, {passive:true});
     window.addEventListener("pointerdown", activateAutoHideUi, {passive:true});
     window.addEventListener("touchstart", activateAutoHideUi, {passive:true});
@@ -4434,6 +4457,7 @@ async function mergeChapterManifests(root, baseList){
     setExplanationVisible(false);
     resizeDrawLayer(false);
     setPenEnabled(false);
+    syncPenAvailability();
     setViewMagnification(185, false);
     updateViewMagnificationHud(185, "READY");
     modelNormalizeBtn.classList.toggle("lime", modelAutoNormalize);
