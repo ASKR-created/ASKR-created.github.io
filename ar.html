@@ -1,714 +1,2921 @@
 <!doctype html>
 <html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Survey 3D Filter Viewer</title>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
-    <style>
-      :root {
-        color-scheme: light dark;
-        --bg: #eef1ee;
-        --panel: #ffffff;
-        --text: #1d2328;
-        --muted: #65707a;
-        --line: #d6dce0;
-        --accent: #0f6f62;
-        --grid-size: 36px;
-        --grid-unit: "1000mm";
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <!-- latest build: 2026-07-03 -->
+  <title>ARビュアー</title>
+
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs"></script>
+
+  <style>
+    :root{
+      --panel:rgba(8,16,32,.88);
+      --cyan:#22f8ff;
+      --lime:#a6ff2d;
+      --magenta:#ff2deb;
+      --text:#eafbff;
+      --sub:#96a8c8;
+      --line:rgba(34,248,255,.34);
+      --shadow:0 0 18px rgba(34,248,255,.18),0 0 30px rgba(255,45,235,.08);
+    }
+
+    *{box-sizing:border-box}
+
+    html,body{
+      width:100%;
+      height:100%;
+      margin:0;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(34,248,255,.10), transparent 28%),
+        radial-gradient(circle at 86% 76%, rgba(255,45,235,.10), transparent 32%),
+        linear-gradient(135deg,#02030a,#061020 58%,#050616);
+      color:var(--text);
+      font-family:"MS UI Gothic","Yu Gothic UI","Meiryo",sans-serif;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:50;
+      background:
+        linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(34,248,255,.022) 1px,transparent 1px);
+      background-size:4px 4px,18px 18px;
+      mix-blend-mode:screen;
+    }
+
+    #app{
+      position:relative;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+    }
+
+    .storage-check{
+      position:absolute;
+      opacity:0;
+      pointer-events:none;
+      width:0;
+      height:0;
+    }
+
+    .storage-label{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:38px;
+      border:1px solid rgba(34,248,255,.40);
+      background:linear-gradient(180deg,rgba(15,28,58,.94),rgba(3,8,18,.94));
+      color:var(--text);
+      font-weight:bold;
+      cursor:pointer;
+      letter-spacing:.04em;
+      padding:0 12px;
+      white-space:nowrap;
+      user-select:none;
+    }
+
+    .storage-label:hover{
+      border-color:var(--cyan);
+      box-shadow:0 0 14px rgba(34,248,255,.22);
+    }
+
+    .storage-label .closed{
+      display:none;
+    }
+
+    #hideObjectSide:checked ~ .refbar .storage-label.object,
+    #hidePdfSide:checked ~ .refbar .storage-label.pdf,
+    #focusViewer:checked ~ .refbar .storage-label.focus{
+      border-color:rgba(166,255,45,.62)!important;
+      color:var(--lime)!important;
+      box-shadow:0 0 16px rgba(166,255,45,.16)!important;
+    }
+
+    #hideObjectSide:checked ~ .refbar .storage-label.object .opened,
+    #hidePdfSide:checked ~ .refbar .storage-label.pdf .opened,
+    #focusViewer:checked ~ .refbar .storage-label.focus .opened{
+      display:none;
+    }
+
+    #hideObjectSide:checked ~ .refbar .storage-label.object .closed,
+    #hidePdfSide:checked ~ .refbar .storage-label.pdf .closed,
+    #focusViewer:checked ~ .refbar .storage-label.focus .closed{
+      display:inline;
+    }
+
+    #hideObjectSide:checked ~ #objectSide,
+    #hidePdfSide:checked ~ #pdfSide,
+    #focusViewer:checked ~ #objectSide,
+    #focusViewer:checked ~ #pdfSide{
+      display:none!important;
+    }
+
+    model-viewer{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      background:transparent;
+      --poster-color:transparent;
+      --progress-bar-color:#22f8ff;
+      --progress-bar-height:3px;
+    }
+
+    .refbar{
+      position:absolute;
+      top:10px;
+      left:10px;
+      right:10px;
+      z-index:20;
+      border:1px solid var(--line);
+      background:linear-gradient(90deg,rgba(8,16,32,.86),rgba(12,28,56,.64));
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));
+    }
+
+    .refbar-head{
+      display:grid;
+      grid-template-columns:1fr auto auto;
+      gap:8px;
+      align-items:center;
+      padding:8px 12px;
+      min-height:48px;
+    }
+
+    .rgb-line{
+      height:3px;
+      margin-bottom:6px;
+      background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--lime));
+      box-shadow:0 0 12px rgba(34,248,255,.60);
+    }
+
+    .title{
+      font-size:17px;
+      font-weight:bold;
+      letter-spacing:.12em;
+      text-shadow:0 0 8px rgba(34,248,255,.7);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .subtitle{
+      margin-top:3px;
+      color:var(--sub);
+      font-size:11px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .refbar-body{
+      display:grid;
+      grid-template-columns:1.4fr auto 1fr auto auto;
+      gap:8px;
+      padding:0 12px 10px;
+      align-items:end;
+    }
+
+    .refbar.collapsed .refbar-body{
+      display:none;
+    }
+
+
+    .side-storage-bar{
+      position:absolute;
+      top:76px;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:23;
+      width:min(760px,calc(100vw - 20px));
+      min-height:44px;
+      border:1px solid rgba(34,248,255,.34);
+      background:rgba(4,10,20,.84);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:8px;
+      padding:6px;
+    }
+
+    .side-storage-bar .storage-label{
+      min-height:32px;
+      font-size:12px;
+    }
+
+    .side{
+      position:absolute;
+      top:128px;
+      bottom:86px;
+      width:min(340px,calc(50vw - 18px));
+      z-index:12;
+      border:1px solid var(--line);
+      background:var(--panel);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+    }
+
+    .side.left{left:10px}
+    .side.right{right:10px}
+
+    .side-head{
+      padding:10px 12px;
+      border-bottom:1px solid rgba(34,248,255,.20);
+      background:linear-gradient(90deg,rgba(34,248,255,.10),rgba(255,45,235,.07));
+      color:var(--cyan);
+      font-weight:bold;
+      letter-spacing:.12em;
+      text-shadow:0 0 8px rgba(34,248,255,.6);
+    }
+
+    .side-body{
+      padding:10px;
+      overflow:auto;
+      min-height:0;
+      flex:1 1 auto;
+    }
+
+    .playbar{
+      position:absolute;
+      left:10px;
+      right:10px;
+      bottom:10px;
+      z-index:22;
+      min-height:66px;
+      border:1px solid var(--line);
+      background:rgba(4,10,20,.84);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      display:grid;
+      grid-template-columns:auto auto 1fr auto auto auto;
+      gap:8px;
+      align-items:center;
+      padding:8px;
+    }
+
+    .speedbox{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      gap:8px;
+      align-items:center;
+      min-width:260px;
+    }
+
+    button,.btn{
+      min-height:38px;
+      border:1px solid rgba(34,248,255,.40);
+      background:linear-gradient(180deg,rgba(15,28,58,.94),rgba(3,8,18,.94));
+      color:var(--text);
+      font-weight:bold;
+      cursor:pointer;
+      letter-spacing:.04em;
+      padding:0 12px;
+    }
+
+    button:hover,.btn:hover{
+      border-color:var(--cyan);
+      box-shadow:0 0 14px rgba(34,248,255,.22);
+    }
+
+    button.lime,.btn.lime{
+      border-color:rgba(166,255,45,.52);
+      color:var(--lime);
+    }
+
+    button.magenta,.btn.magenta{
+      border-color:rgba(255,45,235,.52);
+      color:#ffd4fb;
+    }
+
+    input,select{
+      width:100%;
+      min-height:34px;
+      border:1px solid rgba(34,248,255,.35);
+      background:rgba(1,5,14,.88);
+      color:var(--text);
+      padding:6px 8px;
+      outline:none;
+      font-size:13px;
+    }
+
+    input[type="range"]{
+      accent-color:var(--lime);
+      padding:0;
+    }
+
+    label{
+      color:var(--sub);
+      font-size:11px;
+      display:block;
+      margin:8px 0 3px;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:8px;
+    }
+
+    .status{
+      margin-top:8px;
+      border:1px solid rgba(166,255,45,.26);
+      background:rgba(166,255,45,.045);
+      color:var(--lime);
+      padding:8px;
+      font-size:12px;
+      line-height:1.45;
+      word-break:break-all;
+      font-family:Consolas,"MS UI Gothic",monospace;
+    }
+
+    .info-row{
+      display:grid;
+      grid-template-columns:86px 1fr;
+      gap:8px;
+      padding:5px 0;
+      border-bottom:1px solid rgba(34,248,255,.08);
+      font-size:12px;
+    }
+
+    .info-row .k{color:var(--sub)}
+    .info-row .v{word-break:break-all}
+
+    .pdf-preview{
+      width:100%;
+      aspect-ratio:1.414/1;
+      object-fit:contain;
+      background:white;
+      border:1px solid rgba(34,248,255,.35);
+      margin-top:8px;
+      opacity:.85;
+      transform-origin:top left;
+    }
+
+    .ar-button{
+      position:absolute;
+      left:50%;
+      bottom:96px;
+      transform:translateX(-50%);
+      z-index:18;
+      min-width:min(420px,calc(100vw - 48px));
+      min-height:54px;
+      border:2px solid rgba(166,255,45,.72);
+      background:linear-gradient(180deg,rgba(24,48,18,.92),rgba(4,14,8,.94));
+      color:var(--lime);
+      font-size:18px;
+      font-weight:bold;
+      letter-spacing:.10em;
+      box-shadow:0 0 22px rgba(166,255,45,.22);
+      cursor:pointer;
+    }
+
+    .mobile-dock,
+    .mobile-quick-panel{
+      display:none;
+    }
+
+    @media (max-width:980px){
+      html,body{overflow:hidden;height:100%}
+
+      #app{
+        position:fixed;
+        inset:0;
+        height:100dvh;
+        min-height:0;
+        overflow:hidden;
+        padding:0;
+        background:#02030a;
       }
 
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #141719;
-          --panel: #202529;
-          --text: #f2f5f6;
-          --muted: #a7b0b8;
-          --line: #343b41;
-          --accent: #55c7b4;
-        }
+      model-viewer{
+        position:absolute;
+        inset:0;
+        width:100%;
+        height:100%;
+        min-height:0;
+        border:none;
+        margin:0;
       }
 
-      * {
-        box-sizing: border-box;
+      .refbar,.side-storage-bar,.side,.playbar{display:none}
+
+      .refbar.mobile-open,
+      .side.mobile-open,
+      .playbar.mobile-open{
+        display:flex;
+        position:absolute;
+        left:8px;
+        right:8px;
+        top:72px;
+        bottom:76px;
+        width:auto;
+        max-height:none;
+        margin:0;
+        transform:none;
+        z-index:45;
+        overflow:auto;
       }
 
-      body {
-        margin: 0;
-        min-height: 100vh;
-        background: var(--bg);
-        color: var(--text);
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      .refbar.mobile-open{
+        display:block;
+        bottom:auto;
+        max-height:58dvh;
+        clip-path:none;
       }
 
-      main {
-        display: grid;
-        grid-template-rows: auto 1fr;
-        min-height: 100vh;
+      .refbar.mobile-open .refbar-head{grid-template-columns:1fr}
+      .refbar.mobile-open .refbar-body{grid-template-columns:1fr}
+      .side.mobile-open{display:flex}
+
+      .playbar.mobile-open{
+        display:grid;
+        top:auto;
+        bottom:76px;
+        min-height:0;
+        grid-template-columns:1fr 1fr;
+        align-items:stretch;
       }
 
-      .split-workspace {
-        display: grid;
-        grid-template-columns: 1fr;
-        min-height: 0;
+      .playbar.mobile-open .speedbox,
+      .playbar.mobile-open select{
+        grid-column:1/-1;
+        min-width:0;
       }
 
-      body.view-split .split-workspace {
-        grid-template-columns: minmax(280px, 0.9fr) minmax(360px, 1.1fr);
+      .ar-button{display:none}
+
+      .mobile-dock{
+        display:grid;
+        position:absolute;
+        left:8px;
+        right:8px;
+        bottom:8px;
+        z-index:60;
+        grid-template-columns:repeat(5,1fr);
+        gap:6px;
+        padding:6px;
+        border:1px solid rgba(34,248,255,.34);
+        background:rgba(4,10,20,.88);
+        box-shadow:var(--shadow);
+        backdrop-filter:blur(12px);
+        -webkit-backdrop-filter:blur(12px);
       }
 
-      body.view-plan .viewer-pane,
-      body.view-3d .plan-pane {
-        display: none;
+      .mobile-dock button{
+        min-height:44px;
+        padding:0 3px;
+        font-size:10.5px;
+        letter-spacing:0;
       }
 
-      .plan-pane,
-      .viewer-pane {
-        position: relative;
-        display: grid;
-        grid-template-rows: auto 1fr;
-        min-width: 0;
-        min-height: 0;
-        border-left: 1px solid var(--line);
+      .mobile-quick-panel{
+        display:none;
+        position:absolute;
+        left:8px;
+        right:8px;
+        bottom:76px;
+        z-index:58;
+        border:1px solid rgba(34,248,255,.34);
+        background:rgba(4,10,20,.94);
+        box-shadow:var(--shadow);
+        padding:8px;
+        grid-template-columns:repeat(2,1fr);
+        gap:8px;
+        border-radius:10px;
+        backdrop-filter:blur(12px);
+        -webkit-backdrop-filter:blur(12px);
       }
 
-      .plan-pane {
-        border-left: 0;
+      .mobile-quick-panel.mobile-open{display:grid}
+      .mobile-quick-panel button{min-height:42px;font-size:12px}
+      .title{font-size:13px}
+    }
+  
+    /* ============================================================
+       v61 DARK TECHNICAL UI OVERRIDE
+       3D / AR 共通デザイン
+       ============================================================ */
+
+    :root{
+      --bg:#05070d;
+      --bg2:#080d16;
+      --panel:rgba(13,19,32,.90);
+      --panel2:rgba(17,27,43,.94);
+      --panel3:rgba(7,12,22,.86);
+      --cyan:#38ddf8;
+      --cyan2:#7dd3fc;
+      --lime:#7ef29a;
+      --magenta:#9f7aea;
+      --yellow:#eab308;
+      --text:#eafbff;
+      --sub:#95a3b8;
+      --muted:#64748b;
+      --line:rgba(125,211,252,.22);
+      --line2:rgba(148,163,184,.20);
+      --danger:#ff5d7a;
+      --shadow:0 18px 46px rgba(0,0,0,.38),0 0 0 1px rgba(125,211,252,.055);
+      --radius:12px;
+      --radius2:9px;
+    }
+
+    html,body{
+      background:
+        radial-gradient(circle at 20% 12%, rgba(56,221,248,.075), transparent 30%),
+        radial-gradient(circle at 78% 80%, rgba(159,122,234,.060), transparent 34%),
+        linear-gradient(135deg,#05070d 0%,#070c15 46%,#03050b 100%) !important;
+      color:var(--text) !important;
+      font-family:"Yu Gothic UI","Meiryo","MS UI Gothic",sans-serif !important;
+    }
+
+    body::before{
+      opacity:.24 !important;
+      background:
+        linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(125,211,252,.016) 1px,transparent 1px) !important;
+      background-size:6px 6px,24px 24px !important;
+      mix-blend-mode:screen !important;
+    }
+
+    body::after{
+      opacity:.12 !important;
+      background:linear-gradient(to bottom,rgba(255,255,255,.025),transparent 1px) !important;
+      background-size:100% 6px !important;
+    }
+
+    #viewer,
+    model-viewer{
+      background:
+        radial-gradient(circle at center,rgba(125,211,252,.05),transparent 34%),
+        linear-gradient(180deg,rgba(8,13,22,.10),rgba(3,5,10,.20)) !important;
+    }
+
+    .refbar,
+    .side,
+    .side-storage-bar,
+    .playbar,
+    .view-hud,
+    .mobile-dock,
+    .mobile-quick-panel,
+    .ar-button{
+      border:1px solid var(--line) !important;
+      background:
+        linear-gradient(180deg,rgba(17,27,43,.92),rgba(8,13,22,.88)) !important;
+      box-shadow:var(--shadow) !important;
+      backdrop-filter:blur(14px) saturate(125%) !important;
+      -webkit-backdrop-filter:blur(14px) saturate(125%) !important;
+      border-radius:var(--radius) !important;
+      clip-path:none !important;
+    }
+
+    .refbar{
+      top:12px !important;
+      left:12px !important;
+      right:12px !important;
+      overflow:hidden !important;
+    }
+
+    .refbar-head{
+      min-height:50px !important;
+      padding:9px 14px !important;
+      background:linear-gradient(90deg,rgba(56,221,248,.075),rgba(159,122,234,.040),transparent) !important;
+      border-bottom:1px solid rgba(125,211,252,.10) !important;
+    }
+
+    .refbar-body{
+      padding:10px 14px 12px !important;
+    }
+
+    .rgb-line{
+      height:2px !important;
+      margin-bottom:7px !important;
+      background:linear-gradient(90deg,rgba(56,221,248,.92),rgba(125,211,252,.30),rgba(126,242,154,.65)) !important;
+      box-shadow:none !important;
+      border-radius:999px !important;
+    }
+
+    .title{
+      color:var(--text) !important;
+      font-size:16px !important;
+      letter-spacing:.10em !important;
+      text-shadow:none !important;
+    }
+
+    .subtitle{
+      color:var(--sub) !important;
+      letter-spacing:.025em !important;
+    }
+
+    .side-head{
+      color:var(--cyan2) !important;
+      text-shadow:none !important;
+      background:
+        linear-gradient(90deg,rgba(56,221,248,.085),rgba(148,163,184,.035),transparent) !important;
+      border-bottom:1px solid rgba(125,211,252,.12) !important;
+      border-radius:var(--radius) var(--radius) 0 0 !important;
+      letter-spacing:.10em !important;
+    }
+
+    .side-body{
+      scrollbar-color:rgba(125,211,252,.36) rgba(7,12,22,.4);
+    }
+
+    .status{
+      color:var(--sub) !important;
+      background:rgba(7,12,22,.72) !important;
+      border:1px solid rgba(148,163,184,.15) !important;
+      border-radius:var(--radius2) !important;
+      line-height:1.45 !important;
+    }
+
+    label{
+      color:var(--sub) !important;
+      font-weight:700 !important;
+      letter-spacing:.045em !important;
+    }
+
+    input,
+    select,
+    textarea{
+      color:var(--text) !important;
+      background:rgba(5,8,14,.88) !important;
+      border:1px solid rgba(148,163,184,.22) !important;
+      border-radius:8px !important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.035) !important;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus{
+      border-color:rgba(56,221,248,.66) !important;
+      box-shadow:0 0 0 2px rgba(56,221,248,.10), inset 0 1px 0 rgba(255,255,255,.04) !important;
+    }
+
+    input[type="range"]{
+      accent-color:var(--cyan) !important;
+      box-shadow:none !important;
+    }
+
+    button,
+    .btn,
+    .storage-label{
+      min-height:38px;
+      color:var(--text) !important;
+      border:1px solid rgba(125,211,252,.24) !important;
+      background:
+        linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,22,.96)) !important;
+      border-radius:9px !important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.055) !important;
+      text-shadow:none !important;
+      letter-spacing:.045em !important;
+      transition:
+        border-color .16s ease,
+        background .16s ease,
+        box-shadow .16s ease,
+        transform .08s ease,
+        color .16s ease !important;
+    }
+
+    button:hover,
+    .btn:hover,
+    .storage-label:hover{
+      border-color:rgba(56,221,248,.72) !important;
+      background:
+        linear-gradient(180deg,rgba(26,43,66,.98),rgba(9,17,29,.98)) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 0 0 2px rgba(56,221,248,.10) !important;
+      transform:translateY(-1px);
+    }
+
+    button:active,
+    .btn:active,
+    .storage-label:active{
+      transform:translateY(0);
+      background:linear-gradient(180deg,rgba(8,13,22,.98),rgba(20,31,49,.98)) !important;
+    }
+
+    button.lime,
+    .btn.lime{
+      color:var(--lime) !important;
+      border-color:rgba(126,242,154,.36) !important;
+      background:linear-gradient(180deg,rgba(16,38,31,.96),rgba(7,20,17,.96)) !important;
+    }
+
+    button.lime:hover,
+    .btn.lime:hover{
+      border-color:rgba(126,242,154,.70) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 0 0 2px rgba(126,242,154,.10) !important;
+    }
+
+    button.magenta,
+    .btn.magenta{
+      color:#e8ddff !important;
+      border-color:rgba(159,122,234,.38) !important;
+      background:linear-gradient(180deg,rgba(38,28,58,.96),rgba(17,11,29,.96)) !important;
+    }
+
+    button.magenta:hover,
+    .btn.magenta:hover{
+      border-color:rgba(159,122,234,.72) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 0 0 2px rgba(159,122,234,.12) !important;
+    }
+
+    .view-hud{
+      color:var(--cyan2) !important;
+      border-color:rgba(126,242,154,.32) !important;
+      background:rgba(7,12,22,.78) !important;
+      letter-spacing:.06em !important;
+    }
+
+    .view-hud .hud-sub{
+      color:var(--muted) !important;
+    }
+
+    .playbar{
+      background:
+        linear-gradient(180deg,rgba(13,19,32,.92),rgba(5,8,14,.90)) !important;
+      min-height:68px !important;
+    }
+
+    .mobile-dock{
+      background:rgba(7,12,22,.92) !important;
+      border-radius:14px !important;
+      padding:7px !important;
+    }
+
+    .mobile-quick-panel{
+      background:rgba(7,12,22,.94) !important;
+      border-radius:14px !important;
+    }
+
+    .ar-button{
+      color:var(--text) !important;
+      background:linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,22,.96)) !important;
+      border-color:rgba(56,221,248,.42) !important;
+    }
+
+    .pdf-page,
+    canvas{
+      border-radius:6px;
+    }
+
+    .pdf-page{
+      box-shadow:0 12px 30px rgba(0,0,0,.28) !important;
+    }
+
+    @media (max-width:980px){
+      .view-hud{
+        background:rgba(7,12,22,.58) !important;
+        border-color:rgba(125,211,252,.18) !important;
       }
 
-      body:not(.view-split) .viewer-pane {
-        border-left: 0;
+      .mobile-dock button{
+        min-height:46px !important;
+        font-size:10.5px !important;
       }
 
-      .pane-title {
-        min-height: 38px;
-        padding: 9px 14px;
-        border-bottom: 1px solid var(--line);
-        background: color-mix(in srgb, var(--panel) 90%, transparent);
-        color: var(--muted);
-        font-size: 13px;
-        font-weight: 700;
+      .mobile-quick-panel{
+        bottom:78px !important;
+      }
+    }
+
+  
+    /* v61: ARスマホ時のPDF表示・モデル切替補助 */
+    @media (max-width:980px){
+      #pdfSide.mobile-open,
+      #objectSide.mobile-open{
+        top:64px !important;
+        bottom:76px !important;
+        z-index:66 !important;
       }
 
-      header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 14px;
-        padding: 12px clamp(14px, 3vw, 32px);
-        border-bottom: 1px solid var(--line);
-        background: color-mix(in srgb, var(--panel) 92%, transparent);
+      #pdfSide.mobile-open .pdf-preview{
+        max-height:34dvh !important;
+        object-fit:contain !important;
       }
 
-      h1 {
-        margin: 0;
-        font-size: clamp(18px, 2.5vw, 28px);
-        font-weight: 720;
-        letter-spacing: 0;
+      .mobile-quick-panel{
+        grid-template-columns:repeat(2,1fr) !important;
+      }
+    }
+
+  
+
+    /* Natural teaching-material theme override */
+    :root{
+      --bg:#F6F2EA;
+      --panel:rgba(255,252,246,.94);
+      --panel2:rgba(250,247,240,.98);
+      --cyan:#4F8F86;
+      --lime:#7A9B54;
+      --magenta:#A96F5A;
+      --yellow:#D9B45F;
+      --text:#26322F;
+      --sub:#66756F;
+      --line:rgba(112,126,116,.30);
+      --shadow:0 10px 30px rgba(57,67,62,.10);
+      --radius:8px;
+    }
+
+    html,body{
+      background:linear-gradient(180deg,#F7F3EA 0%,#EFE9DD 100%) !important;
+      color:var(--text) !important;
+      font-family:"Yu Gothic UI","Yu Gothic","Meiryo",system-ui,sans-serif !important;
+    }
+
+    body::before,
+    body::after{
+      display:none !important;
+    }
+
+    #app{
+      background:
+        linear-gradient(rgba(116,132,118,.055) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(116,132,118,.045) 1px,transparent 1px),
+        linear-gradient(180deg,#F8F4EC,#EEE7DA) !important;
+      background-size:32px 32px,32px 32px,100% 100% !important;
+    }
+
+    #viewer,
+    model-viewer{
+      background:linear-gradient(180deg,#FBF8F1,#ECE5D8) !important;
+    }
+
+    .refbar,
+    .side,
+    .side-storage-bar,
+    .playbar,
+    .view-hud,
+    .mobile-dock,
+    .mobile-quick-panel,
+    .ar-button{
+      border:1px solid var(--line) !important;
+      background:var(--panel) !important;
+      box-shadow:var(--shadow) !important;
+      backdrop-filter:none !important;
+      -webkit-backdrop-filter:none !important;
+      border-radius:var(--radius) !important;
+      clip-path:none !important;
+      color:var(--text) !important;
+    }
+
+    .rgb-line{
+      height:2px !important;
+      background:linear-gradient(90deg,#7E9F86,#D8C28D,#B98E74) !important;
+      box-shadow:none !important;
+      opacity:.95 !important;
+    }
+
+    .title,
+    .side-head,
+    .ref-title,
+    .subtitle,
+    .k,
+    .hud-sub{
+      text-shadow:none !important;
+      letter-spacing:0 !important;
+    }
+
+    .title{
+      color:#24342F !important;
+      font-size:16px !important;
+      font-weight:700 !important;
+    }
+
+    .subtitle,
+    .hud-sub,
+    .k{
+      color:var(--sub) !important;
+    }
+
+    .side-head{
+      background:#F1EBDD !important;
+      color:#40584E !important;
+      border-bottom:1px solid var(--line) !important;
+      font-weight:700 !important;
+    }
+
+    .info-row,
+    .chapter-card,
+    .pdf-preview,
+    .status{
+      border-color:rgba(112,126,116,.24) !important;
+      background:rgba(255,255,255,.52) !important;
+      color:var(--text) !important;
+      box-shadow:none !important;
+      border-radius:6px !important;
+    }
+
+    button,
+    .btn,
+    .storage-label,
+    .ar-button{
+      border:1px solid rgba(91,111,100,.34) !important;
+      background:#FFFDF8 !important;
+      color:#2F423B !important;
+      box-shadow:0 1px 0 rgba(255,255,255,.70) inset !important;
+      border-radius:6px !important;
+      font-weight:700 !important;
+      letter-spacing:0 !important;
+    }
+
+    button:hover,
+    .btn:hover,
+    .storage-label:hover,
+    .ar-button:hover{
+      border-color:#6F927F !important;
+      background:#F4F0E7 !important;
+      box-shadow:0 0 0 3px rgba(111,146,127,.14) !important;
+    }
+
+    button.lime,
+    .btn.lime{
+      border-color:rgba(103,135,83,.42) !important;
+      color:#486B3F !important;
+      background:#F6FAF0 !important;
+    }
+
+    button.magenta,
+    .btn.magenta{
+      border-color:rgba(166,116,92,.38) !important;
+      color:#8A5646 !important;
+      background:#FFF5F0 !important;
+    }
+
+    input,
+    select{
+      border:1px solid rgba(91,111,100,.32) !important;
+      background:#FFFDF8 !important;
+      color:var(--text) !important;
+      border-radius:6px !important;
+      box-shadow:none !important;
+    }
+
+    input:focus,
+    select:focus{
+      border-color:#6F927F !important;
+      box-shadow:0 0 0 3px rgba(111,146,127,.16) !important;
+    }
+
+    input[type="range"]{
+      accent-color:#6F927F !important;
+    }
+
+    canvas,
+    .pdf-preview canvas{
+      background:#FFFDF8 !important;
+      border-radius:4px !important;
+    }
+
+    @media (max-width:980px){
+      #app{
+        background:#F4EEE3 !important;
       }
 
-      .controls {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 10px;
-        flex-wrap: wrap;
+      .mobile-dock,
+      .mobile-quick-panel,
+      .refbar.mobile-open,
+      .side.mobile-open,
+      .playbar.mobile-open{
+        background:rgba(255,252,246,.97) !important;
       }
 
-      button,
-      label {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 38px;
-        padding: 0 12px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-        color: var(--text);
-        cursor: pointer;
-        font: inherit;
-        font-size: 14px;
-        font-weight: 650;
+      .mobile-dock button{
+        font-size:11px !important;
+      }
+    }
+
+  
+
+    /* Temporary: hide PDF controls and stop PDF workflow */
+    #pdfSide,
+    .storage-label.pdf,
+    #hidePdfSide,
+    #pdfStatus,
+    #mobileOpenPdfBtn,
+    #pdfPathText,
+    #pdfFloorNameText,
+    #pdfSideNameText,
+    #pdfFloorPathText,
+    #pdfSidePathText,
+    #pdfFloorPreview,
+    #pdfSidePreview,
+    #pdfSizeBasisText,
+    #pdfSizeModeSelect,
+    #pdfBaseWidthInput,
+    #pdfAlwaysOnTopBtn,
+    #pdfFitVisibleBtn,
+    #pdfPlacementSelect,
+    #pdfPercentInput,
+    #pdfScaleReadout,
+    #pdfCurrentScaleInput,
+    #pdfTargetScaleInput,
+    #applyPdfScaleBtn,
+    #resetPdfScaleBtn,
+    #pdfTransparentBtn,
+    #pdfLineColorBtn,
+    #pdfOpacityInput,
+    #pdfXInput,
+    #pdfYInput,
+    #pdfZInput,
+    #applyPdfBtn,
+    #resetPdfPosBtn,
+    #togglePdfBtn,
+    #clearPdfBtn{
+      display:none !important;
+    }
+
+  
+
+    /* Collapsible top reference bar */
+    .refbar.collapsed{
+      right:auto !important;
+      width:auto !important;
+      min-width:0 !important;
+      max-width:calc(100vw - 20px) !important;
+      border-radius:8px !important;
+    }
+
+    .refbar.collapsed .refbar-head{
+      display:flex !important;
+      grid-template-columns:none !important;
+      min-height:0 !important;
+      padding:6px !important;
+      gap:6px !important;
+    }
+
+    .refbar.collapsed .ref-title,
+    .refbar.collapsed #scanBtn,
+    .refbar.collapsed .ar-button{
+      display:none !important;
+    }
+
+    .refbar.collapsed #collapseRefBtn{
+      min-height:34px !important;
+      white-space:nowrap !important;
+      padding:0 14px !important;
+    }
+
+    .refbar.collapsed ~ .side-storage-bar{
+      top:12px !important;
+      left:190px !important;
+      right:310px !important;
+      min-height:38px !important;
+      padding:4px !important;
+      grid-template-columns:repeat(2,minmax(120px,1fr)) !important;
+    }
+
+    .refbar.collapsed ~ .side-storage-bar .storage-label{
+      min-height:30px !important;
+      font-size:12px !important;
+    }
+
+    .refbar.collapsed ~ .view-hud{
+      top:12px !important;
+    }
+
+    .refbar.collapsed ~ .side{
+      top:66px !important;
+    }
+
+    @media (max-width:980px){
+      .refbar.collapsed{
+        left:8px !important;
+        right:auto !important;
+        top:8px !important;
       }
 
-      button[aria-pressed="true"] {
-        border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
-        background: var(--accent);
-        color: #fff;
+      .refbar.collapsed ~ .side-storage-bar{
+        display:none !important;
       }
 
-      .mode-button.active {
-        border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
-        background: var(--accent);
-        color: #fff;
+      .refbar.collapsed ~ .view-hud{
+        top:8px !important;
+        left:150px !important;
+        right:8px !important;
       }
+    }
 
-      input[type="file"] {
-        position: absolute;
-        inline-size: 1px;
-        block-size: 1px;
-        opacity: 0;
-      }
+  
+    /* Chapter explanation TXT panel */
+    .chapter-text-panel{
+      margin-top:10px;
+      border:1px solid rgba(112,126,116,.24);
+      background:rgba(255,255,255,.52);
+      border-radius:6px;
+      overflow:hidden;
+    }
+    .chapter-text-head{
+      padding:8px 10px;
+      background:#F1EBDD;
+      color:#40584E;
+      font-weight:700;
+      border-bottom:1px solid rgba(112,126,116,.24);
+    }
+    .chapter-text{
+      min-height:72px;
+      max-height:230px;
+      overflow:auto;
+      padding:10px;
+      white-space:pre-wrap;
+      word-break:break-word;
+      line-height:1.65;
+      color:var(--text);
+      font-size:13px;
+    }
+    @media (max-width:980px){ .chapter-text{ max-height:32dvh; } }
 
-      .viewer-shell {
-        position: relative;
-        min-height: 0;
-        overflow: hidden;
-        cursor: grab;
-        user-select: none;
-        touch-action: none;
-      }
+  
+/* quiet AR layout matching 3D viewer */
+:root{
+  --quiet-bg:#f4f1eb;
+  --quiet-surface:rgba(255,250,242,.92);
+  --quiet-strong:#f7efe3;
+  --quiet-text:#292720;
+  --quiet-muted:#746f63;
+  --quiet-line:#ddd2c2;
+  --quiet-accent:#7f8f68;
+  --quiet-shadow:0 18px 44px rgba(75,61,43,.14);
+}
+html,body{
+  background:radial-gradient(circle at 12% 8%, rgba(181,138,100,.18), transparent 32%), linear-gradient(135deg,#f7f3ec 0%,#ece4d7 100%) !important;
+}
+#app{background:transparent !important;}
+#viewer{background:transparent !important;}
+.refbar{
+  top:0 !important;
+  left:0 !important;
+  right:0 !important;
+  display:grid !important;
+  grid-template-columns:auto minmax(260px,1fr) auto auto 40px !important;
+  align-items:center !important;
+  gap:10px !important;
+  min-height:64px !important;
+  padding:10px 14px !important;
+  border:0 !important;
+  border-bottom:1px solid rgba(221,210,194,.85) !important;
+  border-radius:0 !important;
+  background:var(--quiet-surface) !important;
+  box-shadow:0 8px 30px rgba(80,70,52,.08) !important;
+  backdrop-filter:blur(14px) !important;
+  -webkit-backdrop-filter:blur(14px) !important;
+}
+.refbar-head,.refbar-body{display:contents !important; margin:0 !important;}
+.refbar-head > div:first-child{grid-column:1 !important; min-width:128px !important;}
+.rgb-line,.subtitle,#scanBtn,#autoRootBtn,.refbar-body > div:first-child{display:none !important;}
+.title{font-size:18px !important; line-height:1 !important; white-space:nowrap !important; color:var(--quiet-text) !important;}
+.refbar-body > div:has(#chapterSelect){grid-column:2 !important; min-width:0 !important;}
+.refbar-body label{display:none !important;}
+#prevChapterBtn{grid-column:3 !important;}
+#nextChapterBtn{grid-column:4 !important;}
+#collapseRefBtn{
+  grid-column:5 !important;
+  position:static !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  min-width:40px !important;
+  width:40px !important;
+  height:40px !important;
+  padding:0 !important;
+  color:transparent !important;
+  overflow:hidden !important;
+}
+#collapseRefBtn::after{content:"▲" !important; color:var(--quiet-text) !important; font-size:15px !important; line-height:1 !important; font-weight:800 !important;}
+.refbar.collapsed #collapseRefBtn::after{content:"▼" !important;}
+.refbar select,.refbar .btn,.playbar .btn,.playbar select,.playbar input{
+  height:40px !important;
+  border:1px solid var(--quiet-line) !important;
+  border-radius:8px !important;
+  background:rgba(255,250,242,.94) !important;
+  color:var(--quiet-text) !important;
+  box-shadow:none !important;
+}
+.refbar .btn,.playbar .btn{min-width:86px !important; padding:0 12px !important; font-weight:700 !important;}
+.refbar.collapsed{grid-template-columns:1fr 40px !important; min-height:52px !important;}
+.refbar.collapsed .refbar-head > div:first-child{display:block !important; grid-column:1 !important;}
+.refbar.collapsed .refbar-body > div:has(#chapterSelect),
+.refbar.collapsed #prevChapterBtn,
+.refbar.collapsed #nextChapterBtn{display:none !important;}
+.refbar.collapsed #collapseRefBtn{grid-column:2 !important;}
+.playbar{
+  top:76px !important;
+  bottom:auto !important;
+  left:14px !important;
+  right:14px !important;
+  min-height:0 !important;
+  padding:8px !important;
+  display:flex !important;
+  flex-wrap:wrap !important;
+  gap:8px !important;
+  align-items:center !important;
+  border:1px solid rgba(221,210,194,.85) !important;
+  border-radius:8px !important;
+  background:var(--quiet-surface) !important;
+  box-shadow:0 8px 24px rgba(80,70,52,.08) !important;
+  backdrop-filter:blur(14px) !important;
+  -webkit-backdrop-filter:blur(14px) !important;
+  z-index:19 !important;
+}
+.refbar.collapsed ~ .playbar{display:none !important;}
+.refbar:not(.collapsed) ~ .playbar{display:flex !important;}
+.side-storage-bar,
+#objectSide,
+#pdfSide,
+#restartBtn,
+.playbar .speedbox,
+#animationSelect,
+#afterArNextBtn{display:none !important;}
+#back3dBtn{display:inline-flex !important; align-items:center !important; justify-content:center !important; border-color:rgba(184,95,84,.36) !important; background:#fff4ef !important; color:#8e5146 !important;}
+.ar-button{
+  right:22px !important;
+  bottom:22px !important;
+  border-radius:8px !important;
+  background:#7f8f68 !important;
+  color:#fffdf8 !important;
+  box-shadow:var(--quiet-shadow) !important;
+}
+@media (max-width:900px){
+  .refbar{grid-template-columns:1fr auto auto 40px !important; min-height:112px !important;}
+  .refbar-head > div:first-child{grid-column:1 / 4 !important;}
+  .refbar-body > div:has(#chapterSelect){grid-column:1 / -1 !important; grid-row:2 !important;}
+  #prevChapterBtn{grid-column:2 !important; grid-row:3 !important;}
+  #nextChapterBtn{grid-column:3 !important; grid-row:3 !important;}
+  #collapseRefBtn{grid-column:4 !important; grid-row:1 !important;}
+  .playbar{top:124px !important; left:10px !important; right:10px !important;}
+  .refbar.collapsed{min-height:52px !important; grid-template-columns:1fr 40px !important;}
+}
 
-      .viewer-shell.dragging {
-        cursor: grabbing;
-      }
 
-      .plan-space {
-        position: relative;
-        display: grid;
-        place-items: center;
-        min-height: calc(100vh - 101px);
-        overflow: hidden;
-        background-color: #e8eeed;
-        background-image:
-          linear-gradient(color-mix(in srgb, var(--accent) 20%, transparent) 1px, transparent 1px),
-          linear-gradient(90deg, color-mix(in srgb, var(--accent) 20%, transparent) 1px, transparent 1px);
-        background-size: var(--grid-size) var(--grid-size);
-      }
+/* final non-overlap toolbar layout */
+.refbar{
+  min-height:68px !important;
+  height:auto !important;
+  padding:10px 14px !important;
+  z-index:30 !important;
+}
+.playbar{
+  top:86px !important;
+  bottom:auto !important;
+  left:22px !important;
+  right:22px !important;
+  z-index:29 !important;
+  margin:0 !important;
+  transform:none !important;
+  max-height:none !important;
+  overflow:visible !important;
+}
+.refbar:not(.collapsed) ~ .playbar{display:flex !important;}
+.refbar.collapsed ~ .playbar{display:none !important;}
+#viewer{top:0 !important;}
+@media (max-width:900px){
+  .refbar{min-height:112px !important;}
+  .playbar{top:132px !important; left:10px !important; right:10px !important;}
+}
 
-      .plan-scale {
-        position: absolute;
-        left: 14px;
-        bottom: 14px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: color-mix(in srgb, var(--panel) 90%, transparent);
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 700;
-      }
 
-      .plan-scale::before {
-        content: "";
-        display: block;
-        width: var(--grid-size);
-        height: 3px;
-        border-radius: 999px;
-        background: var(--accent);
-      }
+/* hard fixed toolbar positions: no overlap */
+.refbar{
+  position:absolute !important;
+  top:0 !important;
+  left:0 !important;
+  right:0 !important;
+  height:66px !important;
+  min-height:66px !important;
+  max-height:66px !important;
+  display:block !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  z-index:40 !important;
+}
+.refbar-head,
+.refbar-body{
+  display:block !important;
+  position:static !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+.refbar-head > div:first-child,
+.ref-title{
+  position:absolute !important;
+  left:20px !important;
+  top:0 !important;
+  width:150px !important;
+  height:66px !important;
+  display:flex !important;
+  align-items:center !important;
+  min-width:0 !important;
+}
+.title{font-size:20px !important; line-height:1 !important; margin:0 !important;}
+.rgb-line,.subtitle,#scanBtn,#autoRootBtn,.refbar-body > div:first-child,.refbar-body label{display:none !important;}
+.refbar-body > div:has(#chapterSelect){
+  position:absolute !important;
+  left:190px !important;
+  right:344px !important;
+  top:13px !important;
+  height:40px !important;
+  min-width:0 !important;
+}
+#chapterSelect{width:100% !important; height:40px !important;}
+#prevChapterBtn{
+  position:absolute !important;
+  right:204px !important;
+  top:13px !important;
+  width:124px !important;
+  min-width:124px !important;
+  height:40px !important;
+}
+#nextChapterBtn{
+  position:absolute !important;
+  right:64px !important;
+  top:13px !important;
+  width:124px !important;
+  min-width:124px !important;
+  height:40px !important;
+}
+#collapseRefBtn{
+  position:absolute !important;
+  right:12px !important;
+  top:13px !important;
+  width:40px !important;
+  min-width:40px !important;
+  height:40px !important;
+  padding:0 !important;
+}
+.playbar{
+  position:absolute !important;
+  top:78px !important;
+  left:22px !important;
+  right:22px !important;
+  bottom:auto !important;
+  z-index:35 !important;
+  max-height:none !important;
+  overflow-x:auto !important;
+  overflow-y:hidden !important;
+}
+.refbar.collapsed{
+  height:52px !important;
+  min-height:52px !important;
+  max-height:52px !important;
+}
+.refbar.collapsed .refbar-body > div:has(#chapterSelect),
+.refbar.collapsed #prevChapterBtn,
+.refbar.collapsed #nextChapterBtn{display:none !important;}
+.refbar.collapsed .refbar-head > div:first-child,
+.refbar.collapsed .ref-title{height:52px !important;}
+.refbar.collapsed #collapseRefBtn{top:6px !important;}
+.refbar.collapsed ~ .playbar{display:none !important;}
+@media (max-width:900px){
+  .refbar{height:114px !important; min-height:114px !important; max-height:114px !important;}
+  .refbar-head > div:first-child,.ref-title{left:12px !important; top:0 !important; height:50px !important; width:calc(100% - 64px) !important;}
+  .refbar-body > div:has(#chapterSelect){left:12px !important; right:12px !important; top:56px !important;}
+  #prevChapterBtn{left:12px !important; right:auto !important; top:160px !important; display:none !important;}
+  #nextChapterBtn{right:12px !important; top:160px !important; display:none !important;}
+  #collapseRefBtn{right:12px !important; top:8px !important;}
+  .playbar{top:126px !important; left:10px !important; right:10px !important;}
+  .refbar.collapsed{height:52px !important; min-height:52px !important; max-height:52px !important;}
+}
 
-      .plan-origin {
-        position: absolute;
-        width: min(70vw, 70vh);
-        max-width: 520px;
-        aspect-ratio: 1;
-        border: 2px solid color-mix(in srgb, var(--accent) 42%, transparent);
-        transform: rotate(var(--plan-turn, 0deg));
-      }
 
-      .plan-origin::before,
-      .plan-origin::after {
-        content: "";
-        position: absolute;
-        background: color-mix(in srgb, var(--accent) 55%, transparent);
-      }
+/* explanation panel hide/collapse */
+#explanationSide.text-empty,
+#objectSide.text-empty,
+.side.explanation.text-empty{
+  display:none !important;
+}
+#explanationSide.text-collapsed .side-body,
+#objectSide.text-collapsed .side-body,
+.side.explanation.text-collapsed .side-body{
+  display:none !important;
+}
+#explanationSide.text-collapsed,
+#objectSide.text-collapsed,
+.side.explanation.text-collapsed{
+  max-height:44px !important;
+  min-height:0 !important;
+  overflow:hidden !important;
+}
+.text-collapse-btn{
+  margin-left:auto !important;
+  width:34px !important;
+  min-width:34px !important;
+  height:30px !important;
+  padding:0 !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  border:1px solid var(--quiet-line, rgba(112,126,116,.24)) !important;
+  border-radius:8px !important;
+  background:rgba(255,250,242,.94) !important;
+  color:var(--quiet-text,#292720) !important;
+  font-weight:800 !important;
+}
+.side-head{gap:8px !important;}
 
-      .plan-origin::before {
-        left: 50%;
-        top: -10%;
-        width: 2px;
-        height: 120%;
-        transform: translateX(-1px);
-      }
 
-      .plan-origin::after {
-        left: -10%;
-        top: 50%;
-        width: 120%;
-        height: 2px;
-        transform: translateY(-1px);
-      }
+</style>
+</head>
+<body>
+  <div id="app">
+    <button class="btn" id="restoreBarsBtn" type="button" title="バーを表示">表示</button>
+    <input class="storage-check" type="checkbox" id="hideObjectSide">
+    <input class="storage-check" type="checkbox" id="hidePdfSide">
+    <input class="storage-check" type="checkbox" id="focusViewer">
+    <model-viewer
+      id="viewer"
+      camera-controls
+      touch-action="pan-y"
+      shadow-intensity="0.75"
+      exposure="1.1"
+      ar
+      ar-modes="quick-look scene-viewer"
+      ar-scale="auto"
+      ar-placement="floor"
+      scale="1 1 1"
+      autoplay
+      crossorigin="anonymous"
+      camera-orbit="25deg 70deg 130%"
+      min-camera-orbit="auto auto 80%"
+      max-camera-orbit="auto auto 500%"
+    >
+      <button slot="ar-button" class="ar-button" id="nativeArButton">ARで見る</button>
+    </model-viewer>
 
-      .camera-marker {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        width: 18px;
-        height: 18px;
-        border: 3px solid #ffffff;
-        border-radius: 50%;
-        background: #d83232;
-        box-shadow: 0 3px 10px rgb(0 0 0 / 22%);
-        transform: translate(-50%, -50%);
-        z-index: 2;
-      }
-
-      .camera-arrow {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        width: min(22vw, 150px);
-        height: 4px;
-        border-radius: 999px;
-        background: #d83232;
-        box-shadow: 0 3px 10px rgb(0 0 0 / 18%);
-        transform: translateY(-50%) rotate(var(--camera-heading, 38deg));
-        transform-origin: left center;
-        z-index: 1;
-      }
-
-      .camera-arrow::after {
-        content: "";
-        position: absolute;
-        right: -1px;
-        top: 50%;
-        width: 14px;
-        height: 14px;
-        border-top: 4px solid #d83232;
-        border-right: 4px solid #d83232;
-        transform: translateY(-50%) rotate(45deg);
-      }
-
-      .demo-space {
-        position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        overflow: hidden;
-        perspective: 900px;
-        background:
-          linear-gradient(to bottom, rgb(217 228 230), rgb(238 241 238)),
-          radial-gradient(circle at 50% 28%, #fff 0, transparent 48%);
-      }
-
-      .demo-floor {
-        position: absolute;
-        bottom: -14vh;
-        width: 140vw;
-        height: 58vh;
-        transform: rotateX(var(--demo-tilt, 68deg)) rotateZ(var(--demo-turn, 38deg)) translateX(var(--demo-pan, 0px));
-        transform-origin: center bottom;
-        background-image:
-          linear-gradient(color-mix(in srgb, var(--accent) 28%, transparent) 1px, transparent 1px),
-          linear-gradient(90deg, color-mix(in srgb, var(--accent) 28%, transparent) 1px, transparent 1px);
-        background-size: 44px 44px;
-        opacity: 0.72;
-      }
-
-      .demo-card {
-        position: absolute;
-        top: 18px;
-        left: 18px;
-        max-width: min(390px, calc(100vw - 36px));
-        padding: 10px 12px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: color-mix(in srgb, var(--panel) 94%, transparent);
-        color: var(--muted);
-        font-size: 13px;
-        line-height: 1.6;
-      }
-
-      model-viewer {
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        height: 100%;
-        min-height: calc(100vh - 101px);
-        background: transparent;
-        --progress-bar-color: var(--accent);
-        --poster-color: transparent;
-      }
-
-      body.no-model model-viewer {
-        opacity: 0.01;
-        pointer-events: none;
-      }
-
-      .filter-layer {
-        position: absolute;
-        inset: 0;
-        z-index: 2;
-        display: grid;
-        place-items: center;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 160ms ease;
-      }
-
-      .filter-layer.active {
-        opacity: 1;
-      }
-
-      .filter-layer img {
-        width: min(100vw, 100vh * 1.43);
-        height: auto;
-        max-height: 100vh;
-        object-fit: contain;
-      }
-
-      .filter-reticle {
-        position: relative;
-        display: none;
-        width: min(72vw, 72vh);
-        aspect-ratio: 1;
-        border: 4px solid #082d3b;
-        border-radius: 50%;
-      }
-
-      .filter-reticle::before,
-      .filter-reticle::after {
-        content: "";
-        position: absolute;
-        background: #1671b7;
-      }
-
-      .filter-reticle::before {
-        left: 50%;
-        top: -8%;
-        width: 2px;
-        height: 116%;
-        transform: translateX(-1px);
-      }
-
-      .filter-reticle::after {
-        left: -8%;
-        top: 50%;
-        width: 116%;
-        height: 2px;
-        transform: translateY(-1px);
-      }
-
-      .filter-layer.use-reticle img {
-        display: none;
-      }
-
-      .filter-layer.use-reticle .filter-reticle {
-        display: block;
-      }
-
-      .status {
-        position: absolute;
-        z-index: 3;
-        left: 14px;
-        bottom: 14px;
-        max-width: min(520px, calc(100vw - 28px));
-        padding: 9px 12px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: color-mix(in srgb, var(--panel) 92%, transparent);
-        color: var(--muted);
-        font-size: 13px;
-      }
-
-      .fallback {
-        display: grid;
-        place-items: center;
-        min-height: calc(100vh - 63px);
-        padding: 24px;
-        color: var(--muted);
-        text-align: center;
-      }
-
-      @media (max-width: 760px) {
-        header {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-
-        .controls {
-          justify-content: flex-start;
-        }
-
-        body.view-split .split-workspace {
-          grid-template-columns: 1fr;
-        }
-
-        .plan-pane,
-        .viewer-pane {
-          min-height: 52vh;
-          border-left: 0;
-          border-top: 1px solid var(--line);
-        }
-
-        model-viewer {
-          min-height: 52vh;
-        }
-      }
-    </style>
-  </head>
-  <body class="no-model view-3d">
-    <main>
-      <header>
-        <h1>Survey 3D Filter Viewer</h1>
-        <div class="controls">
-          <label for="model-file">3Dモデル</label>
-          <input id="model-file" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" />
-          <label for="ground-file">地面モデル</label>
-          <input id="ground-file" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" />
-          <label for="filter-file">主観フィルタ</label>
-          <input id="filter-file" type="file" accept="image/png,image/jpeg,image/webp" />
-          <button id="subjective-toggle" type="button" aria-pressed="true">主観</button>
-          <button class="mode-button" type="button" data-view="plan">平面</button>
-          <button class="mode-button active" type="button" data-view="3d">3D</button>
-          <button class="mode-button" type="button" data-view="split">分割</button>
+    <section class="refbar" id="refbar">
+      <div class="refbar-head">
+        <div>
+          <div class="rgb-line"></div>
+          <div class="title">ARビュアー</div>
+          <div class="subtitle">AR表示前にモデルと図面を確認できます</div>
         </div>
-      </header>
-
-      <div class="split-workspace">
-        <section class="plan-pane" aria-label="plan view">
-          <div class="pane-title">左: 平面ビュー</div>
-          <div class="plan-space">
-            <div class="plan-origin" aria-hidden="true"></div>
-            <div class="camera-arrow" aria-hidden="true"></div>
-            <div class="camera-marker" aria-hidden="true"></div>
-            <div class="plan-scale">1マス = 1000mm</div>
-          </div>
-        </section>
-
-        <section class="viewer-pane" aria-label="3D view">
-          <div class="pane-title">右: 3Dビュー</div>
-          <div class="viewer-shell">
-            <div class="demo-space" aria-hidden="true">
-              <div class="demo-floor"></div>
-            </div>
-
-            <model-viewer
-              id="viewer"
-              src="models/movable/model.glb"
-              camera-controls
-              camera-target="0m 1.5m 0m"
-              camera-orbit="0deg 82deg 6m"
-              field-of-view="45deg"
-              auto-rotate
-              ar
-              shadow-intensity="0.85"
-              exposure="1"
-              alt="Survey 3D model"
-            >
-              <div class="fallback" slot="error">
-                models/movable/model.glb が見つかりません。models/movableフォルダに動かせるモデルを置くか、「3Dモデル」から .glb/.gltf を選択してください。
-              </div>
-            </model-viewer>
-
-            <div id="subjective-filter" class="filter-layer active" aria-hidden="true">
-              <img class="filter-image" src="filters/subjective-filter.png" alt="" />
-              <div class="filter-reticle"></div>
-            </div>
-
-          </div>
-        </section>
+        <button class="btn" id="collapseRefBtn">上部バー収納</button>
+        <button class="btn lime" id="scanBtn">参照読込</button>
       </div>
-    </main>
 
-    <script>
-      const viewer = document.querySelector("#viewer");
-      const viewerShell = document.querySelector(".viewer-shell");
-      const modelInput = document.querySelector("#model-file");
-      const groundInput = document.querySelector("#ground-file");
-      const filterInput = document.querySelector("#filter-file");
-      const filterLayers = document.querySelectorAll(".filter-layer");
-      const filterImages = document.querySelectorAll(".filter-image");
-      const subjectiveToggle = document.querySelector("#subjective-toggle");
-      const modeButtons = document.querySelectorAll(".mode-button");
-      const status = document.querySelector("#status");
+      <div class="refbar-body">
+        <div>
+          <label>参照フォルダ</label>
+          <input id="rootInput" value="teaching-contest" placeholder="teaching-contest または 教材コンクール">
+        </div>
+        <button class="btn" id="autoRootBtn">自動検出</button>
+        <div>
+          <label>チャプターフォルダ</label>
+          <select id="chapterSelect">
+            <option value="">未読込</option>
+          </select>
+        </div>
+        <button class="btn" id="prevChapterBtn">前CH</button>
+        <button class="btn" id="nextChapterBtn">次CH</button>
+      </div>
+    </section>
 
-      let modelUrl;
-      let groundUrl;
-      let filterUrl;
-      const modelCandidates = ["models/movable/model.glb", "models/model.glb"];
-      let modelCandidateIndex = 0;
-      let usingUploadedModel = false;
-      let modelName = modelCandidates[modelCandidateIndex];
-      let groundName = "models/ground/ground.glb";
-      let filterName = "filters/subjective-filter.png";
-      const eyeHeightMeters = 1.5;
-      let dragging = false;
-      let lastPointerX = 0;
-      let lastPointerY = 0;
-      let demoTurn = 38;
-      let demoTilt = 68;
-      let demoPan = 0;
+    <section class="side-storage-bar" id="sideStorageBar">
+      <label class="storage-label object" for="hideObjectSide">
+        <span class="opened">左サイドバー収納</span>
+        <span class="closed">左サイドバー展開</span>
+      </label>
+      <label class="storage-label pdf" for="hidePdfSide">
+        <span class="opened">右サイドバー収納</span>
+        <span class="closed">右サイドバー展開</span>
+      </label>
+      <label class="storage-label focus" for="focusViewer">
+        <span class="opened">表示優先</span>
+        <span class="closed">操作パネル復帰</span>
+      </label>
+    </section>
 
-      function updateStatus() {
-        if (status) {
-          status.textContent = `model: ${modelName} / ground: ${groundName} / filter: ${filterName} / 視点高: 1500mm / 左ドラッグで視点変更`;
+    <aside class="side left" id="objectSide">
+      <div class="side-head">モデル操作</div>
+      <div class="side-body">
+        <div class="info-row"><div class="k">CHAPTER</div><div class="v" id="chapterNameText">未選択</div></div>
+        <div class="info-row"><div class="k">MODEL</div><div class="v" id="modelPathText">未読込</div></div>
+        <div class="info-row"><div class="k">USDZ</div><div class="v" id="iosModelPathText">未読込</div></div>
+        <div class="info-row"><div class="k">TEXT</div><div class="v" id="chapterTextPathText">未読込</div></div>
+
+        <div class="chapter-text-panel">
+          <div class="chapter-text-head">解説文</div>
+          <div class="chapter-text" id="chapterTextBox">CHフォルダ内のTXTを読み込みます。</div>
+        </div>
+
+        <div class="grid2">
+          <button class="btn lime" id="arStartBtn">ARで見る</button>
+          <button class="btn" id="resetViewBtn">視点リセット</button>
+        </div>
+
+        <div class="grid2">
+          <button class="btn" id="recordStartBtn">録画開始</button>
+          <button class="btn magenta" id="recordStopBtn" disabled>録画停止</button>
+        </div>
+
+        <div class="grid2">
+          <button class="btn" id="modelUrlBtn">GLB URL表示</button>
+          <button class="btn lime" id="directUsdZBtn">USDZ直接</button>
+        </div>
+
+        <div class="grid2">
+          <button class="btn" id="iosModelUrlBtn">USDZ URL表示</button>
+          <button class="btn magenta" id="clearModelBtn">モデル消去</button>
+        </div>
+
+        <label>CH01基準モデル補正</label>
+        <div class="grid2">
+          <button class="btn" id="chapterCorrectionBtn">モデル補正OFF</button>
+          <button class="btn" id="chapterCorrectionApplyBtn">補正再反映</button>
+        </div>
+        <div class="status" id="chapterCorrectionStatus">CH01基準モデル補正: 待機中</div>
+
+        <div class="status" id="objectStatus">OBJECT READY</div>
+      </div>
+    </aside>
+
+    <aside class="side right" id="pdfSide">
+      <div class="side-head">図面PDF操作</div>
+      <div class="side-body">
+        <div class="info-row"><div class="k">床PDF</div><div class="v" id="pdfFloorPathText">未読込</div></div>
+        <img id="pdfFloorPreview" class="pdf-preview" alt="floor PDF preview">
+
+        <div class="info-row"><div class="k">側面PDF</div><div class="v" id="pdfSidePathText">未読込</div></div>
+        <img id="pdfSidePreview" class="pdf-preview" alt="side PDF preview">
+
+        <div class="status" id="pdfScaleReadout">縮尺換算: 未設定</div>
+
+        <div class="grid2">
+          <div>
+            <label>取り込んだPDFの縮尺 1/</label>
+            <input id="pdfCurrentScaleInput" type="number" min="1" step="1" value="20">
+          </div>
+          <div>
+            <label>変更したい縮尺 1/</label>
+            <input id="pdfTargetScaleInput" type="number" min="1" step="1" value="70">
+          </div>
+        </div>
+
+        <div class="grid2">
+          <button class="btn lime" id="applyPdfScaleBtn">縮尺反映</button>
+          <button class="btn" id="resetPdfScaleBtn">縮尺初期化</button>
+        </div>
+
+        <div class="status" id="pdfStatus">PDF READY</div>
+        <div class="status">PDFが2つある場合は、床PDFと側面PDFとしてプレビューします。実ARへ渡すのはGLB/GLTFモデルです。</div>
+      </div>
+    </aside>
+
+    <section class="playbar">
+      <button class="btn" id="prevBottomBtn">前CH</button>
+      <button class="btn lime" id="playPauseBtn">再生</button>
+      <button class="btn" id="restartBtn">最初から</button>
+
+      <div class="speedbox">
+        <span>速度</span>
+        <input id="speedRange" type="range" min="0.05" max="2.0" step="0.05" value="0.80">
+        <span id="speedText">0.80x</span>
+      </div>
+
+      <select id="animationSelect">
+        <option value="">アニメーションなし</option>
+      </select>
+      <button class="btn" id="afterArNextBtn">AR後次CH OFF</button>
+      <button class="btn magenta" id="back3dBtn">3Dへ戻る</button>
+    </section>
+
+    <section class="mobile-quick-panel" id="mobileQuickPanel">
+      <button class="btn" id="mobileAfterArNextBtn">AR後次CH OFF</button>
+      <button class="btn lime" id="mobileNextArBtn">次CH→AR</button>
+      <button class="btn" id="mobileOpenRefBtn">CH選択</button>
+      <button class="btn" id="mobileOpenObjectBtn">モデル切替</button>
+      <button class="btn lime" id="mobileOpenPdfBtn">PDF表示</button>
+      <button class="btn" id="mobileOpenAnimBtn">再生詳細</button>
+      <button class="btn" id="mobileResetViewBtn">視点リセット</button>
+      <button class="btn" id="mobileRecordStartBtn">録画開始</button>
+      <button class="btn magenta" id="mobileRecordStopBtn" disabled>録画停止</button>
+      <button class="btn" id="mobileDirectUsdZBtn">USDZ直接</button>
+      <button class="btn magenta" id="mobileBack3dBtn">3Dへ戻る</button>
+      <button class="btn magenta" id="mobileClosePanelsBtn">閉じる</button>
+    </section>
+
+    <section class="mobile-dock" id="mobileDock">
+      <button class="btn" id="mobilePrevBtn">前</button>
+      <button class="btn lime" id="mobilePlayBtn">再生</button>
+      <button class="btn lime" id="mobileArBtn">AR</button>
+      <button class="btn" id="mobileNextBtn">次</button>
+      <button class="btn magenta" id="mobilePanelBtn">メニュー</button>
+    </section>
+  </div>
+
+  <script type="module">
+    import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
+
+    const GITHUB_OWNER = "ASKR-created";
+    const GITHUB_REPO = "ASKR-created.github.io";
+    const GITHUB_REF = "main";
+
+    const ROOT_CANDIDATES = [
+      "teaching-contest",
+      "teaching_contest",
+      "teachingContest",
+      "kyozai-contest",
+      "kyozai_contest",
+      "教材コンクール"
+    ];
+
+    const GLB_EXTS = [".glb", ".gltf"];
+    const USDZ_EXTS = [".usdz"];
+    const MODEL_EXTS = [".glb", ".gltf", ".usdz"];
+    const PDF_EXTS = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
+    const TXT_EXTS = [".txt"];
+
+    const app = document.getElementById("app");
+    const restoreBarsBtn = document.getElementById("restoreBarsBtn");
+    const viewer = document.getElementById("viewer");
+    const refbar = document.getElementById("refbar");
+    const collapseRefBtn = document.getElementById("collapseRefBtn");
+    const scanBtn = document.getElementById("scanBtn");
+    const autoRootBtn = document.getElementById("autoRootBtn");
+    const rootInput = document.getElementById("rootInput");
+    const chapterSelect = document.getElementById("chapterSelect");
+    const prevChapterBtn = document.getElementById("prevChapterBtn");
+    const nextChapterBtn = document.getElementById("nextChapterBtn");
+    const chapterNameText = document.getElementById("chapterNameText");
+    const modelPathText = document.getElementById("modelPathText");
+    const iosModelPathText = document.getElementById("iosModelPathText");
+    const chapterTextPathText = document.getElementById("chapterTextPathText");
+    const chapterTextBox = document.getElementById("chapterTextBox");
+    const pdfFloorPathText = document.getElementById("pdfFloorPathText");
+    const pdfSidePathText = document.getElementById("pdfSidePathText");
+    const pdfFloorPreview = document.getElementById("pdfFloorPreview");
+    const pdfSidePreview = document.getElementById("pdfSidePreview");
+    const pdfScaleReadout = document.getElementById("pdfScaleReadout");
+    const pdfCurrentScaleInput = document.getElementById("pdfCurrentScaleInput");
+    const pdfTargetScaleInput = document.getElementById("pdfTargetScaleInput");
+    const applyPdfScaleBtn = document.getElementById("applyPdfScaleBtn");
+    const resetPdfScaleBtn = document.getElementById("resetPdfScaleBtn");
+    const objectStatus = document.getElementById("objectStatus");
+    const pdfStatus = document.getElementById("pdfStatus");
+    const arStartBtn = document.getElementById("arStartBtn");
+    const resetViewBtn = document.getElementById("resetViewBtn");
+    const recordStartBtn = document.getElementById("recordStartBtn");
+    const recordStopBtn = document.getElementById("recordStopBtn");
+    const modelUrlBtn = document.getElementById("modelUrlBtn");
+    const iosModelUrlBtn = document.getElementById("iosModelUrlBtn");
+    const directUsdZBtn = document.getElementById("directUsdZBtn");
+    const clearModelBtn = document.getElementById("clearModelBtn");
+    const chapterCorrectionBtn = document.getElementById("chapterCorrectionBtn");
+    const chapterCorrectionApplyBtn = document.getElementById("chapterCorrectionApplyBtn");
+    const chapterCorrectionStatus = document.getElementById("chapterCorrectionStatus");
+    const prevBottomBtn = document.getElementById("prevBottomBtn");
+    const playPauseBtn = document.getElementById("playPauseBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const speedRange = document.getElementById("speedRange");
+    const speedText = document.getElementById("speedText");
+    const animationSelect = document.getElementById("animationSelect");
+    const afterArNextBtn = document.getElementById("afterArNextBtn");
+    const back3dBtn = document.getElementById("back3dBtn");
+
+    const mobileQuickPanel = document.getElementById("mobileQuickPanel");
+    const mobilePrevBtn = document.getElementById("mobilePrevBtn");
+    const mobilePlayBtn = document.getElementById("mobilePlayBtn");
+    const mobileNextBtn = document.getElementById("mobileNextBtn");
+    const mobileArBtn = document.getElementById("mobileArBtn");
+    const mobilePanelBtn = document.getElementById("mobilePanelBtn");
+    const mobileBack3dBtn = document.getElementById("mobileBack3dBtn");
+    const mobileRecordStartBtn = document.getElementById("mobileRecordStartBtn");
+    const mobileRecordStopBtn = document.getElementById("mobileRecordStopBtn");
+    const mobileAfterArNextBtn = document.getElementById("mobileAfterArNextBtn");
+    const mobileNextArBtn = document.getElementById("mobileNextArBtn");
+    const mobileOpenRefBtn = document.getElementById("mobileOpenRefBtn");
+    const mobileOpenObjectBtn = document.getElementById("mobileOpenObjectBtn");
+    const mobileOpenPdfBtn = document.getElementById("mobileOpenPdfBtn");
+    const mobileOpenAnimBtn = document.getElementById("mobileOpenAnimBtn");
+    const mobileResetViewBtn = document.getElementById("mobileResetViewBtn");
+    const mobileDirectUsdZBtn = document.getElementById("mobileDirectUsdZBtn");
+    const mobileClosePanelsBtn = document.getElementById("mobileClosePanelsBtn");
+
+    let chapters = [];
+    let currentChapterIndex = -1;
+    let currentRoot = "";
+    let currentModel = "";
+    let currentIosModel = "";
+    let playSpeed = 0.8;
+    let isPaused = false;
+
+    const AR_AFTER_NEXT_KEY = "teachingContestArAfterNext_v61";
+    const AR_PENDING_KEY = "teachingContestArPending_v61";
+    const AR_LAST_STATE_KEY = "teachingContestArLastState_v61";
+
+    let autoAdvanceAfterAR = localStorage.getItem(AR_AFTER_NEXT_KEY) === "1";
+    let arLaunchPending = false;
+    let arReturnObservedHidden = false;
+
+    let chapterCorrectionEnabled = false;
+    let chapterCorrectionFactor = 1.0;
+    const CHAPTER_BASELINE_TARGET_SCALE = 70;
+    const CHAPTER_TARGET_SCALE_MAP = {
+      "CH01": 70,
+      "CH02": 78
+    };
+
+    const params = new URLSearchParams(location.search);
+    const initialRoot = params.get("root") ? decodeURIComponent(params.get("root")) : "";
+    const initialChapter = params.get("chapter") ? decodeURIComponent(params.get("chapter")) : "";
+
+
+    function isIOSLike(){
+      return /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    }
+
+    function isSafariLike(){
+      const ua = navigator.userAgent;
+      return /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|Android/i.test(ua);
+    }
+
+    async function copyTextToClipboard(text){
+      try{
+        if (navigator.clipboard && window.isSecureContext){
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      }catch(err){
+        console.warn("clipboard api failed", err);
+      }
+
+      try{
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return ok;
+      }catch(err){
+        console.warn("fallback copy failed", err);
+        return false;
+      }
+    }
+
+    async function askOpenInSafariIfNeeded(){
+      // v61:
+      // iPhone ChromeでそのままAR起動を試す。
+      // Safari誘導・共有シート誘導は行わない。
+      return true;
+    }
+
+    function getIosModelUrl(){
+      return currentIosModel ? toAssetUrl(currentIosModel) : "";
+    }
+
+    function openUsdZDirectly(){
+      const url = getIosModelUrl();
+      if (!url){
+        alert("このチャプターにはUSDZが見つかりません。\n\niPhone ChromeでARを試す場合は、同じCHフォルダ内に .usdz を入れてください。");
+        setObjectStatus("USDZ DIRECT ERROR: USDZなし");
+        return;
+      }
+      markArLaunchPending();
+      setObjectStatus("USDZ直接起動を試行: " + url);
+      window.location.href = url;
+    }
+
+    function showIosModelUrl(){
+      const url = getIosModelUrl();
+      if (!url){
+        alert("USDZが未読込です。同じCHフォルダ内に .usdz を入れてください。");
+        return;
+      }
+      prompt("USDZ URL", url);
+    }
+
+    function saveCurrentViewerState(){
+      const ch = chapters[currentChapterIndex];
+
+      try{
+        localStorage.setItem(AR_LAST_STATE_KEY, JSON.stringify({
+          root: currentRoot || "",
+          chapter: ch ? ch.name : "",
+          index: currentChapterIndex,
+          ts: Date.now()
+        }));
+      }catch(err){
+        console.warn("save state failed", err);
+      }
+    }
+
+    function markArLaunchPending(){
+      const ch = chapters[currentChapterIndex];
+      arLaunchPending = true;
+      arReturnObservedHidden = false;
+      saveCurrentViewerState();
+
+      try{
+        localStorage.setItem(AR_PENDING_KEY, JSON.stringify({
+          root: currentRoot || "",
+          chapter: ch ? ch.name : "",
+          index: currentChapterIndex,
+          afterNext: autoAdvanceAfterAR,
+          ts: Date.now()
+        }));
+      }catch(err){
+        console.warn("pending save failed", err);
+      }
+    }
+
+    function clearArLaunchPending(){
+      arLaunchPending = false;
+      arReturnObservedHidden = false;
+      try{
+        localStorage.removeItem(AR_PENDING_KEY);
+      }catch(err){
+        console.warn("pending clear failed", err);
+      }
+    }
+
+    function updateAfterArNextButtons(){
+      const text = autoAdvanceAfterAR ? "AR後次CH ON" : "AR後次CH OFF";
+
+      if (afterArNextBtn){
+        afterArNextBtn.textContent = text;
+        afterArNextBtn.classList.toggle("lime", autoAdvanceAfterAR);
+      }
+
+      if (mobileAfterArNextBtn){
+        mobileAfterArNextBtn.textContent = text;
+        mobileAfterArNextBtn.classList.toggle("lime", autoAdvanceAfterAR);
+      }
+    }
+
+    function toggleAfterArNext(){
+      autoAdvanceAfterAR = !autoAdvanceAfterAR;
+      localStorage.setItem(AR_AFTER_NEXT_KEY, autoAdvanceAfterAR ? "1" : "0");
+      updateAfterArNextButtons();
+      setObjectStatus(autoAdvanceAfterAR ? "ARから戻ったら次CHへ進みます。" : "ARから戻っても現在CHを保持します。");
+    }
+
+    async function handleReturnFromAR(reason="return"){
+      let pending = null;
+
+      try{
+        const raw = localStorage.getItem(AR_PENDING_KEY);
+        pending = raw ? JSON.parse(raw) : null;
+      }catch(err){
+        pending = null;
+      }
+
+      if (!pending && !arLaunchPending) return;
+
+      if (pending && pending.ts && Date.now() - pending.ts > 1000 * 60 * 20){
+        clearArLaunchPending();
+        return;
+      }
+
+      const shouldNext = autoAdvanceAfterAR || (pending && pending.afterNext);
+
+      clearArLaunchPending();
+
+      if (shouldNext && chapters.length > 0){
+        setObjectStatus("ARから戻りました。次CHへ進みます。");
+        await changeChapter(1);
+      }else{
+        setObjectStatus("ARから戻りました。現在CHを保持しています。");
+      }
+    }
+
+    async function nextChapterAndOpenAR(){
+      if (chapters.length === 0) return;
+      await changeChapter(1);
+      closeMobilePanels();
+      setTimeout(() => openAR(), 350);
+    }
+
+    function setObjectStatus(text){
+      objectStatus.textContent = text;
+      console.log("[OBJECT]", text);
+    }
+
+    function setPdfStatus(text){
+      pdfStatus.textContent = text;
+      console.log("[PDF]", text);
+    }
+
+    function normalizePath(path){
+      return String(path || "").trim().replace(/\\/g,"/").replace(/^\/+/,"").replace(/\/+$/,"");
+    }
+
+    function encodePath(path){
+      return normalizePath(path).split("/").map(part => encodeURIComponent(part)).join("/");
+    }
+
+    function toAssetUrl(path){
+      if (!path) return "";
+      if (/^https?:\/\//i.test(path)) return path;
+      const assetPath = encodePath(path);
+      if (location.protocol === "file:"){
+        return `https://${GITHUB_REPO}/${assetPath}`;
+      }
+      return `${location.origin}/${assetPath}`;
+    }
+
+
+    function toRawAssetUrl(path){
+      if (!path) return "";
+      if (/^https?:\/\//i.test(path)) return path;
+      return `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_REF}/${encodePath(path)}`;
+    }
+
+    async function fetchManifestResponse(manifestPath){
+      const assetUrl = toAssetUrl(manifestPath);
+      const url = assetUrl + (assetUrl.includes("?") ? "&" : "?") + "_=" + Date.now();
+      let res = await fetch(url, {cache:"no-store"});
+      if (!res.ok && location.protocol === "file:"){
+        const rawUrl = toRawAssetUrl(manifestPath) + "?_=" + Date.now();
+        res = await fetch(rawUrl, {cache:"no-store"});
+      }
+      return res;
+    }
+
+    function getExt(path){
+      const m = String(path).toLowerCase().match(/\.[^.\/?#]+$/);
+      return m ? m[0] : "";
+    }
+
+    function getBaseName(path){
+      return String(path).split("/").pop() || path;
+    }
+
+    async function fetchGitHubContents(path){
+      const safePath = path ? "/" + encodePath(path) : "";
+      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents${safePath}?ref=${encodeURIComponent(GITHUB_REF)}&_=${Date.now()}`;
+      const res = await fetch(url, {headers:{"Accept":"application/vnd.github+json"}});
+      if (!res.ok) throw new Error(`GitHub API ${res.status}: ${path || "/"}`);
+      return await res.json();
+    }
+
+    function pdfRoleScore(path, role){
+      const name = getBaseName(path).toLowerCase();
+
+      if (role === "floor"){
+        if (name.includes("平面") || name.includes("床") || name.includes("floor") || name.includes("ground") || name.includes("plan")) return 100;
+        if (name.includes("base") || name.includes("ベース")) return 50;
+        return 0;
+      }
+
+      if (role === "side"){
+        if (name.includes("側面") || name.includes("立面") || name.includes("壁") || name.includes("side") || name.includes("wall") || name.includes("elevation")) return 100;
+        return 0;
+      }
+
+      return 0;
+    }
+
+    function chooseFloorAndSidePdfs(pdfFiles){
+      const pdfs = [...pdfFiles].sort((a,b) => a.path.localeCompare(b.path, "ja"));
+      if (pdfs.length === 0) return { floorPdf:"", sidePdf:"", pdfs:[] };
+
+      let floor = pdfs[0];
+      let side = pdfs.length >= 2 ? pdfs[1] : null;
+
+      const floorCandidate = [...pdfs].sort((a,b) => pdfRoleScore(b.path, "floor") - pdfRoleScore(a.path, "floor"))[0];
+      if (floorCandidate && pdfRoleScore(floorCandidate.path, "floor") > 0) floor = floorCandidate;
+
+      const sideCandidate = [...pdfs]
+        .filter(p => p.path !== floor.path)
+        .sort((a,b) => pdfRoleScore(b.path, "side") - pdfRoleScore(a.path, "side"))[0];
+
+      if (sideCandidate && (pdfRoleScore(sideCandidate.path, "side") > 0 || pdfs.length >= 2)) side = sideCandidate;
+
+      return {
+        floorPdf: floor ? floor.path : "",
+        sidePdf: side ? side.path : "",
+        pdfs: pdfs.map(p => p.path)
+      };
+    }
+
+    async function scanChapter(chapterPath){
+      const items = await fetchGitHubContents(chapterPath);
+      const files = Array.isArray(items) ? items.filter(item => item.type === "file") : [];
+      const glbModel = files.find(f => GLB_EXTS.includes(getExt(f.path))) || null;
+      const usdzModel = files.find(f => USDZ_EXTS.includes(getExt(f.path))) || null;
+      const fallbackModel = files.find(f => MODEL_EXTS.includes(getExt(f.path))) || null;
+      const pdfFiles = files.filter(f => PDF_EXTS.includes(getExt(f.path)));
+      const textFile = files.find(f => TXT_EXTS.includes(getExt(f.path))) || null;
+      const chosen = chooseFloorAndSidePdfs(pdfFiles);
+
+      return {
+        name:getBaseName(chapterPath),
+        path:chapterPath,
+        model:glbModel ? glbModel.path : (fallbackModel ? fallbackModel.path : ""),
+        iosModel:usdzModel ? usdzModel.path : "",
+        pdf:chosen.floorPdf,
+        floorPdf:chosen.floorPdf,
+        sidePdf:chosen.sidePdf,
+        pdfs:chosen.pdfs,
+        textPath:textFile ? textFile.path : "",
+        files:files.map(f => f.path)
+      };
+    }
+
+
+    /* AR_CH_MANIFEST_HELPER_V1: root manifest + per-CH manifest fallback. */
+    async function fetchViewerManifest(root){
+      const manifestPath = normalizePath(root) + "/viewer_manifest.json";
+      const res = await fetchManifestResponse(manifestPath);
+      if (!res.ok) throw new Error("viewer_manifest " + res.status);
+      const data = await res.json();
+      const list = Array.isArray(data.chapters) ? data.chapters : [];
+      return list.map(ch => ({
+        name: ch.name || getBaseName(ch.path || ""),
+        path: normalizePath(ch.path || (normalizePath(root) + "/" + (ch.name || ""))),
+        model: normalizePath(ch.model || ch.glb || ch.gltf || ""),
+        iosModel: normalizePath(ch.iosModel || ch.usdz || ""),
+        pdf: normalizePath(ch.pdf || ch.floorPdf || ""),
+        floorPdf: normalizePath(ch.floorPdf || ch.pdf || ""),
+        sidePdf: normalizePath(ch.sidePdf || ""),
+        pdfs: Array.isArray(ch.pdfs) ? ch.pdfs.map(normalizePath) : [],
+        textPath: normalizePath(ch.textPath || ch.txt || ""),
+        files: Array.isArray(ch.files) ? ch.files.map(normalizePath) : []
+      }));
+    }
+
+    async function fetchChapterManifest(root, chapterName){
+      const chapterRoot = normalizePath(root) + "/" + chapterName;
+      const manifestPath = chapterRoot + "/viewer_manifest.json";
+      const res = await fetchManifestResponse(manifestPath);
+      if (!res.ok) return null;
+      const data = await res.json();
+      const withRoot = p => {
+        const v = String(p || "").trim();
+        if (!v) return "";
+        return v.includes("/") ? normalizePath(v) : chapterRoot + "/" + v;
+      };
+      const files = [];
+      const addFile = p => { const v = withRoot(p); if (v && !files.includes(v)) files.push(v); };
+      const explicitFiles = data.files || data.items || data.assets || data.entries || [];
+      explicitFiles.forEach(addFile);
+      [data.model, data.glb, data.gltf, data.iosModel, data.usdz, data.pdf, data.floorPdf, data.sidePdf, data.textPath, data.txt].forEach(addFile);
+      (data.pdfs || data.pdfFiles || []).forEach(addFile);
+      const findExt = exts => files.find(p => exts.includes(getExt(p))) || "";
+      const pdfs = [...new Set((data.pdfs || data.pdfFiles || files.filter(p => PDF_EXTS.includes(getExt(p)))).map(withRoot).filter(Boolean))];
+      const chosen = chooseFloorAndSidePdfs(pdfs.map(p => ({path:p})));
+      return {
+        name: chapterName,
+        path: chapterRoot,
+        model: withRoot(data.model || data.glb || data.gltf) || findExt(GLB_EXTS) || findExt(MODEL_EXTS),
+        iosModel: withRoot(data.iosModel || data.usdz) || findExt(USDZ_EXTS),
+        pdf: withRoot(data.pdf) || chosen.floorPdf,
+        floorPdf: withRoot(data.floorPdf) || chosen.floorPdf,
+        sidePdf: withRoot(data.sidePdf) || chosen.sidePdf,
+        pdfs: chosen.pdfs,
+        textPath: withRoot(data.textPath || data.txt) || findExt(TXT_EXTS),
+        files
+      };
+    }
+
+    function ensureExpectedChapters(list, root){
+      const result = Array.isArray(list) ? [...list] : [];
+      const expected = Array.from({length:7}, (_v, i) => "CH" + String(i + 1).padStart(2, "0"));
+      expected.forEach(name => {
+        if (!result.some(ch => ch.name === name)) result.push({name, path: normalizePath(root) + "/" + name, model:"", iosModel:"", pdf:"", floorPdf:"", sidePdf:"", pdfs:[], textPath:"", files:[]});
+      });
+      result.sort((a,b)=>String(a.name || "").localeCompare(String(b.name || ""), "ja", {numeric:true}));
+      return result;
+    }
+
+    async function mergeChapterManifests(root, baseList){
+      const result = Array.isArray(baseList) ? [...baseList] : [];
+      const expected = Array.from({length:7}, (_v, i) => "CH" + String(i + 1).padStart(2, "0"));
+      await Promise.all(expected.map(async name => {
+        try{
+          const ch = await fetchChapterManifest(root, name);
+          if (!ch) return;
+          const idx = result.findIndex(item => item.name === name);
+          if (idx >= 0) result[idx] = {...result[idx], ...ch};
+          else result.push(ch);
+        }catch(err){ console.warn("chapter manifest skipped:", name, err.message); }
+      }));
+      return ensureExpectedChapters(result, root);
+    }
+
+    async function scanRoot(root){
+      root = normalizePath(root);
+      try{
+        const manifestChapters = await fetchViewerManifest(root);
+        return await mergeChapterManifests(root, manifestChapters);
+      }catch(manifestErr){
+        console.warn("viewer_manifest fallback to GitHub API:", manifestErr.message);
+      }
+      const items = await fetchGitHubContents(root);
+      const dirs = Array.isArray(items) ? items.filter(item => item.type === "dir") : [];
+      const result = [];
+      for (const d of dirs){
+        const ch = await scanChapter(d.path);
+        if (ch.model || ch.iosModel || ch.pdf) result.push(ch);
+      }
+      result.sort((a,b) => a.name.localeCompare(b.name, "ja"));
+      return await mergeChapterManifests(root, result);
+    }
+
+    async function autoDetectRoot(){
+      for (const candidate of ROOT_CANDIDATES){
+        try{
+          const result = await scanRoot(candidate);
+          if (result.length > 0){
+            rootInput.value = candidate;
+            chapters = result;
+            currentRoot = candidate;
+            populateChapters();
+            setObjectStatus(`参照フォルダ検出: ${candidate}`);
+            return true;
+          }
+        }catch(err){
+          console.warn("root skipped:", candidate, err.message);
         }
       }
 
-      function updateDemoCamera() {
-        viewerShell.style.setProperty("--demo-turn", `${demoTurn}deg`);
-        viewerShell.style.setProperty("--demo-tilt", `${demoTilt}deg`);
-        viewerShell.style.setProperty("--demo-pan", `${demoPan}px`);
-        document.body.style.setProperty("--camera-heading", `${demoTurn}deg`);
+      setObjectStatus("参照フォルダが見つかりません。");
+      return false;
+    }
+
+    async function loadReferenceRoot(){
+      const root = normalizePath(rootInput.value || "");
+      if (!root){
+        await autoDetectRoot();
+        return;
       }
 
-      function setFilterReticleMode(useReticle) {
-        filterLayers.forEach((layer) => {
-          layer.classList.toggle("use-reticle", useReticle);
-        });
+      try{
+        chapters = await scanRoot(root);
+        currentRoot = root;
+        populateChapters();
+        setObjectStatus(`参照読込: ${root} / ${chapters.length} chapters`);
+
+        if (chapters.length > 0){
+          let index = 0;
+          if (initialChapter){
+            const found = chapters.findIndex(ch => ch.name === initialChapter || ch.path.endsWith("/" + initialChapter));
+            if (found >= 0) index = found;
+          }
+          await loadChapter(index);
+        }
+      }catch(err){
+        console.error(err);
+        setObjectStatus("参照読込失敗: " + err.message);
+        alert("参照フォルダの読み込みに失敗しました。\n\n" + root + "\n\n" + err.message);
+      }
+    }
+
+    function populateChapters(){
+      chapterSelect.innerHTML = "";
+
+      if (chapters.length === 0){
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "チャプターなし";
+        chapterSelect.appendChild(opt);
+        return;
       }
 
-      function setFilterSource(src) {
-        filterImages.forEach((image) => {
-          image.src = src;
-        });
+      for (let i=0; i<chapters.length; i++){
+        const ch = chapters[i];
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = `${ch.name} / ${ch.model ? getBaseName(ch.model) : "modelなし"} / PDF ${ch.pdfs ? ch.pdfs.length : (ch.pdf ? 1 : 0)}枚`;
+        chapterSelect.appendChild(opt);
+      }
+    }
+
+
+    function normalizeChapterName(name){
+      const raw = String(name || "").trim();
+      const match = raw.match(/CH\s*0*(\d+)/i);
+      if (!match) return raw;
+      return "CH" + String(parseInt(match[1], 10)).padStart(2, "0");
+    }
+
+    function getCurrentChapterName(){
+      const ch = chapters[currentChapterIndex];
+      return ch ? String(ch.name || "") : "";
+    }
+
+    function getChapterTargetScale(){
+      const key = normalizeChapterName(getCurrentChapterName());
+      return CHAPTER_TARGET_SCALE_MAP[key] || CHAPTER_BASELINE_TARGET_SCALE;
+    }
+
+    function updateChapterCorrectionStatus(){
+      chapterCorrectionFactor = chapterCorrectionEnabled
+        ? (getChapterTargetScale() / CHAPTER_BASELINE_TARGET_SCALE)
+        : 1.0;
+
+      const chName = normalizeChapterName(getCurrentChapterName()) || "未選択";
+      const target = getChapterTargetScale();
+      const factorText = chapterCorrectionFactor.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+
+      if (chapterCorrectionStatus){
+        chapterCorrectionStatus.textContent =
+          `ARモデル補正: ${chapterCorrectionEnabled ? "ON" : "OFF"} / ${chName} / PDFは1/20→1/70固定 / モデルだけ×${factorText} / 参考:${target}`;
       }
 
-      modelInput.addEventListener("change", () => {
-        const file = modelInput.files && modelInput.files[0];
-        if (!file) return;
+      if (chapterCorrectionBtn){
+        chapterCorrectionBtn.textContent = chapterCorrectionEnabled ? "モデル補正ON" : "モデル補正OFF";
+        chapterCorrectionBtn.classList.toggle("lime", chapterCorrectionEnabled);
+      }
 
-        if (modelUrl) URL.revokeObjectURL(modelUrl);
-        modelUrl = URL.createObjectURL(file);
-        usingUploadedModel = true;
+      if (viewer){
+        viewer.setAttribute("scale", `${chapterCorrectionFactor} ${chapterCorrectionFactor} ${chapterCorrectionFactor}`);
+      }
+    }
+
+
+
+    function getExplanationPanel(){
+      return document.getElementById("explanationSide") || document.getElementById("objectSide");
+    }
+
+    function ensureExplanationCollapseButton(){
+      const panel = getExplanationPanel();
+      const head = panel?.querySelector(".side-head");
+      if (!head || head.querySelector(".text-collapse-btn")) return;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "text-collapse-btn";
+      btn.textContent = "▲";
+      btn.title = "解説文を収納";
+      btn.addEventListener("click", () => {
+        panel.classList.toggle("text-collapsed");
+        const collapsed = panel.classList.contains("text-collapsed");
+        btn.textContent = collapsed ? "▼" : "▲";
+        btn.title = collapsed ? "解説文を展開" : "解説文を収納";
+      });
+      head.appendChild(btn);
+    }
+
+    function setExplanationVisible(hasText){
+      const panel = getExplanationPanel();
+      if (!panel) return;
+      panel.classList.toggle("text-empty", !hasText);
+      if (hasText) ensureExplanationCollapseButton();
+    }
+
+    async function loadChapterText(chapter){
+      if (!chapterTextPathText || !chapterTextBox) return;
+      const textPath = chapter && chapter.textPath ? chapter.textPath : "";
+      chapterTextPathText.textContent = textPath || "未登録";
+      if (!textPath){
+        chapterTextBox.textContent = "";
+        setExplanationVisible(false);
+        return;
+      }
+      try{
+        setExplanationVisible(true);
+        chapterTextBox.textContent = "解説文を読み込み中...";
+        const res = await fetch(toAssetUrl(textPath), {cache:"no-store"});
+        if (!res.ok) throw new Error("TXT " + res.status + ": " + textPath);
+        const text = await res.text();
+        const trimmed = text.trim();
+        setExplanationVisible(trimmed.length > 0);
+        chapterTextBox.textContent = trimmed;
+      }catch(err){
+        console.error(err);
+        chapterTextBox.textContent = "";
+        setExplanationVisible(false);
+      }
+    }
+
+    async function loadChapter(index){
+      if (index < 0 || index >= chapters.length) return;
+
+      currentChapterIndex = index;
+      const ch = chapters[index];
+      chapterSelect.value = String(index);
+
+      chapterNameText.textContent = ch.name;
+      modelPathText.textContent = ch.model || "未登録";
+      iosModelPathText.textContent = ch.iosModel || "未登録";
+      updateChapterCorrectionStatus();
+      pdfFloorPathText.textContent = ch.floorPdf || "未登録";
+      pdfSidePathText.textContent = ch.sidePdf || "未登録";
+
+      await loadChapterText(ch);
+
+      if (ch.model || ch.iosModel) await loadModel(ch.model, ch.iosModel);
+
+      pdfFloorPreview.removeAttribute("src");
+      pdfSidePreview.removeAttribute("src");
+      setPdfStatus("PDF読込OFF");
+
+      updateUrlState();
+    }
+
+    function updateUrlState(){
+      const url = new URL(location.href);
+      if (currentRoot) url.searchParams.set("root", currentRoot);
+      if (chapters[currentChapterIndex]) url.searchParams.set("chapter", chapters[currentChapterIndex].name);
+      history.replaceState(null, "", url.toString());
+      saveCurrentViewerState();
+    }
+
+    async function loadModel(path, iosPath=""){
+      currentModel = path || "";
+      currentIosModel = iosPath || "";
+
+      updateChapterCorrectionStatus();
+
+      if (currentModel && GLB_EXTS.includes(getExt(currentModel))){
+        const modelUrl = toAssetUrl(currentModel);
+        viewer.setAttribute("src", modelUrl);
         viewer.src = modelUrl;
-        viewer.setAttribute("camera-target", `0m ${eyeHeightMeters}m 0m`);
-        viewer.setAttribute("camera-orbit", "0deg 82deg 6m");
-        modelName = file.name;
-        document.body.classList.add("no-model");
-        updateStatus();
-      });
+      } else if (currentIosModel){
+        // USDZしか無い場合、iPhone AR用として保持する。
+        // 3DプレビューにはGLB/GLTFが必要なので、プレビューは未設定になる。
+        viewer.removeAttribute("src");
+      } else {
+        viewer.removeAttribute("src");
+      }
 
-      groundInput.addEventListener("change", () => {
-        const file = groundInput.files && groundInput.files[0];
-        if (!file) return;
+      if (currentIosModel){
+        viewer.setAttribute("ios-src", toAssetUrl(currentIosModel));
+      } else {
+        viewer.removeAttribute("ios-src");
+      }
 
-        if (groundUrl) URL.revokeObjectURL(groundUrl);
-        groundUrl = URL.createObjectURL(file);
-        groundName = file.name;
-        updateStatus();
-      });
+      const iosText = currentIosModel ? ` / iOS USDZあり` : ` / iOS USDZなし`;
+      setObjectStatus(`MODEL LOADING: ${currentModel || "GLBなし"}${iosText} / AR補正×${chapterCorrectionFactor.toFixed(4)}`);
+    }
 
-      filterInput.addEventListener("change", () => {
-        const file = filterInput.files && filterInput.files[0];
-        if (!file) return;
+    async function loadPdfPreview(path, targetImage){
+      try{
+        setPdfStatus("PDF LOADING: " + path);
+        const ext = getExt(path);
 
-        if (filterUrl) URL.revokeObjectURL(filterUrl);
-        filterUrl = URL.createObjectURL(file);
-        setFilterSource(filterUrl);
-        filterName = file.name;
-        setFilterReticleMode(false);
-        updateStatus();
-      });
-
-      viewer.addEventListener("load", () => {
-        document.body.classList.remove("no-model");
-      });
-
-      viewer.addEventListener("error", () => {
-        if (!usingUploadedModel && modelCandidateIndex < modelCandidates.length - 1) {
-          modelCandidateIndex += 1;
-          modelName = modelCandidates[modelCandidateIndex];
-          viewer.src = modelName;
-          updateStatus();
-          return;
+        if (ext === ".pdf"){
+          const task = pdfjsLib.getDocument(toAssetUrl(path));
+          const pdf = await task.promise;
+          const page = await pdf.getPage(1);
+          const viewport = page.getViewport({scale:1.2});
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext("2d", {alpha:false});
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0,0,canvas.width,canvas.height);
+          await page.render({canvasContext:ctx, viewport}).promise;
+          targetImage.src = canvas.toDataURL("image/png");
+        } else {
+          targetImage.src = toAssetUrl(path);
         }
-        document.body.classList.add("no-model");
-      });
 
-      viewer.addEventListener("camera-change", () => {
-        const orbit = viewer.getCameraOrbit && viewer.getCameraOrbit();
-        if (!orbit || typeof orbit.theta !== "number") return;
-        document.body.style.setProperty("--camera-heading", `${orbit.theta * 180 / Math.PI}deg`);
-      });
+        applyPdfScaleConversion();
+        setPdfStatus("PDF PREVIEW: " + path + " / 初期プレビュー倍率 28.571%");
+      }catch(err){
+        console.error(err);
+        setPdfStatus("PDF PREVIEW ERROR");
+      }
+    }
 
-      filterImages.forEach((image) => {
-        image.addEventListener("error", () => {
-          setFilterReticleMode(true);
+
+
+    async function loadChapterPdfPreviews(chapter){
+      pdfFloorPreview.removeAttribute("src");
+      pdfSidePreview.removeAttribute("src");
+
+      const floorPdf = chapter.floorPdf || (chapter.pdfs && chapter.pdfs.length > 0 ? chapter.pdfs[0] : "");
+      const sidePdf = chapter.sidePdf || (chapter.pdfs && chapter.pdfs.length > 1 ? chapter.pdfs.find(p => p !== floorPdf) : "");
+
+      pdfFloorPathText.textContent = floorPdf || "未登録";
+      pdfSidePathText.textContent = sidePdf || "未登録";
+
+      const jobs = [];
+      if (floorPdf) jobs.push(loadPdfPreview(floorPdf, pdfFloorPreview));
+      if (sidePdf && sidePdf !== floorPdf) jobs.push(loadPdfPreview(sidePdf, pdfSidePreview));
+
+      if (jobs.length === 0){
+        setPdfStatus("このチャプターにPDFはありません。");
+        return;
+      }
+
+      await Promise.all(jobs);
+      applyPdfScaleConversion();
+      setPdfStatus(`PDF PREVIEW: ${jobs.length}枚 / 床 ${floorPdf ? getBaseName(floorPdf) : "なし"} / 側面 ${sidePdf ? getBaseName(sidePdf) : "なし"}`);
+    }
+
+    function formatScaleNumber(value){
+      const n = Number(value) || 0;
+      if (Math.abs(n - Math.round(n)) < 0.000001) return String(Math.round(n));
+      return n.toFixed(3).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+    }
+
+    function updatePdfScaleReadout(currentScale, targetScale, percent){
+      if (!pdfScaleReadout) return;
+      if (!currentScale || !targetScale || !percent){
+        pdfScaleReadout.textContent = "縮尺換算: 未設定";
+        return;
+      }
+
+      pdfScaleReadout.textContent =
+        `縮尺換算: 1/${formatScaleNumber(currentScale)} → 1/${formatScaleNumber(targetScale)} = プレビュー倍率 ${formatScaleNumber(percent)}%`;
+    }
+
+    function applyPdfScaleConversion(){
+      const currentScale = parseFloat(pdfCurrentScaleInput.value) || 0;
+      const targetScale = parseFloat(pdfTargetScaleInput.value) || 0;
+
+      if (currentScale <= 0 || targetScale <= 0){
+        alert("縮尺は 100 や 50 のように、1/○ の分母だけ入力してください。");
+        return;
+      }
+
+      const percent = Math.max(1, Math.min(5000, 100 * currentScale / targetScale));
+      pdfFloorPreview.style.transform = `scale(${percent / 100})`;
+      pdfSidePreview.style.transform = `scale(${percent / 100})`;
+      pdfFloorPreview.style.marginBottom = `${Math.max(0, percent - 100) * 0.25}px`;
+      pdfSidePreview.style.marginBottom = `${Math.max(0, percent - 100) * 0.25}px`;
+      updatePdfScaleReadout(currentScale, targetScale, percent);
+      setPdfStatus(`縮尺反映: 1/${formatScaleNumber(currentScale)} → 1/${formatScaleNumber(targetScale)} / プレビュー倍率 ${formatScaleNumber(percent)}%`);
+    }
+
+    function resetPdfScaleConversion(){
+      pdfCurrentScaleInput.value = "20";
+      pdfTargetScaleInput.value = "70";
+      pdfFloorPreview.style.transform = "scale(0.28571)";
+      pdfSidePreview.style.transform = "scale(0.28571)";
+      pdfFloorPreview.style.marginBottom = "0";
+      pdfSidePreview.style.marginBottom = "0";
+      updatePdfScaleReadout(20, 70, 28.571);
+      setPdfStatus("縮尺初期化: 1/20 → 1/70 / プレビュー倍率 28.571%");
+    }
+
+    async function changeChapter(delta){
+      if (chapters.length === 0) return;
+      let next = currentChapterIndex + delta;
+      if (next < 0) next = chapters.length - 1;
+      if (next >= chapters.length) next = 0;
+      await loadChapter(next);
+    }
+
+    async function playSelectedAnimation(name, restart=true){
+      if (!name) return false;
+      viewer.animationName = name;
+      viewer.setAttribute("animation-name", name);
+      viewer.timeScale = playSpeed;
+      try{
+        if (viewer.updateComplete) await viewer.updateComplete;
+        if (restart) viewer.currentTime = 0;
+        await viewer.play();
+      }catch(err){
+        console.warn("Animation play retry", err);
+        setTimeout(() => {
+          try{
+            viewer.animationName = name;
+            viewer.setAttribute("animation-name", name);
+            viewer.timeScale = playSpeed;
+            if (restart) viewer.currentTime = 0;
+            viewer.play();
+          }catch(e){ console.warn(e); }
+        }, 250);
+      }
+      isPaused = false;
+      playPauseBtn.textContent = "一時停止";
+      if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
+      return true;
+    }
+    function refreshAnimations(){
+      const animations = viewer.availableAnimations || [];
+      animationSelect.innerHTML = "";
+
+      if (animations.length === 0){
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "アニメーションなし";
+        animationSelect.appendChild(opt);
+        return;
+      }
+
+      for (const name of animations){
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        animationSelect.appendChild(opt);
+      }
+
+      animationSelect.value = animations[0];
+      playSelectedAnimation(animations[0], true);
+      playPauseBtn.textContent = "一時停止";
+    }
+
+    function setRecordingUi(isRecording){
+      if (recordStartBtn) recordStartBtn.disabled = isRecording;
+      if (recordStopBtn) recordStopBtn.disabled = !isRecording;
+      if (mobileRecordStartBtn) mobileRecordStartBtn.disabled = isRecording;
+      if (mobileRecordStopBtn) mobileRecordStopBtn.disabled = !isRecording;
+      if (recordStartBtn) recordStartBtn.textContent = isRecording ? "録画中" : "録画開始";
+      if (mobileRecordStartBtn) mobileRecordStartBtn.textContent = isRecording ? "録画中" : "録画開始";
+    }
+
+    function getRecordingMimeType(){
+      const candidates = [
+        "video/webm;codecs=vp9",
+        "video/webm;codecs=vp8",
+        "video/webm"
+      ];
+      return candidates.find(type => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || "";
+    }
+
+    async function startRecording(){
+      if (mediaRecorder && mediaRecorder.state === "recording") return;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia || !window.MediaRecorder){
+        alert("このブラウザでは録画機能が使えません。PC版Chrome/Edgeなどで試してください。");
+        setObjectStatus("RECORDING UNSUPPORTED");
+        return;
+      }
+      try{
+        recordingStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { frameRate: 30 },
+          audio: false
         });
-
-        image.addEventListener("load", () => {
-          setFilterReticleMode(false);
+        recordedChunks = [];
+        const mimeType = getRecordingMimeType();
+        mediaRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
+        mediaRecorder.addEventListener("dataavailable", event => {
+          if (event.data && event.data.size > 0) recordedChunks.push(event.data);
         });
-      });
+        mediaRecorder.addEventListener("stop", saveRecording);
+        recordingStream.getVideoTracks()[0]?.addEventListener("ended", stopRecording);
+        mediaRecorder.start(250);
+        setRecordingUi(true);
+        setObjectStatus("録画中: ブラウザ画面を記録しています。");
+      }catch(err){
+        console.error(err);
+        setRecordingUi(false);
+        setObjectStatus("RECORDING CANCELLED");
+      }
+    }
 
-      subjectiveToggle.addEventListener("click", () => {
-        const active = subjectiveToggle.getAttribute("aria-pressed") !== "true";
-        subjectiveToggle.setAttribute("aria-pressed", String(active));
-        filterLayers.forEach((layer) => {
-          layer.classList.toggle("active", active);
-        });
-      });
+    function stopRecording(){
+      if (mediaRecorder && mediaRecorder.state !== "inactive"){
+        mediaRecorder.stop();
+      } else {
+        saveRecording();
+      }
+    }
 
-      modeButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          const view = button.dataset.view;
-          document.body.classList.toggle("view-plan", view === "plan");
-          document.body.classList.toggle("view-3d", view === "3d");
-          document.body.classList.toggle("view-split", view === "split");
-          modeButtons.forEach((item) => {
-            item.classList.toggle("active", item === button);
-          });
-        });
-      });
+    function saveRecording(){
+      setRecordingUi(false);
+      if (recordingStream){
+        recordingStream.getTracks().forEach(track => track.stop());
+        recordingStream = null;
+      }
+      if (!recordedChunks.length){
+        setObjectStatus("録画データがありません。");
+        return;
+      }
+      const blob = new Blob(recordedChunks, { type: recordedChunks[0]?.type || "video/webm" });
+      recordedChunks = [];
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const ch = chapters[currentChapterIndex]?.name || "chapter";
+      a.href = url;
+      a.download = `ar-viewer_${ch}_${new Date().toISOString().replace(/[:.]/g,"-")}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setObjectStatus("録画を保存しました: " + a.download);
+    }
+    async function openAR(){
+      const shouldContinue = await askOpenInSafariIfNeeded();
+      if (!shouldContinue) return;
 
-      viewerShell.addEventListener("pointerdown", (event) => {
-        if (event.button && event.button !== 0) return;
-        event.preventDefault();
-        dragging = true;
-        lastPointerX = event.clientX;
-        lastPointerY = event.clientY;
-        viewerShell.classList.add("dragging");
-        viewerShell.setPointerCapture(event.pointerId);
-      });
+      const ios = isIOSLike();
+      const safari = isSafariLike();
 
-      viewerShell.addEventListener("pointermove", (event) => {
-        if (!dragging) return;
-        const deltaX = event.clientX - lastPointerX;
-        const deltaY = event.clientY - lastPointerY;
-        lastPointerX = event.clientX;
-        lastPointerY = event.clientY;
-        demoTurn += deltaX * 0.35;
-        demoPan += deltaX * 0.2;
-        demoTilt = Math.max(42, Math.min(78, demoTilt - deltaY * 0.12));
-        updateDemoCamera();
-      });
+      if (!currentModel && !currentIosModel){
+        alert("先にチャプターを選んでモデルを読み込んでください。");
+        return;
+      }
 
-      viewerShell.addEventListener("pointerup", (event) => {
-        dragging = false;
-        viewerShell.classList.remove("dragging");
-        if (viewerShell.hasPointerCapture(event.pointerId)) {
-          viewerShell.releasePointerCapture(event.pointerId);
+      if (ios && !currentIosModel){
+        alert("iPhone/iPadのARにはUSDZファイルが必要です。\n\nこのチャプターにはUSDZが見つかりません。\nChromeで試す場合も、同じCHフォルダ内に .usdz を入れてください。");
+        setObjectStatus("iOS AR ERROR: USDZがありません。");
+        return;
+      }
+
+      if (ios && !safari){
+        setObjectStatus("iPhone Chromeで直接AR起動を試します。失敗時はUSDZ直接起動へ切替できます。");
+      }
+
+      try{
+        markArLaunchPending();
+        await viewer.activateAR();
+        setObjectStatus(autoAdvanceAfterAR ? "AR起動要求を送信しました。戻ったら次CHへ進みます。" : "AR起動要求を送信しました。戻っても現在CHを保持します。");
+      }catch(err){
+        console.error(err);
+
+        const ios = isIOSLike();
+        const safari = isSafariLike();
+
+        if (ios && !safari && currentIosModel){
+          const ok = confirm(
+            "iPhone ChromeでAR起動に失敗しました。\n\n" +
+            "同じCHフォルダ内のUSDZを直接開いてARを試しますか？\n\n" +
+            "OK: USDZを直接開く\n" +
+            "キャンセル: 中止"
+          );
+          if (ok){
+            openUsdZDirectly();
+            return;
+          }
         }
-      });
 
-      viewerShell.addEventListener("pointercancel", () => {
-        dragging = false;
-        viewerShell.classList.remove("dragging");
-      });
+        clearArLaunchPending();
 
-      viewerShell.addEventListener("mousedown", (event) => {
-        if (event.button !== 0) return;
-        dragging = true;
-        lastPointerX = event.clientX;
-        lastPointerY = event.clientY;
-        viewerShell.classList.add("dragging");
-      });
+        alert(
+          "AR起動に失敗しました。\n\n" +
+          "iPhone Chromeでは端末やiOSの仕様により動かない場合があります。\n" +
+          "USDZが入っているか、ファイルサイズが大きすぎないか確認してください。"
+        );
+        setObjectStatus("AR START ERROR");
+      }
+    }
 
-      window.addEventListener("mousemove", (event) => {
-        if (!dragging) return;
-        const deltaX = event.clientX - lastPointerX;
-        const deltaY = event.clientY - lastPointerY;
-        lastPointerX = event.clientX;
-        lastPointerY = event.clientY;
-        demoTurn += deltaX * 0.35;
-        demoPan += deltaX * 0.2;
-        demoTilt = Math.max(42, Math.min(78, demoTilt - deltaY * 0.12));
-        updateDemoCamera();
-      });
+    function open3D(){
+      const ch = chapters[currentChapterIndex];
+      const url = new URL(location.origin + location.pathname.replace(/\/[^\/]*$/, "/"));
+      url.searchParams.set("v", "20260605_0043_v61");
+      if (currentRoot) url.searchParams.set("root", currentRoot);
+      if (ch) url.searchParams.set("chapter", ch.name);
+      window.open(url.toString(), "_blank");
+    }
 
-      window.addEventListener("mouseup", () => {
-        dragging = false;
-        viewerShell.classList.remove("dragging");
-      });
+    viewer.addEventListener("load", async () => {
+      try{ if (viewer.updateComplete) await viewer.updateComplete; }catch(e){}
+      refreshAnimations();
+      setObjectStatus("読込完了: " + currentModel);
+    });
 
-      updateDemoCamera();
-    </script>
-  </body>
+    viewer.addEventListener("finished", () => {
+      isPaused = true;
+      playPauseBtn.textContent = "再生";
+      if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
+      setObjectStatus("ANIMATION COMPLETE");
+    });
+
+    viewer.addEventListener("error", event => {
+      console.error("model-viewer error", event.detail || event);
+      setObjectStatus("MODEL LOAD ERROR: " + (currentModel || "GLBなし"));
+    });
+
+    viewer.addEventListener("ar-status", event => {
+      setObjectStatus("AR STATUS: " + event.detail.status);
+    });
+
+
+
+    function syncTopBarsCollapsed(){
+      const collapsed = refbar.classList.contains("collapsed");
+      app.classList.toggle("bars-collapsed", collapsed);
+      app.classList.toggle("all-bars-collapsed", collapsed);
+      collapseRefBtn?.setAttribute("aria-label", collapsed ? "バーを展開" : "バーを収納");
+      collapseRefBtn?.setAttribute("title", collapsed ? "バーを展開" : "バーを収納");
+    }
+
+    function closeMobilePanels(){
+      refbar.classList.remove("mobile-open");
+      objectSide.classList.remove("mobile-open");
+      pdfSide.classList.remove("mobile-open");
+      document.querySelector(".playbar")?.classList.remove("mobile-open");
+      mobileQuickPanel?.classList.remove("mobile-open");
+    }
+
+    function openMobilePanel(panel){
+      closeMobilePanels();
+
+      if (panel === "quick"){
+        mobileQuickPanel?.classList.add("mobile-open");
+        return;
+      }
+
+      if (panel === "ref"){
+        refbar.classList.add("mobile-open");
+        return;
+      }
+
+      if (panel === "object"){
+        objectSide.classList.add("mobile-open");
+        return;
+      }
+
+      if (panel === "pdf"){
+        pdfSide.classList.add("mobile-open");
+        return;
+      }
+
+      if (panel === "anim"){
+        document.querySelector(".playbar")?.classList.add("mobile-open");
+      }
+    }
+
+    function toggleMobilePlay(){
+      if (!currentModel) return alert("GLB/GLTFが無いため、3Dプレビュー再生はできません。iPhone AR用USDZのみ読み込まれている可能性があります。");
+      if (isPaused){
+        playSelectedAnimation(animationSelect.value || viewer.animationName, false);
+      } else {
+        viewer.pause();
+        isPaused = true;
+        playPauseBtn.textContent = "再生";
+        if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
+      }
+    }
+
+    restoreBarsBtn?.addEventListener("click", () => {
+      refbar.classList.remove("collapsed");
+      syncTopBarsCollapsed();
+    });
+
+    collapseRefBtn.addEventListener("click", () => {
+      refbar.classList.toggle("collapsed");
+      collapseRefBtn.textContent = refbar.classList.contains("collapsed") ? "上部バー展開" : "上部バー収納";
+      syncTopBarsCollapsed();
+    });
+
+    scanBtn.addEventListener("click", loadReferenceRoot);
+    autoRootBtn.addEventListener("click", autoDetectRoot);
+    chapterSelect.addEventListener("change", () => loadChapter(parseInt(chapterSelect.value,10)));
+    prevChapterBtn.addEventListener("click", () => changeChapter(-1));
+    nextChapterBtn.addEventListener("click", () => changeChapter(1));
+    prevBottomBtn.addEventListener("click", () => changeChapter(-1));
+
+    arStartBtn.addEventListener("click", openAR);
+    recordStartBtn?.addEventListener("click", startRecording);
+    recordStopBtn?.addEventListener("click", stopRecording);
+    modelUrlBtn.addEventListener("click", () => {
+      if (!currentModel) return alert("GLB/GLTFモデル未読込");
+      prompt("GLB/GLTF モデルURL", toAssetUrl(currentModel));
+    });
+    iosModelUrlBtn.addEventListener("click", showIosModelUrl);
+    directUsdZBtn.addEventListener("click", openUsdZDirectly);
+    clearModelBtn.addEventListener("click", () => {
+      currentModel = "";
+      currentIosModel = "";
+      viewer.removeAttribute("src");
+      viewer.removeAttribute("ios-src");
+      setObjectStatus("MODEL CLEARED");
+    });
+    resetViewBtn.addEventListener("click", () => {
+      viewer.cameraOrbit = "25deg 70deg 130%";
+      viewer.cameraTarget = "auto auto auto";
+      viewer.fieldOfView = "auto";
+    });
+
+    chapterCorrectionBtn.addEventListener("click", () => {
+      chapterCorrectionEnabled = !chapterCorrectionEnabled;
+      updateChapterCorrectionStatus();
+      setObjectStatus(`ARモデル補正 ${chapterCorrectionEnabled ? "ON" : "OFF"} / ×${chapterCorrectionFactor.toFixed(4)}`);
+    });
+
+    chapterCorrectionApplyBtn.addEventListener("click", () => {
+      pdfCurrentScaleInput.value = "20";
+      pdfTargetScaleInput.value = "70";
+      applyPdfScaleConversion();
+      updateChapterCorrectionStatus();
+      setObjectStatus(`AR補正再反映: PDFは1/20→1/70固定 / モデルだけ×${chapterCorrectionFactor.toFixed(4)}`);
+    });
+
+    mobilePrevBtn.addEventListener("click", () => changeChapter(-1));
+    mobileNextBtn.addEventListener("click", () => changeChapter(1));
+    mobilePlayBtn.addEventListener("click", toggleMobilePlay);
+    mobileArBtn.addEventListener("click", openAR);
+    mobileRecordStartBtn?.addEventListener("click", startRecording);
+    mobileRecordStopBtn?.addEventListener("click", stopRecording);
+    mobilePanelBtn.addEventListener("click", () => {
+      if (mobileQuickPanel.classList.contains("mobile-open")) closeMobilePanels();
+      else openMobilePanel("quick");
+    });
+    mobileBack3dBtn.addEventListener("click", open3D);
+
+    afterArNextBtn.addEventListener("click", toggleAfterArNext);
+    mobileAfterArNextBtn.addEventListener("click", toggleAfterArNext);
+    mobileNextArBtn.addEventListener("click", nextChapterAndOpenAR);
+
+    mobileOpenRefBtn.addEventListener("click", () => openMobilePanel("ref"));
+    mobileOpenObjectBtn.addEventListener("click", () => openMobilePanel("object"));
+    mobileOpenPdfBtn.addEventListener("click", () => openMobilePanel("pdf"));
+    mobileOpenAnimBtn.addEventListener("click", () => openMobilePanel("anim"));
+    mobileDirectUsdZBtn.addEventListener("click", openUsdZDirectly);
+    mobileResetViewBtn.addEventListener("click", () => {
+      closeMobilePanels();
+      viewer.cameraOrbit = "25deg 70deg 130%";
+      viewer.cameraTarget = "auto auto auto";
+      viewer.fieldOfView = "auto";
+    });
+    mobileClosePanelsBtn.addEventListener("click", closeMobilePanels);
+
+    playPauseBtn.addEventListener("click", () => {
+      if (!currentModel) return;
+      if (isPaused){
+        viewer.play();
+        isPaused = false;
+        playPauseBtn.textContent = "一時停止";
+        if (mobilePlayBtn) mobilePlayBtn.textContent = "停止";
+      } else {
+        viewer.pause();
+        isPaused = true;
+        playPauseBtn.textContent = "再生";
+        if (mobilePlayBtn) mobilePlayBtn.textContent = "再生";
+      }
+    });
+
+    restartBtn.addEventListener("click", () => {
+      playSelectedAnimation(animationSelect.value || viewer.animationName, true);
+    });
+
+    speedRange.addEventListener("input", () => {
+      playSpeed = parseFloat(speedRange.value) || 0.8;
+      speedText.textContent = playSpeed.toFixed(2) + "x";
+      viewer.timeScale = playSpeed;
+    });
+
+    animationSelect.addEventListener("change", () => {
+      if (!animationSelect.value) return;
+      playSelectedAnimation(animationSelect.value, true);
+    });
+
+    applyPdfScaleBtn.addEventListener("click", applyPdfScaleConversion);
+    resetPdfScaleBtn.addEventListener("click", resetPdfScaleConversion);
+    pdfCurrentScaleInput.addEventListener("change", applyPdfScaleConversion);
+    pdfTargetScaleInput.addEventListener("change", applyPdfScaleConversion);
+
+    back3dBtn.addEventListener("click", open3D);
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden){
+        if (arLaunchPending){
+          arReturnObservedHidden = true;
+        }
+      }else{
+        if (arLaunchPending && arReturnObservedHidden){
+          setTimeout(() => handleReturnFromAR("visibility"), 300);
+        }
+      }
+    });
+
+    window.addEventListener("focus", () => {
+      if (arLaunchPending && arReturnObservedHidden){
+        setTimeout(() => handleReturnFromAR("focus"), 300);
+      }
+    });
+
+    window.addEventListener("pageshow", (event) => {
+      if (event.persisted){
+        setTimeout(() => handleReturnFromAR("pageshow"), 300);
+      }
+    });
+
+    syncTopBarsCollapsed();
+    ensureExplanationCollapseButton();
+    setExplanationVisible(false);
+    if (initialRoot) rootInput.value = initialRoot;
+    chapterCorrectionBtn.classList.toggle("lime", chapterCorrectionEnabled);
+    updateChapterCorrectionStatus();
+
+
+    // Temporary: PDF preview loading is disabled.
+    const PDF_PREVIEW_DISABLED = true;
+    loadPdfPreview = async function(){
+      pdfFloorPreview.removeAttribute("src");
+      pdfSidePreview.removeAttribute("src");
+      setPdfStatus("PDF読込OFF");
+    };
+    loadChapterPdfPreviews = async function(){
+      pdfFloorPreview.removeAttribute("src");
+      pdfSidePreview.removeAttribute("src");
+      setPdfStatus("PDF読込OFF");
+    };
+
+    updateAfterArNextButtons();
+    loadReferenceRoot();
+  </script>
+</body>
 </html>
