@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <!-- latest build: 2026-07-03 -->
+  <!-- latest build: 2026-07-06 AR known chapter fallback fix -->
   <title>ARビュアー</title>
 
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
@@ -1645,6 +1645,16 @@ html,body{
     const PDF_EXTS = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
     const TXT_EXTS = [".txt"];
 
+    const KNOWN_CHAPTER_ASSETS = {
+      CH01:{model:"01ベース筋.glb", iosModel:"ベース筋.usdz", objModel:"01.obj", mtlPath:"01.mtl", pdfs:["01ベース筋.pdf","01ベース筋.png"]},
+      CH02:{model:"02フープ.glb", iosModel:"02フープ.usdz", objModel:"02フープ筋.obj", mtlPath:"02フープ筋.mtl", pdfs:["02フープ筋.pdf","02フープ筋.png"]},
+      CH03:{model:"03柱主筋.glb", iosModel:"03柱主筋.usdz", objModel:"03.obj", mtlPath:"03.mtl", pdfs:["03柱主筋.pdf","03柱主筋.png"], textPath:"03柱主筋.txt"},
+      CH04:{model:"04柱完成.glb", iosModel:"04柱完成.usdz", objModel:"04.obj", mtlPath:"04.mtl", pdfs:["04柱主筋.pdf","04柱主筋.png"]},
+      CH05:{model:"05.glb", iosModel:"05.usdz", objModel:"05.obj", mtlPath:"05.mtl", pdfs:["05D通り.pdf","05D通り_page_001.png","05梁平面.pdf","05梁平面_page_001.png"]},
+      CH06:{model:"06.glb", iosModel:"06.usdz", objModel:"06.obj", mtlPath:"06.mtl", pdfs:[]},
+      CH07:{model:"07.glb", iosModel:"07.usdz", objModel:"07.obj", mtlPath:"07.mtl", pdfs:[]}
+    };
+
     const app = document.getElementById("app");
     const restoreBarsBtn = document.getElementById("restoreBarsBtn");
     const viewer = document.getElementById("viewer");
@@ -2038,6 +2048,42 @@ html,body{
     }
 
 
+    function applyKnownChapterFallback(chapter, root){
+      if (!chapter) return chapter;
+      const name = String(chapter.name || getBaseName(chapter.path || "") || "").trim();
+      const assets = KNOWN_CHAPTER_ASSETS[name];
+      if (!assets) return chapter;
+
+      const chapterRoot = normalizePath(chapter.path || (normalizePath(root) + "/" + name));
+      const withRoot = value => {
+        const v = String(value || "").trim();
+        if (!v) return "";
+        return v.includes("/") ? normalizePath(v) : chapterRoot + "/" + v;
+      };
+      const fallbackPdfs = (assets.pdfs || []).map(withRoot).filter(Boolean);
+      const files = new Set(Array.isArray(chapter.files) ? chapter.files.filter(Boolean).map(normalizePath) : []);
+      [assets.model, assets.iosModel, assets.objModel, assets.mtlPath, assets.textPath, ...(assets.pdfs || [])]
+        .map(withRoot)
+        .filter(Boolean)
+        .forEach(path => files.add(path));
+
+      return {
+        ...chapter,
+        name,
+        path: chapterRoot,
+        model: normalizePath(chapter.model || "") || withRoot(assets.model),
+        iosModel: normalizePath(chapter.iosModel || "") || withRoot(assets.iosModel),
+        objModel: normalizePath(chapter.objModel || "") || withRoot(assets.objModel),
+        mtlPath: normalizePath(chapter.mtlPath || "") || withRoot(assets.mtlPath),
+        pdf: normalizePath(chapter.pdf || "") || fallbackPdfs[0] || "",
+        floorPdf: normalizePath(chapter.floorPdf || "") || fallbackPdfs[0] || "",
+        sidePdf: normalizePath(chapter.sidePdf || "") || fallbackPdfs[1] || "",
+        pdfs: Array.isArray(chapter.pdfs) && chapter.pdfs.length ? chapter.pdfs.map(normalizePath) : fallbackPdfs,
+        textPath: normalizePath(chapter.textPath || "") || withRoot(assets.textPath),
+        files: Array.from(files)
+      };
+    }
+
     /* AR_CH_MANIFEST_HELPER_V1: root manifest + per-CH manifest fallback. */
     async function fetchViewerManifest(root){
       const manifestPath = normalizePath(root) + "/viewer_manifest.json";
@@ -2045,18 +2091,21 @@ html,body{
       if (!res.ok) throw new Error("viewer_manifest " + res.status);
       const data = await res.json();
       const list = Array.isArray(data.chapters) ? data.chapters : [];
-      return list.map(ch => ({
+      if (list.length === 0) throw new Error("viewer_manifest has no chapters");
+      return list.map(ch => applyKnownChapterFallback({
         name: ch.name || getBaseName(ch.path || ""),
         path: normalizePath(ch.path || (normalizePath(root) + "/" + (ch.name || ""))),
         model: normalizePath(ch.model || ch.glb || ch.gltf || ""),
         iosModel: normalizePath(ch.iosModel || ch.usdz || ""),
+        objModel: normalizePath(ch.objModel || ch.obj || ""),
+        mtlPath: normalizePath(ch.mtlPath || ch.mtl || ""),
         pdf: normalizePath(ch.pdf || ch.floorPdf || ""),
         floorPdf: normalizePath(ch.floorPdf || ch.pdf || ""),
         sidePdf: normalizePath(ch.sidePdf || ""),
         pdfs: Array.isArray(ch.pdfs) ? ch.pdfs.map(normalizePath) : [],
         textPath: normalizePath(ch.textPath || ch.txt || ""),
         files: Array.isArray(ch.files) ? ch.files.map(normalizePath) : []
-      }));
+      }, root));
     }
 
     async function fetchChapterManifest(root, chapterName){
@@ -2064,7 +2113,12 @@ html,body{
       const manifestPath = chapterRoot + "/viewer_manifest.json";
       const res = await fetchManifestResponse(manifestPath);
       if (!res.ok) return null;
-      const data = await res.json();
+      let data = await res.json();
+      if (Array.isArray(data.chapters)){
+        const found = data.chapters.find(ch => ch.name === chapterName || normalizePath(ch.path || "").endsWith("/" + chapterName));
+        if (!found) return null;
+        data = found;
+      }
       const withRoot = p => {
         const v = String(p || "").trim();
         if (!v) return "";
@@ -2074,23 +2128,25 @@ html,body{
       const addFile = p => { const v = withRoot(p); if (v && !files.includes(v)) files.push(v); };
       const explicitFiles = data.files || data.items || data.assets || data.entries || [];
       explicitFiles.forEach(addFile);
-      [data.model, data.glb, data.gltf, data.iosModel, data.usdz, data.pdf, data.floorPdf, data.sidePdf, data.textPath, data.txt].forEach(addFile);
+      [data.model, data.glb, data.gltf, data.iosModel, data.usdz, data.objModel, data.obj, data.mtlPath, data.mtl, data.pdf, data.floorPdf, data.sidePdf, data.textPath, data.txt].forEach(addFile);
       (data.pdfs || data.pdfFiles || []).forEach(addFile);
       const findExt = exts => files.find(p => exts.includes(getExt(p))) || "";
       const pdfs = [...new Set((data.pdfs || data.pdfFiles || files.filter(p => PDF_EXTS.includes(getExt(p)))).map(withRoot).filter(Boolean))];
       const chosen = chooseFloorAndSidePdfs(pdfs.map(p => ({path:p})));
-      return {
+      return applyKnownChapterFallback({
         name: chapterName,
         path: chapterRoot,
         model: withRoot(data.model || data.glb || data.gltf) || findExt(GLB_EXTS) || findExt(MODEL_EXTS),
         iosModel: withRoot(data.iosModel || data.usdz) || findExt(USDZ_EXTS),
+        objModel: withRoot(data.objModel || data.obj),
+        mtlPath: withRoot(data.mtlPath || data.mtl),
         pdf: withRoot(data.pdf) || chosen.floorPdf,
         floorPdf: withRoot(data.floorPdf) || chosen.floorPdf,
         sidePdf: withRoot(data.sidePdf) || chosen.sidePdf,
         pdfs: chosen.pdfs,
         textPath: withRoot(data.textPath || data.txt) || findExt(TXT_EXTS),
         files
-      };
+      }, root);
     }
 
     function ensureExpectedChapters(list, root){
@@ -2100,7 +2156,7 @@ html,body{
         if (!result.some(ch => ch.name === name)) result.push({name, path: normalizePath(root) + "/" + name, model:"", iosModel:"", pdf:"", floorPdf:"", sidePdf:"", pdfs:[], textPath:"", files:[]});
       });
       result.sort((a,b)=>String(a.name || "").localeCompare(String(b.name || ""), "ja", {numeric:true}));
-      return result;
+      return result.map(ch => applyKnownChapterFallback(ch, root));
     }
 
     async function mergeChapterManifests(root, baseList){
@@ -2124,7 +2180,12 @@ html,body{
         const manifestChapters = await fetchViewerManifest(root);
         return await mergeChapterManifests(root, manifestChapters);
       }catch(manifestErr){
-        console.warn("viewer_manifest fallback to GitHub API:", manifestErr.message);
+        console.warn("viewer_manifest fallback to CH manifests:", manifestErr.message);
+        const manifestFallback = await mergeChapterManifests(root, []);
+        if (manifestFallback.some(ch => ch.model || ch.iosModel || ch.objModel || ch.pdf || ch.textPath)){
+          return manifestFallback;
+        }
+        console.warn("CH manifests fallback to GitHub API");
       }
       const items = await fetchGitHubContents(root);
       const dirs = Array.isArray(items) ? items.filter(item => item.type === "dir") : [];
